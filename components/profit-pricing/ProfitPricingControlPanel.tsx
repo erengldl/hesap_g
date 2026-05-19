@@ -93,7 +93,7 @@ function ChannelInput(props: {
   onChange: (value: number | undefined) => void;
 }) {
   return (
-    <label className="space-y-2">
+    <label className="space-y-1.5">
       <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
         {props.label}
       </span>
@@ -107,7 +107,7 @@ function ChannelInput(props: {
         }
         className="form-input"
       />
-      <span className="block text-[11px] leading-5 text-muted/600">{props.hint}</span>
+      <span className="block text-[10px] leading-4 text-muted/600">{props.hint}</span>
     </label>
   );
 }
@@ -130,24 +130,24 @@ function ChannelCard(props: {
     <div
       onClick={() => props.onSelect(profile.channel)}
       className={cn(
-        "cursor-pointer rounded-2xl border bg-panel/72 p-4 text-left transition-all duration-200",
+        "h-full cursor-pointer rounded-2xl border bg-panel/72 p-3 text-left transition-all duration-200",
         active
           ? "border-primary/35 shadow-[var(--shadow-primary)]"
           : "border-border/70 hover:border-border-strong"
       )}
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-sm font-semibold text-foreground">
+          <p className="text-xs font-semibold text-foreground">
             {channelLabel(profile.channel)}
           </p>
-          <p className="mt-1 text-[11px] text-muted/600">
+          <p className="mt-1 text-[10px] text-muted/600">
             Grafikleri bu kartı seçerek değiştir.
           </p>
         </div>
         <span
           className={cn(
-            "rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]",
+            "rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em]",
             active
               ? "border-primary/25 bg-primary/10 text-primary"
               : "border-border/70 bg-surface-container/70 text-muted/650"
@@ -157,7 +157,7 @@ function ChannelCard(props: {
         </span>
       </div>
 
-      <div className="mt-3 space-y-2">
+      <div className="mt-2.5 space-y-2">
         <ChannelInput
           label="Satış fiyatı"
           value={profile.input.salePrice}
@@ -182,22 +182,22 @@ function ChannelCard(props: {
         />
       </div>
 
-      <div className="mt-3 space-y-2">
-        <div className="rounded-xl border border-border/70 bg-surface-container/70 px-3 py-2.5">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-muted/600">Net kâr</p>
-          <p className="mt-1 text-sm font-semibold text-foreground">
+      <div className="mt-2.5 grid gap-2 sm:grid-cols-3">
+        <div className="rounded-xl border border-border/70 bg-surface-container/70 px-2.5 py-2">
+          <p className="text-[9px] uppercase tracking-[0.14em] text-muted/600">Net kâr</p>
+          <p className="mt-1 text-xs font-semibold text-foreground">
             {formatProfitPricingCurrency(result?.netProfit ?? 0)}
           </p>
         </div>
-        <div className="rounded-xl border border-border/70 bg-surface-container/70 px-3 py-2.5">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-muted/600">Marj</p>
-          <p className="mt-1 text-sm font-semibold text-foreground">
+        <div className="rounded-xl border border-border/70 bg-surface-container/70 px-2.5 py-2">
+          <p className="text-[9px] uppercase tracking-[0.14em] text-muted/600">Marj</p>
+          <p className="mt-1 text-xs font-semibold text-foreground">
             {formatProfitPricingPercent(result?.profitMargin ?? null)}
           </p>
         </div>
-        <div className="rounded-xl border border-border/70 bg-surface-container/70 px-3 py-2.5">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-muted/600">Toplam kâr</p>
-          <p className="mt-1 text-sm font-semibold text-foreground">
+        <div className="rounded-xl border border-border/70 bg-surface-container/70 px-2.5 py-2">
+          <p className="text-[9px] uppercase tracking-[0.14em] text-muted/600">Toplam kâr</p>
+          <p className="mt-1 text-xs font-semibold text-foreground">
             {formatProfitPricingCurrency(
               result?.priceGrid.find((point) => point.price === profile.input.salePrice)
                 ?.estimatedTotalProfit ?? result?.priceScenarios[0]?.estimatedTotalProfit ?? 0
@@ -231,7 +231,7 @@ export default function ProfitPricingControlPanel(props: {
 
   return (
     <GlassCard className="border-border/80">
-    <div className="flex w-full flex-col gap-4">
+      <div className="flex w-full flex-col gap-4">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/600">
@@ -294,7 +294,7 @@ export default function ProfitPricingControlPanel(props: {
           </div>
         ) : null}
 
-        <div className="flex w-full flex-col gap-3">
+        <div className="grid w-full gap-3 md:grid-cols-3">
           {props.channelProfiles.map((profile) => (
             <ChannelCard
               key={profile.channel}

@@ -110,7 +110,7 @@ function StrategyButton(props: {
   return (
     <article
       className={cn(
-        "rounded-2xl border p-4 text-left transition-all duration-200",
+        "h-full rounded-2xl border p-3 text-left transition-all duration-200",
         STRATEGY_TONES[props.strategy.key],
         props.active ? "ring-1 ring-current shadow-[var(--shadow-primary)]" : "",
         props.strategy.disabled ? "opacity-60" : ""
@@ -126,11 +126,11 @@ function StrategyButton(props: {
         </span>
       </div>
 
-      <p className="mt-4 text-2xl font-semibold">
+      <p className="mt-3 text-xl font-semibold">
         {formatProfitPricingCurrency(selectedChannelTarget?.price)}
       </p>
 
-      <div className="mt-2 space-y-1 text-[12px] opacity-85">
+      <div className="mt-2 space-y-1 text-[11px] opacity-85">
         <span>
           Talep: {formatProfitPricingNumber(props.strategy.selectedChannelDemand)}
         </span>
@@ -140,11 +140,11 @@ function StrategyButton(props: {
         </span>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-1.5">
         {props.strategy.channelTargets.map((target) => (
           <span
             key={`${props.strategy.key}-${target.channel}`}
-            className="rounded-full border border-current/15 px-2.5 py-1 text-[10px] font-semibold"
+            className="rounded-full border border-current/15 px-2 py-0.5 text-[9px] font-semibold"
           >
             {target.label} {formatProfitPricingCurrency(target.price)}
           </span>
@@ -159,7 +159,7 @@ function StrategyButton(props: {
         type="button"
         disabled={props.strategy.disabled || props.anyApplying}
         onClick={() => props.onApply(props.strategy.key)}
-        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-current/20 bg-current/10 px-3 py-2.5 text-xs font-semibold text-inherit transition hover:bg-current/15 disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-current/20 bg-current/10 px-2.5 py-2 text-[11px] font-semibold text-inherit transition hover:bg-current/15 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {props.applying ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -216,7 +216,7 @@ export default function PriceProfitCurve(props: {
           </p>
         </div>
 
-        <div className="flex w-full flex-col gap-3">
+        <div className="grid w-full gap-3 md:grid-cols-3">
           {strategies.map((strategy) => (
             <StrategyButton
               key={strategy.key}
