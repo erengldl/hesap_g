@@ -378,6 +378,15 @@ function orderStatusCopy(status?: string | null) {
   }
 }
 
+function HistoryStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border/70 bg-surface-container/70 p-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/60">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-foreground">{value}</p>
+    </div>
+  );
+}
+
 function SalesHistoryPreview({
   productId,
   salesHistory,
@@ -407,10 +416,10 @@ function SalesHistoryPreview({
 
       {summary ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <MiniStat label="Toplam" value={formatNumber(summary.totalUnits)} />
-          <MiniStat label="Ciro" value={formatCurrency(summary.totalRevenue)} />
-          <MiniStat label="Aktif gün" value={formatNumber(summary.activeDays)} />
-          <MiniStat label="Günlük ort." value={summary.avgDailyUnits.toFixed(1)} />
+          <HistoryStat label="Toplam" value={formatNumber(summary.totalUnits)} />
+          <HistoryStat label="Ciro" value={formatCurrency(summary.totalRevenue)} />
+          <HistoryStat label="Aktif gün" value={formatNumber(summary.activeDays)} />
+          <HistoryStat label="Günlük ort." value={summary.avgDailyUnits.toFixed(1)} />
         </div>
       ) : (
         <div className="rounded-lg border border-dashed border-border/70 bg-surface-container/50 px-4 py-3 text-sm text-muted">

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { recalculateCostResultsForProductFromDatabase } from "@/lib/cost-engine";
 import { getProductMarginSnapshots, getProductOrderHistory, getProductSalesTrend, summarizeProductTrend, buildProductDescriptionFallback } from "@/lib/product-history";
+import { buildDemoProductDetailResponse } from "@/lib/demo-product-detail";
 import { deleteProductImageUpload } from "@/lib/product-image-upload";
 import type { ProductUpsertInput } from "@/lib/types";
 import { deleteProductRecord, saveProductRecord } from "../service";
@@ -154,7 +155,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
     const db = getDb();
     if (!db) {
-      return NextResponse.json({ success: false, error: "DB unavailable" }, { status: 500 });
+      return NextResponse.json(buildDemoProductDetailResponse(productId));
     }
 
     const product = db.prepare(`
@@ -192,7 +193,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       | undefined;
 
     if (!product) {
-      return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 });
+      return NextResponse.json(buildDemoProductDetailResponse(productId));
     }
 
     const channels = db.prepare(`
