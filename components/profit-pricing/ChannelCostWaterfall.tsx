@@ -271,11 +271,11 @@ export default function ChannelCostWaterfall(props: { result: ProfitPricingResul
         </div>
       </div>
 
-      <div className="p-4">
-        <div className="h-[360px] min-w-0">
+      <div className="p-3">
+        <div className="h-[320px] min-w-0">
           {isMounted ? (
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={360}>
-            <BarChart
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={320}>
+              <BarChart
               data={points}
               layout="vertical"
               margin={{ top: 8, right: 36, left: 28, bottom: 8 }}
@@ -316,57 +316,59 @@ export default function ChannelCostWaterfall(props: { result: ProfitPricingResul
           ) : null}
         </div>
 
-        <div className="mt-4 flex w-full flex-col gap-2">
+        <div className="mt-3 grid w-full gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {visibleItems.map((item) => (
             <div
               key={item.key}
-              className="rounded-2xl border border-border bg-surface-container px-3 py-3"
+              className="rounded-2xl border border-border bg-surface-container px-2 py-2"
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-1.5">
                   <span
-                    className="h-2.5 w-2.5 rounded-full"
+                    className="h-2 w-2 shrink-0 rounded-full"
                     style={{ backgroundColor: GROUP_COLORS[item.group] }}
                   />
-                  <p className="text-sm font-medium text-foreground">{item.label}</p>
+                  <p className="truncate text-[11px] font-medium leading-4 text-foreground">
+                    {item.label}
+                  </p>
                 </div>
-                <p className="text-sm font-semibold text-foreground">
+                <p className="shrink-0 text-[11px] font-semibold text-foreground">
                   {formatProfitPricingCurrency(item.amount)}
                 </p>
               </div>
 
               {getItemSourceLabel(item) ? (
-                <div className="mt-3">
-                  <span className="rounded-full border border-primary/15 bg-primary/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">
+                <div className="mt-2">
+                  <span className="rounded-full border border-primary/15 bg-primary/8 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-primary">
                     {getItemSourceLabel(item)}
                   </span>
                 </div>
               ) : null}
 
               {item.key === "return_impact" ? (
-                <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted/605">
-                  <span className="rounded-full border border-border bg-surface-container px-2 py-1">
+                <div className="mt-2 flex flex-wrap gap-1 text-[8px] font-semibold uppercase tracking-[0.12em] text-muted/605">
+                  <span className="rounded-full border border-border bg-surface-container px-1.5 py-0.5">
                     {formatProfitPricingPercent(automaticReturnRate)} risk oranı
                   </span>
-                  <span className="rounded-full border border-border bg-surface-container px-2 py-1">
+                  <span className="rounded-full border border-border bg-surface-container px-1.5 py-0.5">
                     {formatProfitPricingCurrency(item.amount)} sipariş başı risk
                   </span>
                 </div>
               ) : null}
 
-              <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted/605">
-                <span className="rounded-full border border-border bg-surface-container px-2 py-1">
+              <div className="mt-2 flex flex-wrap gap-1 text-[8px] font-semibold uppercase tracking-[0.12em] text-muted/605">
+                <span className="rounded-full border border-border bg-surface-container px-1.5 py-0.5">
                   {GROUP_LABELS[item.group]}
                 </span>
-                <span className="rounded-full border border-border bg-surface-container px-2 py-1">
+                <span className="rounded-full border border-border bg-surface-container px-1.5 py-0.5">
                   {formatProfitPricingPercent(item.percentageOfSalePrice)} satışa oran
                 </span>
-                <span className="rounded-full border border-border bg-surface-container px-2 py-1">
+                <span className="rounded-full border border-border bg-surface-container px-1.5 py-0.5">
                   {item.isVariableWithPrice ? "Fiyata bağlı" : "Sabit etki"}
                 </span>
               </div>
 
-              <p className="mt-3 text-[11px] leading-5 text-soft">{getItemSupportText(item)}</p>
+              <p className="mt-2 text-[10px] leading-4 text-soft">{getItemSupportText(item)}</p>
             </div>
           ))}
         </div>

@@ -63,7 +63,7 @@ function CurveTooltip({ active, payload }: CurveTooltipProps) {
   }
 
   return (
-    <div className="w-[240px] rounded-2xl border border-border bg-[var(--panel-bg)] p-3 text-sm text-foreground shadow-[var(--shadow-card)]">
+    <div className="w-[220px] rounded-2xl border border-border bg-[var(--panel-bg)] p-2.5 text-sm text-foreground shadow-[var(--shadow-card)]">
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
         Fiyat adayı
       </p>
@@ -110,7 +110,7 @@ function StrategyButton(props: {
   return (
     <article
       className={cn(
-        "h-full rounded-2xl border p-3 text-left transition-all duration-200",
+        "h-full rounded-2xl border p-2.5 text-left transition-all duration-200",
         STRATEGY_TONES[props.strategy.key],
         props.active ? "ring-1 ring-current shadow-[var(--shadow-primary)]" : "",
         props.strategy.disabled ? "opacity-60" : ""
@@ -126,11 +126,11 @@ function StrategyButton(props: {
         </span>
       </div>
 
-      <p className="mt-3 text-xl font-semibold">
+      <p className="mt-2.5 text-lg font-semibold">
         {formatProfitPricingCurrency(selectedChannelTarget?.price)}
       </p>
 
-      <div className="mt-2 space-y-1 text-[11px] opacity-85">
+      <div className="mt-2 space-y-1 text-[10px] opacity-85">
         <span>
           Talep: {formatProfitPricingNumber(props.strategy.selectedChannelDemand)}
         </span>
@@ -140,11 +140,11 @@ function StrategyButton(props: {
         </span>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
+      <div className="mt-2.5 flex flex-wrap gap-1">
         {props.strategy.channelTargets.map((target) => (
           <span
             key={`${props.strategy.key}-${target.channel}`}
-            className="rounded-full border border-current/15 px-2 py-0.5 text-[9px] font-semibold"
+            className="rounded-full border border-current/15 px-1.5 py-0.5 text-[8px] font-semibold"
           >
             {target.label} {formatProfitPricingCurrency(target.price)}
           </span>
@@ -159,7 +159,7 @@ function StrategyButton(props: {
         type="button"
         disabled={props.strategy.disabled || props.anyApplying}
         onClick={() => props.onApply(props.strategy.key)}
-        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-current/20 bg-current/10 px-2.5 py-2 text-[11px] font-semibold text-inherit transition hover:bg-current/15 disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-2.5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-current/20 bg-current/10 px-2 py-1.5 text-[10px] font-semibold text-inherit transition hover:bg-current/15 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {props.applying ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -210,7 +210,7 @@ export default function PriceProfitCurve(props: {
           <h3 className="mt-2 text-lg font-semibold text-foreground">
             Üç farklı optimizasyon önerisi tek tıkla uygulanır
           </h3>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-soft">
+          <p className="mt-2 max-w-xl text-sm leading-6 text-soft">
             Seçili kanal için talep ve toplam kâr eğrisi gösterilir. Üstteki öneri
             butonlarından biri seçildiğinde aynı strateji ürünün tüm kanallarına kaydedilir.
           </p>
@@ -231,9 +231,9 @@ export default function PriceProfitCurve(props: {
         </div>
       </div>
 
-      <div className="mt-4 h-[360px] min-w-0">
+      <div className="mt-4 h-[320px] min-w-0">
         {isMounted ? (
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={360}>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={320}>
           <LineChart data={curveData} margin={{ top: 18, right: 22, left: 8, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
             <XAxis

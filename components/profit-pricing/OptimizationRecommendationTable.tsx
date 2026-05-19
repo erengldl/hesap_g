@@ -83,7 +83,7 @@ export default function OptimizationRecommendationTable(
 ) {
   return (
     <GlassCard className="overflow-hidden border-border/80">
-      <div className="border-b border-border/70 bg-gradient-to-r from-primary/8 via-transparent to-transparent px-4 py-3">
+      <div className="border-b border-border/70 bg-gradient-to-r from-primary/8 via-transparent to-transparent px-3 py-2.5">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
@@ -110,7 +110,7 @@ export default function OptimizationRecommendationTable(
                   disabled={strategy.disabled || props.applyingStrategy !== null}
                   onClick={() => props.onApplyStrategy(strategy.key)}
                   className={cn(
-                    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
+                    "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border px-2.5 py-1.5 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
                     isActive
                       ? "border-primary/45 bg-primary/20 text-primary"
                       : "border-border bg-surface-container text-foreground hover:border-primary/35 hover:bg-primary/10"
@@ -129,20 +129,20 @@ export default function OptimizationRecommendationTable(
         </div>
       </div>
 
-      <div className="overflow-x-auto p-3">
-        <table className="w-full min-w-[980px] border-separate border-spacing-y-2 text-left text-sm">
+      <div className="overflow-x-auto p-2.5">
+        <table className="w-full min-w-[900px] border-separate border-spacing-y-2 text-left text-sm">
           <thead>
             <tr className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
-              <th className="px-3 py-2">Kanal</th>
-              <th className="px-3 py-2">Mevcut fiyat</th>
-              <th className="px-3 py-2">Buybox / Kargo</th>
+              <th className="px-2 py-2">Kanal</th>
+              <th className="px-2 py-2">Mevcut fiyat</th>
+              <th className="px-2 py-2">Buybox / Kargo</th>
               {props.strategies.map((strategy) => (
-                <th key={strategy.key} className="px-3 py-2">
+                <th key={strategy.key} className="px-2 py-2">
                   {strategy.label}
                 </th>
               ))}
-              <th className="px-3 py-2">Net kâr</th>
-              <th className="px-3 py-2">Beklenen toplam kâr</th>
+              <th className="px-2 py-2">Net kâr</th>
+              <th className="px-2 py-2">Beklenen toplam kâr</th>
             </tr>
           </thead>
           <tbody>
@@ -152,39 +152,39 @@ export default function OptimizationRecommendationTable(
 
               return (
                 <tr key={channel} className="rounded-2xl bg-surface-container/70">
-                  <td className="rounded-l-2xl px-3 py-3 font-semibold text-foreground">
+                  <td className="rounded-l-2xl px-2 py-2 font-semibold text-foreground">
                     {channelLabel(channel)}
                   </td>
-                  <td className="px-3 py-3 text-foreground">
+                  <td className="px-2 py-2 text-foreground">
                     {formatProfitPricingCurrency(result?.input.salePrice)}
                   </td>
-                  <td className="px-3 py-3">
+                  <td className="px-2 py-2">
                     <div className="text-foreground">
                       {formatProfitPricingCurrency(reference.value)}
                     </div>
-                    <div className="mt-1 text-[11px] text-muted/600">{reference.label}</div>
+                    <div className="mt-1 text-[10px] text-muted/600">{reference.label}</div>
                   </td>
                   {props.strategies.map((strategy) => {
                     const target = getStrategyTarget(strategy, channel);
 
                     return (
-                      <td key={`${channel}-${strategy.key}`} className="px-3 py-3">
+                      <td key={`${channel}-${strategy.key}`} className="px-2 py-2">
                         <div className="font-semibold text-foreground">
                           {formatProfitPricingCurrency(target?.price)}
                         </div>
-                        <div className="mt-1 text-[11px] text-soft">
+                        <div className="mt-1 text-[10px] text-soft">
                           Talep {formatProfitPricingNumber(target?.demand)}
                         </div>
-                        <div className="mt-1 text-[11px] text-soft">
+                        <div className="mt-1 text-[10px] text-soft">
                           Kâr {formatProfitPricingCurrency(target?.totalProfit)}
                         </div>
                       </td>
                     );
                   })}
-                  <td className="px-3 py-3 font-semibold text-foreground">
+                  <td className="px-2 py-2 font-semibold text-foreground">
                     {formatProfitPricingCurrency(result?.netProfit)}
                   </td>
-                  <td className="rounded-r-2xl px-3 py-3 font-semibold text-foreground">
+                  <td className="rounded-r-2xl px-2 py-2 font-semibold text-foreground">
                     {formatProfitPricingCurrency(getCurrentTotalProfit(result))}
                   </td>
                 </tr>
