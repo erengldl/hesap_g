@@ -1,16 +1,16 @@
 import { getDb } from "@/lib/db";
-import { verifyPassword, hashPassword, verifyToken, getTokenFromCookies } from "@/lib/auth";
+import { verifyPassword, hashPassword } from "@/lib/auth";
 import { badRequest, unauthorized, serverError, ok } from "@/lib/api-helpers";
+import { getAuthenticatedUserFromRequest } from "@/lib/request-auth";
 
 export async function POST(request: Request) {
   try {
-    // Authenticate from cookie
-    const cookieHeader = request.headers.get("cookie") || "";
-    const token = getTokenFromCookies(cookieHeader);
-    if (!token) return unauthorized();
-
-    const user = await verifyToken(token);
+    const user = await getAuthenticatedUserFromRequest(request);
     if (!user) return unauthorized();
+
+    if (user.authProvider === "firebase") {
+      return badRequest("Firebase ile giris yapan hesaplarin sifresi Firebase uzerinden degistirilir.");
+    }
 
     const { currentPassword, newPassword } = (await request.json()) as {
       currentPassword?: string;

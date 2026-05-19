@@ -12,6 +12,8 @@ export interface AuthUser {
   plan: string;
   company?: string | null;
   phone?: string | null;
+  firebaseUid?: string | null;
+  authProvider?: "legacy" | "firebase";
 }
 
 // ─── Password utilities ────────────────────────────────────────────────
@@ -42,6 +44,7 @@ export async function verifyToken(token: string): Promise<AuthUser | null> {
       email: payload.email as string,
       name: payload.name as string,
       plan: (payload.plan as string) || "Premium Plan",
+      authProvider: "legacy",
     };
   } catch {
     return null;

@@ -1,14 +1,10 @@
 import { getDb } from "@/lib/db";
-import { verifyToken, getTokenFromCookies } from "@/lib/auth";
 import { badRequest, unauthorized, serverError, ok } from "@/lib/api-helpers";
+import { getAuthenticatedUserFromRequest } from "@/lib/request-auth";
 
 export async function PATCH(request: Request) {
   try {
-    const cookieHeader = request.headers.get("cookie") || "";
-    const token = getTokenFromCookies(cookieHeader);
-    if (!token) return unauthorized();
-
-    const user = await verifyToken(token);
+    const user = await getAuthenticatedUserFromRequest(request);
     if (!user) return unauthorized();
 
     const { name, company, phone } = (await request.json()) as {

@@ -5,20 +5,20 @@ import { ArrowLeft, BarChart3, Sparkles } from "lucide-react";
 
 import { ManualAdChat } from "@/components/manual-ads/ManualAdChat";
 import { PageHeader, WarningBadge } from "@/components/ui-custom/GlassComponents";
-import { TOKEN_COOKIE_NAME, verifyToken } from "@/lib/auth";
 import { getManualAdCampaignDetail } from "@/lib/manual-ads/repository";
 import { isManualAdReadyForReport } from "@/lib/manual-ads/conversation";
+import { getAuthenticatedUserFromCookieHeader } from "@/lib/request-auth";
 
 export const dynamic = "force-dynamic";
 
 async function getManualAdChatContext(campaignId: string) {
   const cookieStore = await cookies();
-  const token = cookieStore.get(TOKEN_COOKIE_NAME)?.value;
-  if (!token) {
-    return null;
-  }
+  const cookieHeader = cookieStore
+    .getAll()
+    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .join("; ");
 
-  const user = await verifyToken(token);
+  const user = await getAuthenticatedUserFromCookieHeader(cookieHeader);
   if (!user) {
     return null;
   }

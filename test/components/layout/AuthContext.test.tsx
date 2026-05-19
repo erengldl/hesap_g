@@ -52,7 +52,7 @@ describe("AuthContext", () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
-    expect(screen.getByTestId("auth-user")).toHaveTextContent("none");
+    expect(screen.getByTestId("auth-user").textContent).toBe("none");
 
     act(() => {
       latestSetUser?.({
@@ -63,7 +63,7 @@ describe("AuthContext", () => {
       });
     });
 
-    expect(screen.getByTestId("auth-user")).toHaveTextContent("Alice");
+    expect(screen.getByTestId("auth-user").textContent).toBe("Alice");
 
     authMeRequest.resolve(
       new Response(
@@ -76,7 +76,7 @@ describe("AuthContext", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("auth-user")).toHaveTextContent("Alice");
+      expect(screen.getByTestId("auth-user").textContent).toBe("Alice");
     });
   });
 });

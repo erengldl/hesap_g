@@ -1,23 +1,16 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { getTokenFromCookies, verifyToken } from "@/lib/auth";
+import { getClearedFirebaseSessionCookieOptions } from "@/lib/firebase/session";
+import { getAuthenticatedUserFromCookieHeader } from "@/lib/request-auth";
+import { TOKEN_COOKIE_NAME } from "@/lib/auth";
 
 export async function GET(request: Request) {
   try {
     const cookieHeader = request.headers.get("cookie") || "";
-    const token = getTokenFromCookies(cookieHeader);
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, error: "Oturum bulunamadi." },
-        { status: 401 }
-      );
-    }
-
-    const user = await verifyToken(token);
+    const user = await getAuthenticatedUserFromCookieHeader(cookieHeader);
     if (!user) {
       return NextResponse.json(
-        { success: false, error: "Oturum suresi dolmus." },
+        { success: false, error: "Oturum bulunamadi." },
         { status: 401 }
       );
     }
@@ -53,12 +46,13 @@ export async function GET(request: Request) {
 
 export async function DELETE() {
   const response = NextResponse.json({ success: true });
-  response.cookies.set("hg_token", "", {
+  response.cookies.set(TOKEN_COOKIE_NAME, "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: 0,
   });
+  response.cookies.set("hg_session", "", getClearedFirebaseSessionCookieOptions());
   return response;
 }

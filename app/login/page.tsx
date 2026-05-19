@@ -4,8 +4,27 @@ import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { LineChart, Eye, EyeOff, Loader2, LogIn } from "lucide-react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/layout/AuthContext";
+import { getFirebaseAuth, isFirebaseClientConfigured, signOutFirebaseClient } from "@/lib/firebase/client";
+import { getFirebaseErrorMessage } from "@/lib/firebase/errors";
+
+async function exchangeFirebaseSession(idToken: string, displayName: string | null) {
+  const res = await fetch("/api/auth/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken, name: displayName || undefined }),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || "Firebase session could not be created.");
+  }
+
+  return data.user;
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,6 +49,21 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
+      if (isFirebaseClientConfigured()) {
+        const auth = await getFirebaseAuth();
+        const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
+        const idToken = await credential.user.getIdToken(true);
+        const sessionUser = await exchangeFirebaseSession(idToken, credential.user.displayName || null);
+
+        if (sessionUser) {
+          setUser(sessionUser);
+        }
+
+        router.push(redirectPath);
+        router.refresh();
+        return;
+      }
+
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -49,8 +83,11 @@ export default function LoginPage() {
 
       router.push(redirectPath);
       router.refresh();
-    } catch {
-      setError("Sunucu hatası. Lütfen tekrar deneyin.");
+    } catch (error) {
+      if (isFirebaseClientConfigured()) {
+        await signOutFirebaseClient().catch(() => {});
+      }
+      setError(getFirebaseErrorMessage(error, "Sunucu hatası. Lütfen tekrar deneyin."));
     } finally {
       setLoading(false);
     }
@@ -87,7 +124,7 @@ export default function LoginPage() {
                   Finans, ürün ve reklam akışını tek panelden yönetin.
                 </h1>
                 <p className="mt-5 max-w-md text-sm leading-7 text-muted/60">
-                  Yeni arayüz daha yoğun veri tüketimi, net hiyerarşi ve daha güçlü kontrast için tasarlandı. Girişten sonra aynı sistem bütün uygulamaya yayılır.
+                  Girişten sonra aynı oturum tüm uygulama yüzeyinde geçerli olur. Firebase ile açılan hesaplar server session cookie alır.
                 </p>
               </div>
 
@@ -178,10 +215,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className={cn(
-                  "w-full btn-primary py-3.5 text-sm",
-                  loading && "cursor-wait opacity-60"
-                )}
+                className={cn("w-full btn-primary py-3.5 text-sm", loading && "cursor-wait opacity-60")}
               >
                 {loading ? (
                   <>

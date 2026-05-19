@@ -775,6 +775,8 @@ function ensureAppSchema(database: AppDatabase) {
   ensureColumn(database, "seo_jobs", "next_retry_at", "DATETIME");
   ensureColumn(database, "users", "company", "TEXT");
   ensureColumn(database, "users", "phone", "TEXT");
+  ensureColumn(database, "users", "firebase_uid", "TEXT");
+  database.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_firebase_uid ON users(firebase_uid)");
   ensureColumn(database, "product_marketplace_settings", "traffic_cpa", "REAL DEFAULT NULL");
   ensureColumn(database, "product_marketplace_settings", "buybox_price", "REAL DEFAULT NULL");
   ensureColumn(database, "price_optimization_runs", "status", "TEXT DEFAULT 'DRAFT'");

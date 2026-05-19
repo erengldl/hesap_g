@@ -4,8 +4,27 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { LineChart, Eye, EyeOff, Loader2, UserPlus } from "lucide-react";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/layout/AuthContext";
+import { getFirebaseAuth, isFirebaseClientConfigured, signOutFirebaseClient } from "@/lib/firebase/client";
+import { getFirebaseErrorMessage } from "@/lib/firebase/errors";
+
+async function exchangeFirebaseSession(idToken: string, displayName: string) {
+  const res = await fetch("/api/auth/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken, name: displayName }),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || "Firebase session could not be created.");
+  }
+
+  return data.user;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -40,6 +59,22 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
+      if (isFirebaseClientConfigured()) {
+        const auth = await getFirebaseAuth();
+        const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        await updateProfile(credential.user, { displayName: name.trim() });
+
+        const idToken = await credential.user.getIdToken(true);
+        const sessionUser = await exchangeFirebaseSession(idToken, name.trim());
+        if (sessionUser) {
+          setUser(sessionUser);
+        }
+
+        router.push("/dashboard");
+        router.refresh();
+        return;
+      }
+
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -47,7 +82,6 @@ export default function RegisterPage() {
       });
 
       const data = await res.json();
-
       if (!res.ok || !data.success) {
         setError(data.error || "Kayıt başarısız.");
         return;
@@ -59,8 +93,11 @@ export default function RegisterPage() {
 
       router.push("/dashboard");
       router.refresh();
-    } catch {
-      setError("Sunucu hatası. Lütfen tekrar deneyin.");
+    } catch (error) {
+      if (isFirebaseClientConfigured()) {
+        await signOutFirebaseClient().catch(() => {});
+      }
+      setError(getFirebaseErrorMessage(error, "Sunucu hatası. Lütfen tekrar deneyin."));
     } finally {
       setLoading(false);
     }
@@ -94,7 +131,7 @@ export default function RegisterPage() {
                 </span>
 
                 <h1 className="mt-8 max-w-md font-heading text-[2.6rem] font-semibold tracking-[-0.08em] text-foreground">
-                  Hesabınızı açın ve bütün yönetim katmanını tek panelde toplayın.
+                  Hesabınızı açın ve tüm yönetim katmanını tek panelde toplayın.
                 </h1>
                 <p className="mt-5 max-w-md text-sm leading-7 text-muted/60">
                   Kayıt sonrası ürün merkezi, tahmin, reklam analizi ve net maliyet ekranları aynı görsel sistem içinde hazır gelir.
@@ -216,10 +253,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className={cn(
-                  "w-full btn-primary py-3.5 text-sm",
-                  loading && "cursor-wait opacity-60"
-                )}
+                className={cn("w-full btn-primary py-3.5 text-sm", loading && "cursor-wait opacity-60")}
               >
                 {loading ? (
                   <>

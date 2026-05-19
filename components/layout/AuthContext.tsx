@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
 import type { AuthUser } from "@/lib/auth";
+import { signOutFirebaseClient } from "@/lib/firebase/client";
 
 type AuthContextType = {
   user: AuthUser | null;
@@ -83,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     manualAuthMutationRef.current += 1;
     try {
+      await signOutFirebaseClient();
       await fetch("/api/auth/me", { method: "DELETE" });
     } catch {
       // cookie cleared regardless

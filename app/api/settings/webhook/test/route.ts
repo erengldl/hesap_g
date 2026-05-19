@@ -1,7 +1,7 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { NextResponse } from "next/server";
-import { getTokenFromCookies, verifyToken } from "@/lib/auth";
+import { getAuthenticatedUserFromRequest } from "@/lib/request-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -55,12 +55,7 @@ async function isUnsafeWebhookTarget(parsedUrl: URL): Promise<boolean> {
 export async function POST(request: Request) {
   try {
     const cookieHeader = request.headers.get("cookie") || "";
-    const token = getTokenFromCookies(cookieHeader);
-    if (!token) {
-      return NextResponse.json({ success: false, error: "Yetkisiz erisim." }, { status: 401 });
-    }
-
-    const user = await verifyToken(token);
+    const user = await getAuthenticatedUserFromRequest(request);
     if (!user) {
       return NextResponse.json({ success: false, error: "Yetkisiz erisim." }, { status: 401 });
     }
