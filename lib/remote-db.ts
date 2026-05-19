@@ -38,6 +38,10 @@ type BridgePayload = {
   params?: unknown[];
 };
 
+const bridgeTimeoutMs = Number(process.env.REMOTE_DB_BRIDGE_TIMEOUT_MS ?? 5000);
+let bridgeUnavailable = false;
+let bridgeUnavailableMessage: string | null = null;
+
 function isFiniteNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value);
 }
@@ -483,6 +487,10 @@ if (mode === 'get') {
 }
 
 function runBridge(payload: BridgePayload): BridgeResponse {
+  if (bridgeUnavailable) {
+    throw new Error(bridgeUnavailableMessage ?? "Remote database bridge unavailable");
+  }
+
   const bridgeSource = buildBridgeSource();
   const result = spawnSync(
     process.execPath,
@@ -492,15 +500,26 @@ function runBridge(payload: BridgePayload): BridgeResponse {
       encoding: "utf8",
       maxBuffer: 20 * 1024 * 1024,
       env: process.env,
+      timeout: bridgeTimeoutMs,
+      killSignal: "SIGKILL",
     }
   );
 
   if (result.error) {
-    throw result.error;
+    const message = String(result.error.message || result.stderr || result.stdout || "Remote database bridge failed").trim();
+    if (process.env.NODE_ENV === "production") {
+      bridgeUnavailable = true;
+      bridgeUnavailableMessage = message || "Remote database bridge failed";
+    }
+    throw new Error(message || "Remote database bridge failed");
   }
 
   if (result.status !== 0) {
     const message = String(result.stderr || result.stdout || "Remote database bridge failed").trim();
+    if (process.env.NODE_ENV === "production") {
+      bridgeUnavailable = true;
+      bridgeUnavailableMessage = message || "Remote database bridge failed";
+    }
     throw new Error(message || "Remote database bridge failed");
   }
 
