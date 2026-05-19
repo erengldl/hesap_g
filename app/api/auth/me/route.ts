@@ -1,25 +1,15 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { verifyToken } from "@/lib/auth";
+import { getTokenFromCookies, verifyToken } from "@/lib/auth";
 
 export async function GET(request: Request) {
   try {
     const cookieHeader = request.headers.get("cookie") || "";
-    const tokenCookie = cookieHeader
-      .split("; ")
-      .find((c) => c.startsWith("hg_token="));
+    const token = getTokenFromCookies(cookieHeader);
 
-    if (!tokenCookie) {
-      return NextResponse.json(
-        { success: false, error: "Oturum bulunamadi." },
-        { status: 401 }
-      );
-    }
-
-    const token = tokenCookie.split("=")[1];
     if (!token) {
       return NextResponse.json(
-        { success: false, error: "Gecersiz oturum." },
+        { success: false, error: "Oturum bulunamadi." },
         { status: 401 }
       );
     }
