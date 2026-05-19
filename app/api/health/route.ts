@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { isRemoteDatabase } from "@/lib/remote-db";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export async function GET() {
       return NextResponse.json({
         success: false,
         status: "degraded",
+        database_mode: "unavailable",
         timestamp: new Date().toISOString(),
       });
     }
@@ -19,12 +21,14 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       status: "ok",
+      database_mode: isRemoteDatabase(db) ? "supabase" : "sqlite",
       timestamp: new Date().toISOString(),
     });
   } catch {
     return NextResponse.json({
       success: false,
       status: "degraded",
+      database_mode: "unavailable",
       timestamp: new Date().toISOString(),
     });
   }

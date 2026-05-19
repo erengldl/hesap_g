@@ -1,24 +1,36 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import bcrypt from 'bcryptjs';
+import { createRemoteDatabase } from './remote-db';
 
 const DB_PATH = path.join(process.cwd(), 'Veri Merkezi', 'kategoriagaci.db');
 
-let db: Database.Database | null = null;
+interface AppDatabase {
+  prepare(sql: string): {
+    all(...params: any[]): any[];
+    get(...params: any[]): any;
+    run(...params: any[]): any;
+  };
+  exec(sql: string): void;
+  pragma?(sql: string): void;
+  transaction<T extends (...args: any[]) => any>(fn: T): T;
+}
+
+let db: AppDatabase | null = null;
 let schemaEnsured = false;
 
-function hasColumn(database: Database.Database, table: string, column: string) {
+function hasColumn(database: AppDatabase, table: string, column: string) {
   const columns = database.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
   return columns.some((item) => item.name === column);
 }
 
-function ensureColumn(database: Database.Database, table: string, column: string, definition: string) {
+function ensureColumn(database: AppDatabase, table: string, column: string, definition: string) {
   if (!hasColumn(database, table, column)) {
     database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
   }
 }
 
-function ensureAppSchema(database: Database.Database) {
+function ensureAppSchema(database: AppDatabase) {
   if (schemaEnsured) return;
 
   if (!hasColumn(database, 'products', 'status')) {
@@ -890,11 +902,23 @@ function ensureAppSchema(database: Database.Database) {
 export function getDb() {
   if (!db) {
     try {
-      db = new Database(DB_PATH, { readonly: false, fileMustExist: true });
-      db.pragma('foreign_keys = ON');
+      const shouldUseRemoteDatabase = Boolean(
+        process.env.DATABASE_URL ||
+        process.env.SUPABASE_DB_URL ||
+        process.env.POSTGRES_URL ||
+        process.env.SUPABASE_POSTGRES_URL
+      );
+
+      if (shouldUseRemoteDatabase) {
+        db = createRemoteDatabase() as AppDatabase;
+      } else {
+        db = new Database(DB_PATH, { readonly: false, fileMustExist: true }) as unknown as AppDatabase;
+        db.pragma?.('foreign_keys = ON');
+      }
+
       ensureAppSchema(db);
     } catch (error) {
-      console.error('Failed to connect to SQLite database:', error);
+      console.error('Failed to connect to database:', error);
       return null;
     }
   }

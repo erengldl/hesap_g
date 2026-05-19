@@ -1,10 +1,9 @@
 import { cpSync, mkdirSync, rmSync, existsSync } from "node:fs";
-import { join, resolve, relative, sep } from "node:path";
-import { tmpdir } from "node:os";
+import { resolve, relative, sep } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const sourceRoot = process.cwd();
-const tempRoot = resolve(tmpdir(), "hesap-g-vitest-workspace");
+const tempRoot = resolve(sourceRoot, "..", ".vitest-workspace");
 const vitestBin = resolve(sourceRoot, "node_modules", "vitest", "vitest.mjs");
 const vitestConfig = resolve(tempRoot, "vitest.config.mjs");
 const excludeDirs = new Set(["node_modules", ".next", "coverage", ".git"]);

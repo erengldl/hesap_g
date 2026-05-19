@@ -69,7 +69,7 @@ export async function ensureDemoData() {
     getOrCreateGatewayId(db, ownWebsiteId);
 
     const ensureSellerProfile = db.prepare(
-      "INSERT OR IGNORE INTO seller_profiles (profile_id, company_type, monthly_employee_cost, monthly_warehouse_cost, monthly_invoice_accounting_cost, monthly_other_expenses, expected_monthly_order_count) VALUES (1, 'Şahıs Şirketi', 0, 3000, 1000, 1000, 500)"
+      "INSERT INTO seller_profiles (profile_id, company_type, monthly_employee_cost, monthly_warehouse_cost, monthly_invoice_accounting_cost, monthly_other_expenses, expected_monthly_order_count) VALUES (1, 'Şahıs Şirketi', 0, 3000, 1000, 1000, 500) ON CONFLICT(profile_id) DO NOTHING"
     );
 
     // ── Step 1: Delete ALL existing products and related data ──
