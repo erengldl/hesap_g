@@ -947,6 +947,17 @@ export function getDb() {
     return db;
   }
 
+  const databaseUrl = resolveDatabaseUrl();
+  const preferBundledSnapshot = isVercelRuntime() && process.env.FORCE_REMOTE_DATABASE !== 'true';
+
+  if (preferBundledSnapshot) {
+    const localDb = openLocalDatabase();
+    if (localDb) {
+      db = localDb;
+      return db;
+    }
+  }
+
   if (remoteDatabaseConnectionFailed) {
     const fallbackDb = openLocalDatabase();
     if (fallbackDb) {
@@ -955,8 +966,6 @@ export function getDb() {
     }
     return null;
   }
-
-  const databaseUrl = resolveDatabaseUrl();
 
   try {
     if (databaseUrl) {
