@@ -1,9 +1,8 @@
 import Database from 'better-sqlite3';
-import path from 'path';
 import bcrypt from 'bcryptjs';
+import { resolveDatabaseUrl } from './database-url';
+import { resolveLocalDatabasePath } from './local-sqlite';
 import { createRemoteDatabase, isRemoteDatabase } from './remote-db';
-
-const DB_PATH = path.join(process.cwd(), 'Veri Merkezi', 'kategoriagaci.db');
 
 interface AppDatabase {
   prepare(sql: string): {
@@ -19,6 +18,7 @@ interface AppDatabase {
 let db: AppDatabase | null = null;
 let schemaEnsured = false;
 let remoteDatabaseConnectionFailed = false;
+let databaseMode: "remote" | "sqlite" | "sqlite_snapshot" | "unavailable" = "unavailable";
 
 function hasColumn(database: AppDatabase, table: string, column: string) {
   const columns = database.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
@@ -29,6 +29,48 @@ function ensureColumn(database: AppDatabase, table: string, column: string, defi
   if (!hasColumn(database, table, column)) {
     database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
   }
+}
+
+function isVercelRuntime() {
+  return Boolean(process.env.VERCEL || process.env.VERCEL_ENV || process.env.VERCEL_URL);
+}
+
+function resetDatabaseState(mode: typeof databaseMode) {
+  db = null;
+  schemaEnsured = false;
+  databaseMode = mode;
+}
+
+function openLocalDatabase() {
+  const preferWritableCopy = isVercelRuntime();
+  const databasePath = resolveLocalDatabasePath({ preferWritableCopy });
+
+  if (!databasePath) {
+    return null;
+  }
+
+  const localDb = new Database(databasePath, { readonly: false, fileMustExist: true }) as unknown as AppDatabase;
+  localDb.pragma?.('foreign_keys = ON');
+  ensureAppSchema(localDb);
+  resetDatabaseState(preferWritableCopy ? "sqlite_snapshot" : "sqlite");
+  return localDb;
+}
+
+function openRemoteDatabase() {
+  const remoteDb = createRemoteDatabase() as AppDatabase;
+  resetDatabaseState("remote");
+  return remoteDb;
+}
+
+function switchToLocalFallback() {
+  remoteDatabaseConnectionFailed = true;
+  db = null;
+  schemaEnsured = false;
+  const fallbackDb = openLocalDatabase();
+  if (fallbackDb) {
+    db = fallbackDb;
+  }
+  return fallbackDb;
 }
 
 function ensureAppSchema(database: AppDatabase) {
@@ -906,31 +948,39 @@ export function getDb() {
   }
 
   if (remoteDatabaseConnectionFailed) {
+    const fallbackDb = openLocalDatabase();
+    if (fallbackDb) {
+      db = fallbackDb;
+      return db;
+    }
     return null;
   }
 
-  const shouldUseRemoteDatabase = Boolean(
-    process.env.DATABASE_URL ||
-    process.env.SUPABASE_DB_URL ||
-    process.env.POSTGRES_URL ||
-    process.env.SUPABASE_POSTGRES_URL
-  );
+  const databaseUrl = resolveDatabaseUrl();
 
   try {
-    if (shouldUseRemoteDatabase) {
-      db = createRemoteDatabase() as AppDatabase;
+    if (databaseUrl) {
+      db = openRemoteDatabase();
 
       if (process.env.NODE_ENV !== 'production') {
         ensureAppSchema(db);
       }
     } else {
-      db = new Database(DB_PATH, { readonly: false, fileMustExist: true }) as unknown as AppDatabase;
-      db.pragma?.('foreign_keys = ON');
+      db = openLocalDatabase();
+      if (!db) {
+        throw new Error("Bundled database snapshot not available");
+      }
       ensureAppSchema(db);
     }
   } catch (error) {
-    if (shouldUseRemoteDatabase && process.env.NODE_ENV === 'production') {
+    if (databaseUrl && process.env.NODE_ENV === 'production') {
       remoteDatabaseConnectionFailed = true;
+      const fallbackDb = openLocalDatabase();
+      if (fallbackDb) {
+        db = fallbackDb;
+        ensureAppSchema(db);
+        return db;
+      }
     }
     console.error('Failed to connect to database:', error);
     return null;
@@ -946,8 +996,14 @@ export function query<T>(sql: string, params: any[] = []): T[] {
     return database.prepare(sql).all(...params) as T[];
   } catch (error) {
     if (isRemoteDatabase(database) && process.env.NODE_ENV === 'production') {
-      db = null;
-      remoteDatabaseConnectionFailed = true;
+      const fallbackDb = switchToLocalFallback();
+      if (fallbackDb) {
+        try {
+          return fallbackDb.prepare(sql).all(...params) as T[];
+        } catch (fallbackError) {
+          console.error(`Fallback query error: ${sql}`, fallbackError);
+        }
+      }
     }
     console.error(`Query error: ${sql}`, error);
     return [];
@@ -961,10 +1017,20 @@ export function getOne<T>(sql: string, params: any[] = []): T | null {
     return database.prepare(sql).get(...params) as T || null;
   } catch (error) {
     if (isRemoteDatabase(database) && process.env.NODE_ENV === 'production') {
-      db = null;
-      remoteDatabaseConnectionFailed = true;
+      const fallbackDb = switchToLocalFallback();
+      if (fallbackDb) {
+        try {
+          return (fallbackDb.prepare(sql).get(...params) as T) || null;
+        } catch (fallbackError) {
+          console.error(`Fallback query error: ${sql}`, fallbackError);
+        }
+      }
     }
     console.error(`Query error: ${sql}`, error);
     return null;
   }
+}
+
+export function getDatabaseMode() {
+  return databaseMode;
 }
