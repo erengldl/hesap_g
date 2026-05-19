@@ -510,60 +510,28 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
       {selectionLoading ? (
         <ProfitPricingLoadingState />
       ) : (
-        <div className="flex w-full flex-col gap-5">
-          <section className="flex w-full flex-col gap-5">
-            <div>
-              <ProfitPricingControlPanel
-                products={props.bootstrap.products}
-                channelProfiles={state.channelProfiles}
-                resultsByChannel={resultsByChannel}
-                selectedChannel={state.selectedChannel}
-                busy={selectionLoading}
-                syncState={syncState}
-                optimizationReady={state.optimizationReady}
-                feedback={feedback}
-                onSelectProduct={handleSelectProduct}
-                onSelectChannel={(channel) => {
-                  replaceUrlParams(currentProductId, channel);
-                  dispatch({ type: "select-channel", channel });
-                }}
-                onChangeField={handleChangeField}
-                onOptimize={handleOptimize}
-              />
-            </div>
-
-            <div className="flex w-full flex-col gap-5">
-              <div className="px-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/600">
-                  Grafikler
-                </p>
-                <h2 className="mt-2 text-xl font-semibold tracking-tight text-foreground">
-                  Fiyat talep eğrisi ve waterfall maliyet grafiği
-                </h2>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-soft">
-                  Seçili kanalın fiyat, talep, toplam kâr ve net maliyet akışı burada canlı
-                  görünür. Kanal kartına bastığında grafikler anında o kanala geçer.
-                </p>
-              </div>
-
-              <div ref={graphSectionRef}>
-                {activeResult ? (
-                  <PriceProfitCurve
-                    result={activeResult}
-                    selectedChannel={state.selectedChannel}
-                    strategies={strategies}
-                    activeStrategy={state.activeStrategy}
-                    applyingStrategy={applyingStrategy}
-                    onApplyStrategy={handleApplyStrategy}
-                  />
-                ) : (
-                  <DeferredPanelPlaceholder title="Fiyat talep eğrisi yüklenemedi." />
-                )}
-              </div>
-            </div>
+        <div className="flex w-full flex-col gap-4">
+          <section className="flex w-full flex-col gap-4">
+            <ProfitPricingControlPanel
+              products={props.bootstrap.products}
+              channelProfiles={state.channelProfiles}
+              resultsByChannel={resultsByChannel}
+              selectedChannel={state.selectedChannel}
+              busy={selectionLoading}
+              syncState={syncState}
+              optimizationReady={state.optimizationReady}
+              feedback={feedback}
+              onSelectProduct={handleSelectProduct}
+              onSelectChannel={(channel) => {
+                replaceUrlParams(currentProductId, channel);
+                dispatch({ type: "select-channel", channel });
+              }}
+              onChangeField={handleChangeField}
+              onOptimize={handleOptimize}
+            />
           </section>
 
-          <section className="flex w-full flex-col gap-5">
+          <section className="flex w-full flex-col gap-4">
             {activeResult ? (
               <OptimizationRecommendationTable
                 resultsByChannel={resultsByChannel}
@@ -575,7 +543,26 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
             ) : (
               <DeferredPanelPlaceholder title="Optimizasyon tablosu yüklenemedi." />
             )}
+          </section>
 
+          <section className="flex w-full flex-col gap-4">
+            <div ref={graphSectionRef}>
+              {activeResult ? (
+                <PriceProfitCurve
+                  result={activeResult}
+                  selectedChannel={state.selectedChannel}
+                  strategies={strategies}
+                  activeStrategy={state.activeStrategy}
+                  applyingStrategy={applyingStrategy}
+                  onApplyStrategy={handleApplyStrategy}
+                />
+              ) : (
+                <DeferredPanelPlaceholder title="Fiyat talep eğrisi yüklenemedi." />
+              )}
+            </div>
+          </section>
+
+          <section className="flex w-full flex-col gap-4">
             <div ref={waterfallSectionRef}>
               {activeResult ? (
                 <ChannelCostWaterfall result={activeResult} />

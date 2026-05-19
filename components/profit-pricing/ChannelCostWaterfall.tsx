@@ -227,8 +227,8 @@ export default function ChannelCostWaterfall(props: { result: ProfitPricingResul
 
   return (
     <GlassCard className="overflow-hidden border-border/80">
-      <div className="border-b border-border/70 bg-gradient-to-r from-primary/8 via-transparent to-transparent px-4 py-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="border-b border-border/70 bg-gradient-to-r from-primary/8 via-transparent to-transparent px-4 py-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
               Waterfall maliyet grafiği
@@ -272,9 +272,9 @@ export default function ChannelCostWaterfall(props: { result: ProfitPricingResul
       </div>
 
       <div className="p-4">
-        <div className="h-[420px] min-w-0">
+        <div className="h-[360px] min-w-0">
           {isMounted ? (
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={420}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={360}>
             <BarChart
               data={points}
               layout="vertical"

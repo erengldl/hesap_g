@@ -157,7 +157,7 @@ function ChannelCard(props: {
         </span>
       </div>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-3 space-y-2">
         <ChannelInput
           label="Satış fiyatı"
           value={profile.input.salePrice}
@@ -182,7 +182,7 @@ function ChannelCard(props: {
         />
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-3 space-y-2">
         <div className="rounded-xl border border-border/70 bg-surface-container/70 px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-[0.14em] text-muted/600">Net kâr</p>
           <p className="mt-1 text-sm font-semibold text-foreground">
@@ -231,8 +231,8 @@ export default function ProfitPricingControlPanel(props: {
 
   return (
     <GlassCard className="border-border/80">
-      <div className="flex w-full flex-col gap-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <div className="flex w-full flex-col gap-4">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/600">
               Ürün seçimi
@@ -248,7 +248,7 @@ export default function ProfitPricingControlPanel(props: {
           />
         </div>
 
-        <div className="flex w-full flex-col gap-3">
+        <div className="flex w-full flex-col gap-2">
           <label className="space-y-2">
             <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
               Ürün seç
@@ -294,7 +294,7 @@ export default function ProfitPricingControlPanel(props: {
           </div>
         ) : null}
 
-        <div className="flex w-full flex-col gap-4">
+        <div className="flex w-full flex-col gap-3">
           {props.channelProfiles.map((profile) => (
             <ChannelCard
               key={profile.channel}

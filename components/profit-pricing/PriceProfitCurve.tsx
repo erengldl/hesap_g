@@ -202,7 +202,7 @@ export default function PriceProfitCurve(props: {
 
   return (
     <GlassCard className="border-border/80">
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
             Fiyat talep eğrisi
@@ -231,9 +231,9 @@ export default function PriceProfitCurve(props: {
         </div>
       </div>
 
-      <div className="mt-5 h-[420px] min-w-0">
+      <div className="mt-4 h-[360px] min-w-0">
         {isMounted ? (
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={420}>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={360}>
           <LineChart data={curveData} margin={{ top: 18, right: 22, left: 8, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
             <XAxis

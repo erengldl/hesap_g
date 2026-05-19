@@ -83,8 +83,8 @@ export default function OptimizationRecommendationTable(
 ) {
   return (
     <GlassCard className="overflow-hidden border-border/80">
-      <div className="border-b border-border/70 bg-gradient-to-r from-primary/8 via-transparent to-transparent px-4 py-4">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+      <div className="border-b border-border/70 bg-gradient-to-r from-primary/8 via-transparent to-transparent px-4 py-3">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
               Optimizasyon tablosu
@@ -129,7 +129,7 @@ export default function OptimizationRecommendationTable(
         </div>
       </div>
 
-      <div className="overflow-x-auto p-4">
+      <div className="overflow-x-auto p-3">
         <table className="w-full min-w-[980px] border-separate border-spacing-y-2 text-left text-sm">
           <thead>
             <tr className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
