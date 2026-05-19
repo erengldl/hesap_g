@@ -24,6 +24,14 @@ function parseHorizonDays(value: string | null): ForecastHorizon | undefined {
   return undefined;
 }
 
+function readHorizonDays(value: unknown): ForecastHorizon | undefined {
+  const parsed = Number(value ?? 0);
+  if (parsed === 7 || parsed === 14 || parsed === 30) {
+    return parsed;
+  }
+  return undefined;
+}
+
 function toMaybeNumber(value: unknown) {
   if (value === null || value === undefined || value === "") return undefined;
   const parsed = Number(value);
@@ -168,14 +176,7 @@ export async function POST(request: Request) {
     const input = {
       productId: Number(body.productId ?? body.product_id ?? 0) || undefined,
       marketplaceId: Number(body.marketplaceId ?? body.marketplace_id ?? 0) || undefined,
-      horizonDays:
-        Number(body.horizonDays ?? body.horizon_days ?? 0) === 7
-          ? 7
-          : Number(body.horizonDays ?? body.horizon_days ?? 0) === 14
-            ? 14
-            : Number(body.horizonDays ?? body.horizon_days ?? 0) === 30
-              ? 30
-              : undefined,
+      horizonDays: readHorizonDays(body.horizonDays ?? body.horizon_days),
       currentSalesVolume: toMaybeNumber(body.currentSalesVolume ?? body.current_sales_volume),
       currentStock: toMaybeNumber(body.currentStock ?? body.current_stock),
       persist: body.persist !== false,

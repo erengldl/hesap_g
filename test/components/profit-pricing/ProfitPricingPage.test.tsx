@@ -75,8 +75,8 @@ describe("ProfitPricingPage UI behavior", () => {
     const bootstrap = createProfitPricingBootstrap();
     render(<ProfitPricingPage bootstrap={bootstrap} />);
 
-    expect(screen.getByLabelText("Ürün seç")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Fiyatları Optimize Et" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Ürün seç")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Fiyatları Optimize Et" })).not.toBeNull();
   });
 
   it("renders sales price and buybox/website shipping inputs", () => {
