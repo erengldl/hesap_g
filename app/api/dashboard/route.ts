@@ -1,20 +1,53 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { buildDashboardSnapshot, buildAggregateDashboard } from '@/lib/portfolio-analytics';
 import { buildAdAnalysis } from '@/lib/ad-analysis';
 import { getCachedValue } from '@/lib/server-cache';
 
 export const dynamic = 'force-dynamic';
 
+function buildFallbackAggregate() {
+  return {
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalProducts: 0,
+    avgMargin: 0,
+    totalProfit: 0,
+    channelBreakdown: [],
+    topProducts: [],
+    salesTrend: [],
+    stockAlerts: [],
+    methodology: 'Canlı özet üretilemediği için boş başlangıç verisi gösteriliyor.',
+  };
+}
+
 export async function GET() {
   try {
-    const aggregate = getCachedValue('dashboard:aggregate', 15_000, buildAggregateDashboard);
+    const aggregate = getCachedValue('dashboard:aggregate', 15_000, () => {
+      try {
+        return buildAggregateDashboard() ?? buildFallbackAggregate();
+      } catch (error) {
+        console.error('Dashboard aggregate fallback:', error);
+        return buildFallbackAggregate();
+      }
+    });
 
-    if (!aggregate) {
-      return NextResponse.json({ success: false, error: 'Özet oluşturulamadı.' }, { status: 404 });
-    }
+    const snapshot = getCachedValue('dashboard:snapshot', 15_000, () => {
+      try {
+        return buildDashboardSnapshot();
+      } catch (error) {
+        console.error('Dashboard snapshot fallback:', error);
+        return null;
+      }
+    });
 
-    const snapshot = getCachedValue('dashboard:snapshot', 15_000, () => buildDashboardSnapshot());
-    const adAnalysis = getCachedValue('dashboard:ad-analysis', 15_000, buildAdAnalysis);
+    const adAnalysis = getCachedValue('dashboard:ad-analysis', 15_000, () => {
+      try {
+        return buildAdAnalysis();
+      } catch (error) {
+        console.error('Dashboard ad-analysis fallback:', error);
+        return null;
+      }
+    });
 
     return NextResponse.json({
       success: true,
