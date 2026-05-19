@@ -7,7 +7,11 @@ export async function GET() {
   try {
     const db = getDb();
     if (!db) {
-      return NextResponse.json({ success: false, status: "degraded" }, { status: 503 });
+      return NextResponse.json({
+        success: false,
+        status: "degraded",
+        timestamp: new Date().toISOString(),
+      });
     }
 
     db.prepare("SELECT 1").get();
@@ -18,6 +22,10 @@ export async function GET() {
       timestamp: new Date().toISOString(),
     });
   } catch {
-    return NextResponse.json({ success: false, status: "degraded" }, { status: 503 });
+    return NextResponse.json({
+      success: false,
+      status: "degraded",
+      timestamp: new Date().toISOString(),
+    });
   }
 }
