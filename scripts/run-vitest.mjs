@@ -1,38 +1,36 @@
-import { cpSync, mkdirSync, rmSync, existsSync } from "node:fs";
-import { resolve, relative, sep } from "node:path";
-import { spawnSync } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { parseCLI, startVitest } from "vitest/node";
 
-const sourceRoot = process.cwd();
-const tempRoot = resolve(sourceRoot, "..", ".vitest-workspace");
-const vitestBin = resolve(sourceRoot, "node_modules", "vitest", "vitest.mjs");
-const vitestConfig = resolve(tempRoot, "vitest.config.mjs");
-const excludeDirs = new Set(["node_modules", ".next", "coverage", ".git"]);
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const cliArgs = ["vitest", ...process.argv.slice(2)];
+const parsed = parseCLI(cliArgs);
 
-if (!existsSync(vitestBin)) {
-  console.error("Vitest not found. Run `npm install` first.");
-  process.exit(1);
-}
+const cliOptions = {
+  ...parsed.options,
+  root: repoRoot,
+  config: false,
+  run: parsed.options.run ?? false,
+  watch: parsed.options.run ? false : parsed.options.watch ?? true,
+  environment: "jsdom",
+  globals: true,
+  fileParallelism: false,
+  testTimeout: 10000,
+};
 
-rmSync(tempRoot, { recursive: true, force: true });
-mkdirSync(tempRoot, { recursive: true });
-
-cpSync(sourceRoot, tempRoot, {
-  recursive: true,
-  filter: (src) => {
-    const rel = relative(sourceRoot, src);
-    if (!rel || rel === ".") {
-      return true;
-    }
-
-    const firstSegment = rel.split(sep)[0];
-    return !excludeDirs.has(firstSegment);
+const viteOverrides = {
+  resolve: {
+    alias: {
+      "@": repoRoot,
+    },
   },
-});
+};
 
-const result = spawnSync(process.execPath, [vitestBin, "--config", vitestConfig, ...process.argv.slice(2)], {
-  cwd: tempRoot,
-  env: process.env,
-  stdio: "inherit",
-});
+const ctx = await startVitest("test", parsed.filter, cliOptions, viteOverrides);
 
-process.exit(result.status ?? 1);
+if (ctx && typeof ctx.getUnhandledErrors === "function") {
+  const unhandledErrors = ctx.getUnhandledErrors();
+  if (Array.isArray(unhandledErrors) && unhandledErrors.length > 0) {
+    process.exitCode = 1;
+  }
+}
