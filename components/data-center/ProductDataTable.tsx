@@ -18,7 +18,7 @@ import {
   Truck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatCurrency, formatNumber } from "@/lib/formatters";
+import { formatCurrency, formatDate, formatNumber } from "@/lib/formatters";
 import type { Product } from "@/lib/types";
 import { EmptyState } from "@/components/ui-custom/GlassComponents";
 
@@ -44,6 +44,33 @@ type ProductDetailChannel = {
   mode: string | null;
 };
 
+type ProductSalesHistoryRow = {
+  order_id: number;
+  order_date: string;
+  marketplace_name: string;
+  external_order_number: string | null;
+  external_package_number: string | null;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
+  status: string | null;
+  merchant_sku: string | null;
+  barcode: string | null;
+};
+
+type ProductSalesHistorySummary = {
+  totalUnits: number;
+  totalRevenue: number;
+  activeDays: number;
+  avgDailyUnits: number;
+  peakDay: { date: string; units: number } | null;
+};
+
+type ProductSalesHistoryState = {
+  summary: ProductSalesHistorySummary | null;
+  orderHistory: ProductSalesHistoryRow[];
+};
+
 type ProductDetailResponse = {
   success?: boolean;
   product?: {
@@ -62,6 +89,8 @@ type ProductDetailResponse = {
     stock?: number | null;
   };
   channels?: ProductDetailChannel[];
+  salesSummary30?: ProductSalesHistorySummary;
+  orderHistory?: ProductSalesHistoryRow[];
 };
 
 type ChannelDraft = {
@@ -79,6 +108,7 @@ type PanelState = {
   error: string | null;
   carriers: Record<Exclude<ChannelSlug, "my_website">, CarrierOption[]>;
   drafts: Record<ChannelSlug, ChannelDraft>;
+  salesHistory?: ProductSalesHistoryState | null;
 };
 
 interface ProductDataTableProps {
@@ -331,6 +361,106 @@ function ChannelEditorCard({
   );
 }
 
+function orderStatusCopy(status?: string | null) {
+  switch (status) {
+    case "completed":
+      return { label: "Tamamlandı", className: "border-primary/20 bg-primary/10 text-primary" };
+    case "processing":
+      return { label: "İşleniyor", className: "border-warning/20 bg-warning/10 text-warning" };
+    case "pending":
+      return { label: "Bekliyor", className: "border-info/20 bg-info/10 text-info" };
+    case "returned":
+      return { label: "İade", className: "border-danger/20 bg-danger/10 text-danger" };
+    case "cancelled":
+      return { label: "İptal", className: "border-zinc-500/20 bg-zinc-500/10 text-muted" };
+    default:
+      return { label: "Bilinmiyor", className: "border-border/70 bg-surface-container/70 text-muted" };
+  }
+}
+
+function SalesHistoryPreview({
+  productId,
+  salesHistory,
+}: {
+  productId: number;
+  salesHistory?: ProductSalesHistoryState | null;
+}) {
+  const summary = salesHistory?.summary ?? null;
+  const orderHistory = salesHistory?.orderHistory ?? [];
+  const recentOrders = orderHistory.slice(0, 5);
+
+  return (
+    <div className="space-y-4 rounded-lg border border-border/70 bg-surface-container/45 p-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/60">Satış geçmişi</p>
+          <h3 className="mt-1 text-base font-semibold text-foreground">Son satışlar</h3>
+          <p className="mt-1 text-sm text-muted">Ürün için son 30 günlük satış kaydı ve sipariş akışı.</p>
+        </div>
+        <Link
+          href={`/products/${productId}`}
+          className="inline-flex items-center gap-2 self-start rounded-md border border-border/70 bg-surface-container/70 px-3 py-2 text-xs font-semibold text-muted transition-colors duration-200 hover:border-primary/25 hover:text-foreground"
+        >
+          Tam detay
+        </Link>
+      </div>
+
+      {summary ? (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <MiniStat label="Toplam" value={formatNumber(summary.totalUnits)} />
+          <MiniStat label="Ciro" value={formatCurrency(summary.totalRevenue)} />
+          <MiniStat label="Aktif gün" value={formatNumber(summary.activeDays)} />
+          <MiniStat label="Günlük ort." value={summary.avgDailyUnits.toFixed(1)} />
+        </div>
+      ) : (
+        <div className="rounded-lg border border-dashed border-border/70 bg-surface-container/50 px-4 py-3 text-sm text-muted">
+          Bu ürün için satış özeti henüz yok.
+        </div>
+      )}
+
+      <div className="overflow-hidden rounded-lg border border-border/70">
+        <table className="min-w-full divide-y divide-border/60 text-sm">
+          <thead className="bg-surface-container/80">
+            <tr className="text-left text-[10px] uppercase tracking-[0.18em] text-muted/60">
+              <th className="px-4 py-3 font-semibold">Tarih</th>
+              <th className="px-4 py-3 font-semibold">Kanal</th>
+              <th className="px-4 py-3 font-semibold text-right">Adet</th>
+              <th className="px-4 py-3 font-semibold text-right">Tutar</th>
+              <th className="px-4 py-3 font-semibold text-center">Durum</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/60 bg-panel/40">
+            {recentOrders.length > 0 ? (
+              recentOrders.map((row) => {
+                const status = orderStatusCopy(row.status);
+                return (
+                  <tr key={`${row.order_id}-${row.external_order_number ?? row.order_id}`} className="transition-colors duration-200 hover:bg-surface-container/40">
+                    <td className="px-4 py-3 text-xs text-muted">{formatDate(row.order_date)}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-foreground">{row.marketplace_name}</td>
+                    <td className="px-4 py-3 text-right text-sm text-muted">{formatNumber(row.quantity)}</td>
+                    <td className="px-4 py-3 text-right text-sm font-semibold text-primary">{formatCurrency(row.line_total)}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={cn("inline-flex rounded-md border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]", status.className)}>
+                        {status.label}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted">
+                  Satış geçmişi bulunamadı.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function ProductMobileCard({
   product,
   isSelected,
@@ -527,6 +657,11 @@ function ProductMobileCard({
                 })}
               </div>
 
+              <SalesHistoryPreview
+                productId={product.id}
+                salesHistory={panel?.salesHistory}
+              />
+
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-xs text-muted">
                   {panel?.saving ? "Kanal ayarları kaydediliyor..." : "Kanal bazlı değişiklikler bu panelde tutulur."}
@@ -639,6 +774,7 @@ export default function ProductDataTable({
           error: null,
           carriers: { trendyol: [], hepsiburada: [] },
           drafts: createFallbackDrafts(product),
+          salesHistory: null,
         },
       };
     });
@@ -687,6 +823,10 @@ export default function ProductDataTable({
           error: null,
           carriers,
           drafts,
+          salesHistory: {
+            summary: productData.salesSummary30 ?? null,
+            orderHistory: Array.isArray(productData.orderHistory) ? productData.orderHistory.slice(0, 5) : [],
+          },
         },
       }));
     } catch (error) {
@@ -699,6 +839,7 @@ export default function ProductDataTable({
           error: error instanceof Error ? error.message : "Ürün detayları alınamadı.",
           carriers: { trendyol: [], hepsiburada: [] },
           drafts: createFallbackDrafts(product),
+          salesHistory: null,
         },
       }));
     }
@@ -1161,6 +1302,11 @@ export default function ProductDataTable({
                                       })}
                                     </div>
                                   </div>
+
+                                  <SalesHistoryPreview
+                                    productId={product.id}
+                                    salesHistory={panel?.salesHistory}
+                                  />
 
                                   <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                                     <div className="text-xs text-muted">
