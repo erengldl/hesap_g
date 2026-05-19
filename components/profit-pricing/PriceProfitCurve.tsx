@@ -70,7 +70,7 @@ function CurveTooltip({ active, payload }: CurveTooltipProps) {
       <h4 className="mt-2 text-base font-semibold text-foreground">
         {formatProfitPricingCurrency(point.price)}
       </h4>
-      <div className="mt-3 grid grid-cols-2 gap-2 text-[12px] text-soft">
+      <div className="mt-3 space-y-2 text-[12px] text-soft">
         <div>
           <p className="text-[10px] uppercase tracking-[0.14em] text-muted/600">Talep</p>
           <p className="mt-1 font-medium text-foreground">
@@ -130,7 +130,7 @@ function StrategyButton(props: {
         {formatProfitPricingCurrency(selectedChannelTarget?.price)}
       </p>
 
-      <div className="mt-2 grid gap-1 text-[12px] opacity-85">
+      <div className="mt-2 space-y-1 text-[12px] opacity-85">
         <span>
           Talep: {formatProfitPricingNumber(props.strategy.selectedChannelDemand)}
         </span>
@@ -216,7 +216,7 @@ export default function PriceProfitCurve(props: {
           </p>
         </div>
 
-        <div className="grid gap-3 xl:grid-cols-3">
+        <div className="space-y-3">
           {strategies.map((strategy) => (
             <StrategyButton
               key={strategy.key}

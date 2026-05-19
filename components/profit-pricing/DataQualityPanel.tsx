@@ -36,7 +36,7 @@ export default function DataQualityPanel({ result }: { result: ProfitPricingResu
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">
               Iade/Fire Risk Tahmini
             </p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="mt-3 space-y-3">
               <RiskMetric label="Siparis basi risk" value={formatProfitPricingCurrency(currentScenario?.returnRiskCost)} />
               <RiskMetric
                 label="Iade olasiligi"

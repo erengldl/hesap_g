@@ -511,7 +511,7 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
         <ProfitPricingLoadingState />
       ) : (
         <div className="space-y-5">
-          <section className="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] xl:items-start">
+          <section className="space-y-5">
             <div>
               <ProfitPricingControlPanel
                 products={props.bootstrap.products}
@@ -563,7 +563,7 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
             </div>
           </section>
 
-          <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:items-start">
+          <section className="space-y-5">
             {activeResult ? (
               <OptimizationRecommendationTable
                 resultsByChannel={resultsByChannel}

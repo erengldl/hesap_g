@@ -78,11 +78,11 @@ export default function ProfitMetricStrip({ result }: { result: ProfitPricingRes
           Karar metrikleri
         </p>
       </div>
-      <div className="grid gap-0 overflow-x-auto md:grid-cols-4 xl:grid-cols-8">
+      <div className="flex flex-col">
         {stripItems.map((item) => (
           <div
             key={item.label}
-            className="min-w-[168px] border-b border-border/50 px-4 py-3 last:border-b-0 md:border-b-0 md:border-r md:last:border-r-0"
+            className="border-b border-border/50 px-4 py-3 last:border-b-0"
           >
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">{item.label}</p>
             <p

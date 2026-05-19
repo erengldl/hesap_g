@@ -157,7 +157,7 @@ function ChannelCard(props: {
         </span>
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
+      <div className="mt-4 space-y-3">
         <ChannelInput
           label="Satış fiyatı"
           value={profile.input.salePrice}
@@ -182,7 +182,7 @@ function ChannelCard(props: {
         />
       </div>
 
-      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+      <div className="mt-4 space-y-2">
         <div className="rounded-xl border border-border/70 bg-surface-container/70 px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-[0.14em] text-muted/600">Net kâr</p>
           <p className="mt-1 text-sm font-semibold text-foreground">
@@ -248,7 +248,7 @@ export default function ProfitPricingControlPanel(props: {
           />
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="space-y-3">
           <label className="space-y-2">
             <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
               Ürün seç
@@ -272,7 +272,7 @@ export default function ProfitPricingControlPanel(props: {
             type="button"
             onClick={props.onOptimize}
             disabled={props.busy || props.channelProfiles.length === 0}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-primary)] transition-transform duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 lg:min-w-[240px]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-primary)] transition-transform duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Sparkles className="h-4 w-4" />
             Fiyatları Optimize Et
@@ -294,7 +294,7 @@ export default function ProfitPricingControlPanel(props: {
           </div>
         ) : null}
 
-        <div className="grid gap-4 xl:grid-cols-3">
+        <div className="space-y-4">
           {props.channelProfiles.map((profile) => (
             <ChannelCard
               key={profile.channel}
