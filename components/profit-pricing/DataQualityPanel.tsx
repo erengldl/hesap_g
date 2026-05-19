@@ -31,7 +31,7 @@ export default function DataQualityPanel({ result }: { result: ProfitPricingResu
           </h3>
         </div>
 
-        <div className="space-y-3">
+        <div className="flex w-full flex-col gap-3">
           <div className="rounded-2xl border border-border/70 bg-surface-container/55 p-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">
               Iade/Fire Risk Tahmini

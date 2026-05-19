@@ -78,7 +78,7 @@ export default function ProfitMetricStrip({ result }: { result: ProfitPricingRes
           Karar metrikleri
         </p>
       </div>
-      <div className="flex flex-col">
+      <div className="flex w-full flex-col">
         {stripItems.map((item) => (
           <div
             key={item.label}

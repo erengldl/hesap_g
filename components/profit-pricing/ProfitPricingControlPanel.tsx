@@ -231,7 +231,7 @@ export default function ProfitPricingControlPanel(props: {
 
   return (
     <GlassCard className="border-border/80">
-      <div className="space-y-5">
+      <div className="flex w-full flex-col gap-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/600">
@@ -248,7 +248,7 @@ export default function ProfitPricingControlPanel(props: {
           />
         </div>
 
-        <div className="space-y-3">
+        <div className="flex w-full flex-col gap-3">
           <label className="space-y-2">
             <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
               Ürün seç
@@ -294,7 +294,7 @@ export default function ProfitPricingControlPanel(props: {
           </div>
         ) : null}
 
-        <div className="space-y-4">
+        <div className="flex w-full flex-col gap-4">
           {props.channelProfiles.map((profile) => (
             <ChannelCard
               key={profile.channel}

@@ -98,7 +98,7 @@ export default function OptimizationRecommendationTable(
             </p>
           </div>
 
-          <div className="space-y-2">
+          <div className="flex w-full flex-col gap-2">
             {props.strategies.map((strategy) => {
               const isApplying = props.applyingStrategy === strategy.key;
               const isActive = props.activeStrategy === strategy.key;

@@ -510,8 +510,8 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
       {selectionLoading ? (
         <ProfitPricingLoadingState />
       ) : (
-        <div className="space-y-5">
-          <section className="space-y-5">
+        <div className="flex w-full flex-col gap-5">
+          <section className="flex w-full flex-col gap-5">
             <div>
               <ProfitPricingControlPanel
                 products={props.bootstrap.products}
@@ -532,7 +532,7 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
               />
             </div>
 
-            <div className="space-y-5">
+            <div className="flex w-full flex-col gap-5">
               <div className="px-1">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/600">
                   Grafikler
@@ -563,7 +563,7 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
             </div>
           </section>
 
-          <section className="space-y-5">
+          <section className="flex w-full flex-col gap-5">
             {activeResult ? (
               <OptimizationRecommendationTable
                 resultsByChannel={resultsByChannel}

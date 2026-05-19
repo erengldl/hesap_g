@@ -216,7 +216,7 @@ export default function PriceProfitCurve(props: {
           </p>
         </div>
 
-        <div className="space-y-3">
+        <div className="flex w-full flex-col gap-3">
           {strategies.map((strategy) => (
             <StrategyButton
               key={strategy.key}

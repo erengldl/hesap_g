@@ -189,7 +189,7 @@ function WaterfallTooltip({ active, payload }: WaterfallTooltipProps) {
         {point.kind === "cost" ? "-" : ""}
         {formatProfitPricingCurrency(point.amount)}
       </p>
-      <div className="mt-3 space-y-2 text-[12px] text-soft">
+      <div className="mt-3 flex w-full flex-col gap-2 text-[12px] text-soft">
         <div>
           <p className="text-[10px] uppercase tracking-[0.14em] text-muted/600">Kalan değer</p>
           <p className="mt-1 font-medium text-foreground">
@@ -242,7 +242,7 @@ export default function ChannelCostWaterfall(props: { result: ProfitPricingResul
             </p>
           </div>
 
-          <div className="space-y-2 rounded-2xl border border-border bg-surface-container p-3 text-sm text-soft">
+          <div className="flex w-full flex-col gap-2 rounded-2xl border border-border bg-surface-container p-3 text-sm text-soft">
             <div>
               <p className="text-[10px] uppercase tracking-[0.14em] text-muted/600">Satış fiyatı</p>
               <p className="mt-1 font-semibold text-foreground">
@@ -316,7 +316,7 @@ export default function ChannelCostWaterfall(props: { result: ProfitPricingResul
           ) : null}
         </div>
 
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 flex w-full flex-col gap-2">
           {visibleItems.map((item) => (
             <div
               key={item.key}
