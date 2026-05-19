@@ -1,0 +1,619 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CircleCheckBig, CircleX, CloudDownload, Database, Plus, RotateCw, TriangleAlert } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/formatters";
+import type { Product, ProductUpsertInput } from "@/lib/types";
+import { DEMO_PRODUCTS } from "@/lib/demo-data";
+import { EmptyState, ErrorStateCard, SkeletonCard, SkeletonTable } from "@/components/ui-custom/GlassComponents";
+
+import ProductDataTable from "./ProductDataTable";
+import ProductDataForm from "./ProductDataForm";
+import SalesHistorySection from "./SalesHistorySection";
+import { SellerProfileForm } from "./SellerProfileForm";
+import { StoreExpensesSection } from "./StoreExpensesSection";
+import { OwnWebsiteSettingsForm } from "./OwnWebsiteSettingsForm";
+
+type ToastMessage = {
+  text: string;
+  type: "success" | "warning" | "error";
+};
+
+type AppStats = {
+  product_count?: number | null;
+  active_product_count?: number | null;
+  average_price?: number | null;
+  average_profit_margin?: number | null;
+  active_store_expense_total?: number | null;
+  last_bulk_sync_time?: string | null;
+  last_bulk_sync_scope?: string | null;
+  last_bulk_sync_count?: number | null;
+  last_bulk_sync_processed?: number | null;
+  last_bulk_sync_message?: string | null;
+};
+
+function MetricCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="premium-surface flex h-full items-center justify-between gap-4 rounded-lg border border-border/70 bg-panel/80 px-4 py-3.5 shadow-[var(--shadow-card)]">
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted/60">{label}</p>
+        {hint && <p className="mt-1 text-[11px] text-muted/60">{hint}</p>}
+      </div>
+      <p className="truncate text-lg font-semibold leading-none tracking-tight text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function formatRelativeTime(value?: string | null) {
+  if (!value) return "Henüz işlem yapılmadı";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Henüz işlem yapılmadı";
+
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.max(0, Math.round(diffMs / 60000));
+  if (diffMinutes < 1) return "şimdi";
+  if (diffMinutes < 60) return `${diffMinutes} dk önce`;
+
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} sa önce`;
+
+  const diffDays = Math.round(diffHours / 24);
+  return `${diffDays} gün önce`;
+}
+
+export function DataCenterTabs() {
+  const useDemoData = process.env.NODE_ENV !== "production";
+  const [activeTab, setActiveTab] = useState<"products" | "sales" | "settings">("products");
+  const [isProductFormOpen, setIsProductFormOpen] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [stats, setStats] = useState<AppStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [bulkSyncing, setBulkSyncing] = useState(false);
+  const [catalogImporting, setCatalogImporting] = useState(false);
+  const [message, setMessage] = useState<ToastMessage | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  const refreshData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [statsResponse, productsResponse] = await Promise.all([
+        fetch("/api/data-center/status", { cache: "no-store" }),
+        fetch("/api/products", { cache: "no-store" }),
+      ]);
+
+      const statsData = await statsResponse.json();
+      setStats(statsData?.success ? statsData : null);
+
+      const productsData = await productsResponse.json();
+      const nextProducts: Product[] =
+        Array.isArray(productsData?.products) && productsData.products.length > 0
+          ? (productsData.products as Product[])
+          : useDemoData
+            ? DEMO_PRODUCTS
+            : [];
+      setLoadError(null);
+      setProducts(nextProducts);
+      setSelectedIds((current) => current.filter((id) => nextProducts.some((product) => product.id === id)));
+      return nextProducts;
+    } catch (error) {
+      console.error("Failed to refresh data", error);
+      setStats(null);
+      setLoadError("Veri merkezi yüklenemedi. Sunucu bağlantısı kesildi. İnternet bağlantınızı kontrol edip tekrar deneyin.");
+      setProducts(useDemoData ? DEMO_PRODUCTS : []);
+      setSelectedIds([]);
+      return useDemoData ? DEMO_PRODUCTS : [];
+    } finally {
+      setLoading(false);
+    }
+  }, [useDemoData]);
+
+  useEffect(() => {
+    void refreshData();
+  }, [refreshData]);
+
+  const showMessage = (nextMessage: ToastMessage) => {
+    setMessage(nextMessage);
+    window.setTimeout(() => setMessage(null), 4500);
+  };
+
+  const productById = useMemo(() => {
+    const map = new Map<number, Product>();
+    for (const product of products) {
+      map.set(product.id, product);
+    }
+    return map;
+  }, [products]);
+
+  const handleSubmitProduct = async (payload: ProductUpsertInput) => {
+    setSubmitting(true);
+    try {
+      const isEdit = Boolean(editingProduct);
+      const response = await fetch(isEdit ? `/api/products/${editingProduct?.id}` : "/api/products", {
+        method: isEdit ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || "Ürün kaydedilemedi");
+      }
+
+      await refreshData();
+      setIsProductFormOpen(false);
+      setEditingProduct(null);
+      showMessage({
+        text: isEdit ? "Ürün güncellendi ve maliyet sonuçları yenilendi." : "Ürün eklendi ve maliyet sonuçları üretildi.",
+        type: "success",
+      });
+    } catch (error) {
+      console.error("Product save error:", error);
+      showMessage({ text: "Ürün kaydedilemedi.", type: "error" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteProduct = async (productId: number) => {
+    const product = products.find((item) => item.id === productId);
+    const confirmed = window.confirm(`${product?.name ?? "Bu ürün"} silinsin mi? Bu işlem geri alınamaz.`);
+    if (!confirmed) return;
+
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/products/${productId}`, { method: "DELETE" });
+      const data = await response.json();
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || "Ürün silinemedi");
+      }
+
+      await refreshData();
+      showMessage({ text: "Ürün silindi.", type: "success" });
+    } catch (error) {
+      console.error("Product delete error:", error);
+      showMessage({ text: "Ürün silinemedi.", type: "error" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleBulkStatusChange = async (status: "active" | "passive" | "draft") => {
+    if (selectedIds.length === 0) return;
+
+    setSubmitting(true);
+    try {
+      await Promise.all(
+        selectedIds.map(async (id) => {
+          const product = productById.get(id);
+          if (!product) return;
+
+          const response = await fetch(`/api/products/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: product.name,
+                sku: product.sku ?? "",
+                image_url: product.image_url ?? "",
+              category_id: product.category_id ?? null,
+                category_path: product.category_path ?? product.category_name ?? "",
+                cost: product.cost,
+                packaging_cost: product.packaging_cost,
+              desi: product.desi,
+              sale_price: product.sale_price,
+              active_channels: product.active_channels,
+              status,
+            } satisfies ProductUpsertInput),
+          });
+
+          const data = await response.json();
+          if (!response.ok || !data?.success) {
+            throw new Error(data?.error || `Ürün ${id} güncellenemedi`);
+          }
+        })
+      );
+
+      await refreshData();
+      setSelectedIds([]);
+      showMessage({ text: "Seçili ürünler güncellendi.", type: "success" });
+    } catch (error) {
+      console.error("Bulk status update error:", error);
+      showMessage({ text: "Toplu güncelleme yapılamadı.", type: "error" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    const confirmed = window.confirm(`${selectedIds.length} ürün silinsin mi? Bu işlem geri alınamaz.`);
+    if (!confirmed) return;
+
+    setSubmitting(true);
+    try {
+      await Promise.all(
+        selectedIds.map(async (id) => {
+          const response = await fetch(`/api/products/${id}`, { method: "DELETE" });
+          const data = await response.json();
+          if (!response.ok || !data?.success) {
+            throw new Error(data?.error || `Ürün ${id} silinemedi`);
+          }
+        })
+      );
+      await refreshData();
+      setSelectedIds([]);
+      showMessage({ text: "Seçili ürünler silindi.", type: "success" });
+    } catch (error) {
+      console.error("Bulk delete error:", error);
+      showMessage({ text: "Toplu silme yapılamadı.", type: "error" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const productCount = stats?.product_count ?? products.length;
+  const activeProductCount = stats?.active_product_count ?? products.filter((item) => item.status === "active").length;
+  const averagePrice = stats?.average_price ?? (products.reduce((sum, item) => sum + Number(item.sale_price ?? 0), 0) / Math.max(1, products.length));
+  const averageProfitMargin = stats?.average_profit_margin ?? 0;
+  const lastBulkSyncSummary = stats?.last_bulk_sync_time
+    ? `${formatRelativeTime(stats.last_bulk_sync_time)} · ${Number(stats.last_bulk_sync_count ?? 0)} ürün`
+    : "Henüz toplu işlem yapılmadı";
+  const lastBulkSyncScope = stats?.last_bulk_sync_scope === "marketplace_catalog_import"
+    ? "Pazaryeri katalog içe aktarma"
+    : stats?.last_bulk_sync_scope === "all_products"
+      ? "Veri merkezi yeniden hesaplama"
+      : stats?.last_bulk_sync_scope ?? "İşlem yok";
+
+  if (loading && products.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <SkeletonCard key={index} variant="card" height={104} delayIndex={index} />
+          ))}
+        </div>
+
+        <div className="space-y-4 rounded-lg border border-border/70 bg-panel/70 p-4 shadow-[var(--shadow-card)] sm:p-5">
+          <div className="space-y-2">
+            <SkeletonCard variant="text-line" height={12} className="w-32" />
+            <SkeletonCard variant="text-line" height={24} className="w-56" />
+            <SkeletonCard variant="text-line" height={14} className="w-full max-w-2xl" />
+          </div>
+          <SkeletonTable rows={5} />
+        </div>
+      </div>
+    );
+  }
+
+  const handleBulkUpload = async () => {
+    setBulkSyncing(true);
+    try {
+      const response = await fetch("/api/data-center/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || "Veri merkezi yüklemesi başarısız oldu");
+      }
+
+      await refreshData();
+      showMessage({
+        text: data?.message || `${Number(data?.processed_products ?? data?.product_count ?? 0)} ürün veri merkezine yüklendi.`,
+        type: "success",
+      });
+    } catch (error) {
+      console.error("Data center bulk sync error:", error);
+      showMessage({ text: "Tüm ürünler veri merkezine yüklenemedi.", type: "error" });
+    } finally {
+      setBulkSyncing(false);
+    }
+  };
+
+  const handleCatalogImport = async () => {
+    setCatalogImporting(true);
+    try {
+      const response = await fetch("/api/data-center/import-marketplace-catalogs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || "Pazaryeri katalogları içe aktarılamadı");
+      }
+
+      await refreshData();
+      const importedCount = Number(data?.products_created ?? 0) + Number(data?.products_updated ?? 0);
+      showMessage({
+        text: data?.message || `${importedCount} ürün pazaryerlerinden içe aktarıldı ve veri merkezi yenilendi.`,
+        type: "success",
+      });
+    } catch (error) {
+      console.error("Marketplace catalog import error:", error);
+      showMessage({ text: "Pazaryeri katalogları içe aktarılamadı.", type: "error" });
+    } finally {
+      setCatalogImporting(false);
+    }
+  };
+
+  return (
+    <div className="w-full space-y-6">
+      <div className="custom-scrollbar flex w-full gap-1 overflow-x-auto rounded-lg border border-border/70 bg-surface-container/55 p-1.5 shadow-[var(--shadow-card)]">
+        <button
+          onClick={() => setActiveTab("products")}
+          className={cn(
+            "whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-semibold transition-colors duration-200",
+            activeTab === "products" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:bg-surface-soft hover:text-foreground"
+          )}
+        >
+          Ürünler
+        </button>
+        <button
+          onClick={() => setActiveTab("sales")}
+          className={cn(
+            "whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-semibold transition-colors duration-200",
+            activeTab === "sales" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:bg-surface-soft hover:text-foreground"
+          )}
+        >
+          Satış Geçmişi
+        </button>
+        <button
+          onClick={() => setActiveTab("settings")}
+          className={cn(
+            "whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-semibold transition-colors duration-200",
+            activeTab === "settings" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:bg-surface-soft hover:text-foreground"
+          )}
+        >
+          Mağaza Bilgileri
+        </button>
+      </div>
+
+      {loadError ? (
+        <ErrorStateCard
+          title="Veri merkezi güncellenemedi"
+          description={loadError}
+          action={
+            <button
+              type="button"
+              onClick={() => void refreshData()}
+              className="inline-flex items-center gap-2 rounded-md border border-danger/30 bg-danger/10 px-4 py-2 text-sm font-semibold text-danger transition-colors duration-200 hover:bg-danger/15"
+            >
+              <RotateCw className="h-4 w-4" />
+              Tekrar dene
+            </button>
+          }
+        />
+      ) : null}
+
+      {message && (
+        <div
+          className={cn(
+            "flex items-center gap-3 rounded-lg border px-4 py-3.5 shadow-[var(--shadow-card)]",
+            message.type === "success"
+              ? "border-primary/20 bg-primary/10 text-primary"
+              : message.type === "warning"
+                ? "border-warning/20 bg-warning/10 text-warning"
+                : "border-danger/20 bg-danger/10 text-danger"
+          )}
+        >
+          <div
+            className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-md border",
+              message.type === "success"
+                ? "border-primary/20 bg-primary/15 text-primary"
+                : message.type === "warning"
+                  ? "border-warning/20 bg-warning/15 text-warning"
+                  : "border-danger/20 bg-danger/15 text-danger"
+            )}
+          >
+          {message.type === "success" ? (
+            <CircleCheckBig className="h-4 w-4 shrink-0" />
+          ) : message.type === "warning" ? (
+            <TriangleAlert className="h-4 w-4 shrink-0" />
+          ) : (
+            <CircleX className="h-4 w-4 shrink-0" />
+          )}
+          </div>
+          <span className="pt-0.5 text-sm font-semibold leading-snug">{message.text}</span>
+        </div>
+      )}
+
+      {activeTab === "products" && (
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <MetricCard label="Ürün Sayısı" value={String(productCount)} hint="Toplam katalog" />
+            <MetricCard label="Aktif Ürün Sayısı" value={String(activeProductCount)} hint="Satışa açık" />
+            <MetricCard label="Ortalama Fiyat" value={formatCurrency(averagePrice)} hint="Liste ortalaması" />
+            <MetricCard label="Ortalama Kâr Marjı" value={`%${Number(averageProfitMargin).toFixed(1)}`} hint="Kanal sonuçlarına göre" />
+          </div>
+
+          <div className="rounded-lg border border-border/70 bg-panel/70 p-4 shadow-[var(--shadow-card)] sm:p-5">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div className="space-y-2">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">Son toplu yükleme</span>
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
+                  <span className="font-semibold text-foreground">{lastBulkSyncSummary}</span>
+                  <span>· {lastBulkSyncScope}</span>
+                  {stats?.last_bulk_sync_message && (
+                    <span>· {stats.last_bulk_sync_message}</span>
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-heading text-lg font-semibold text-foreground">Ürünler</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">Ürünleri seç, düzenle ve satış kanallarını tek yerden yönet.</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                <button
+                  type="button"
+                  onClick={handleCatalogImport}
+                  disabled={catalogImporting || submitting || bulkSyncing || loading}
+                  className="flex items-center gap-2 rounded-md border border-border/70 bg-surface-container/70 px-3.5 py-2.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-primary/25 hover:bg-card disabled:opacity-60"
+                >
+                  <CloudDownload className={cn("h-4 w-4", catalogImporting && "animate-bounce")} />
+                  {catalogImporting ? "Katalog alınıyor..." : "Katalog Al"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkUpload}
+                  disabled={bulkSyncing || submitting || loading}
+                  className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3.5 py-2.5 text-sm font-semibold text-primary transition-colors duration-200 hover:border-primary/35 hover:bg-primary/15 disabled:opacity-60"
+                >
+                  <Database className={cn("h-4 w-4", bulkSyncing && "animate-pulse")} />
+                  {bulkSyncing ? "Yeniden hesaplanıyor..." : "Yeniden Hesapla"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingProduct(null);
+                    setIsProductFormOpen(true);
+                  }}
+                  className="flex items-center gap-2 rounded-md bg-primary px-3.5 py-2.5 text-sm font-semibold text-black transition-colors duration-200 hover:bg-primary/90"
+                >
+                  <Plus className="h-4 w-4" />
+                  Ürün Ekle
+                </button>
+              </div>
+            </div>
+
+            {selectedIds.length > 0 && (
+              <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-surface-container/60 px-3 py-2.5">
+                <span className="text-xs font-semibold text-muted">{selectedIds.length} ürün seçili</span>
+                <button
+                  type="button"
+                  onClick={() => handleBulkStatusChange("active")}
+                  disabled={submitting}
+                  className="rounded-md bg-success/10 px-3 py-1.5 text-xs font-semibold text-success transition-colors duration-200 hover:bg-success/15 disabled:opacity-60"
+                >
+                  Aktif Yap
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleBulkStatusChange("passive")}
+                  disabled={submitting}
+                  className="rounded-md border border-border/70 bg-surface-container/70 px-3 py-1.5 text-xs font-semibold text-muted transition-colors duration-200 hover:border-primary/20 hover:bg-card hover:text-foreground disabled:opacity-60"
+                >
+                  Pasif Yap
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleBulkStatusChange("draft")}
+                  disabled={submitting}
+                  className="rounded-md bg-info/10 px-3 py-1.5 text-xs font-semibold text-info transition-colors duration-200 hover:bg-info/15 disabled:opacity-60"
+                >
+                  Taslağa Al
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkDelete}
+                  disabled={submitting}
+                  className="rounded-md bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger transition-colors duration-200 hover:bg-danger/15 disabled:opacity-60"
+                >
+                  Sil
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds([])}
+                  disabled={submitting}
+                  className="rounded-md px-3 py-1.5 text-xs font-semibold text-muted transition-colors duration-200 hover:bg-surface-soft hover:text-foreground disabled:opacity-60"
+                >
+                  Temizle
+                </button>
+              </div>
+            )}
+          </div>
+
+          {products.length === 0 && !loadError ? (
+            <EmptyState
+              icon={Database}
+              title="Henüz ürün eklemediniz"
+              description="Ürünleri Veri Merkezi'ne ekleyin ya da katalogu içe aktarın. Ürünler olmadan kârlılık ve tahmin hesapları başlamaz."
+              className="mx-auto max-w-md"
+              action={
+                <div className="flex flex-wrap justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingProduct(null);
+                      setIsProductFormOpen(true);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-black transition-colors duration-200 hover:bg-primary/90"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Ürün Ekle
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCatalogImport}
+                    disabled={catalogImporting || submitting || bulkSyncing || loading}
+                    className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-container px-4 py-2.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-border-strong hover:bg-surface-container disabled:opacity-60"
+                  >
+                    <CloudDownload className={cn("h-4 w-4", catalogImporting && "animate-bounce")} />
+                    Katalog Al
+                  </button>
+                </div>
+              }
+            />
+          ) : (
+            <div className="overflow-hidden rounded-lg border border-border/70 bg-panel/55 shadow-[var(--shadow-card)]">
+              <ProductDataTable
+                products={products}
+                onDelete={handleDeleteProduct}
+                onEdit={(product) => {
+                  setEditingProduct(product);
+                  setIsProductFormOpen(true);
+                }}
+                selectedIds={selectedIds}
+                onToggleSelect={(id) => {
+                  setSelectedIds((current) =>
+                    current.includes(id) ? current.filter((itemId) => itemId !== id) : [...current, id]
+                  );
+                }}
+                onNotify={showMessage}
+                onRefresh={() => {
+                  void refreshData();
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "sales" && <SalesHistorySection />}
+
+      {activeTab === "settings" && (
+        <div className="space-y-6">
+          <OwnWebsiteSettingsForm />
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <StoreExpensesSection />
+            <SellerProfileForm />
+          </div>
+        </div>
+      )}
+
+      <ProductDataForm
+        isOpen={isProductFormOpen}
+        product={editingProduct}
+        onClose={() => {
+          setIsProductFormOpen(false);
+          setEditingProduct(null);
+        }}
+        onSubmit={handleSubmitProduct}
+        onImagePersisted={async () => {
+          await refreshData();
+        }}
+        isSubmitting={submitting}
+      />
+
+      {loading && (
+        <div className="fixed bottom-6 left-6 z-[100] rounded-lg border border-border bg-panel/95 px-4 py-3 text-sm text-muted shadow-[var(--shadow-card)] backdrop-blur-2xl">
+          Veri merkezi yükleniyor...
+        </div>
+      )}
+    </div>
+  );
+}

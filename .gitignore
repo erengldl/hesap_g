@@ -1,0 +1,17 @@
+.claude/
+.codex/
+.codex-chrome-profile/
+.codex-chrome-profile-2/
+.next/
+.vscode/
+node_modules/
+test-results/
+tsconfig.tsbuildinfo
+.env.local
+__pycache__/
+*.pyc
+
+# Keep the source database files, but exclude SQLite live journal files.
+Veri Merkezi/*.db-wal
+Veri Merkezi/*.db-shm
+Veri Merkezi/*.sqlite-journal
