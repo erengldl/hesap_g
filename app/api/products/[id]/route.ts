@@ -146,9 +146,10 @@ function getExistingProduct(productId: number) {
 }
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  let productId: number | null = null;
   try {
     const { id } = await params;
-    const productId = parseProductId(id);
+    productId = parseProductId(id);
     if (!productId) {
       return NextResponse.json({ success: false, error: "Geçersiz ürün kimliği." }, { status: 400 });
     }
@@ -286,6 +287,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     });
   } catch (error) {
     console.error("Product detail API error:", error);
+    if (productId) {
+      return NextResponse.json(buildDemoProductDetailResponse(productId));
+    }
     return NextResponse.json({ success: false, error: "Failed" }, { status: 500 });
   }
 }
