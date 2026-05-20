@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState, type ElementType } from "react";
 import { useSearchParams } from "next/navigation";
-import { Package, RotateCw, Sparkles } from "lucide-react";
+import { CalendarDays, Package, RotateCw, Sparkles, Store } from "lucide-react";
 import ForecastControlPanel from "@/components/forecast/ForecastControlPanel";
 import ForecastKpiCards from "@/components/forecast/ForecastKpiCards";
 import ForecastChartsAndTable from "@/components/forecast/ForecastChartsAndTable";
 import ForecastLoadingState from "@/components/forecast/ForecastLoadingState";
-import { EmptyState, ErrorStateCard, GlassCard } from "@/components/ui-custom/GlassComponents";
+import { EmptyState, ErrorStateCard, GlassCard, KpiCard } from "@/components/ui-custom/GlassComponents";
 import type {
   DemandForecastBootstrapResponse,
   DemandForecastResult,
@@ -248,22 +248,35 @@ function ForecastPageContent() {
   const selectedMarketplace = bootstrap?.marketplaces.find((marketplace) => marketplace.id === selection?.marketplaceId) ?? bootstrap?.selectedMarketplace ?? null;
   const activeResult = result ?? bootstrap?.result ?? null;
 
-  const headerStats = [
+  const headerStats: Array<{
+    label: string;
+    value: string;
+    icon: ElementType;
+    tone: "default" | "primary" | "success" | "warning" | "danger";
+  }> = [
     {
       label: "Tahmin modeli",
       value: activeResult?.summary.modelName ? "İstatistiksel model" : "Seçilmedi",
+      icon: Sparkles,
+      tone: "primary",
     },
     {
       label: "Aktif ürün",
       value: selectedProduct?.name ?? "Seçilmedi",
+      icon: Package,
+      tone: "default",
     },
     {
       label: "Pazar",
       value: selectedMarketplace?.name ?? "Seçilmedi",
+      icon: Store,
+      tone: "default",
     },
     {
       label: "Veri geçmişi",
       value: bootstrap?.historyDepthDays ? `${formatNumber(bootstrap.historyDepthDays)} gün` : "Belirlenmedi",
+      icon: CalendarDays,
+      tone: "default",
     },
   ];
 
@@ -288,7 +301,13 @@ function ForecastPageContent() {
 
           <div className="grid gap-2 sm:grid-cols-2 xl:w-[520px] xl:grid-cols-4">
             {headerStats.map((stat) => (
-              <MiniStat key={stat.label} label={stat.label} value={stat.value} />
+              <KpiCard
+                key={stat.label}
+                title={stat.label}
+                value={stat.value}
+                icon={stat.icon}
+                tone={stat.tone}
+              />
             ))}
           </div>
         </div>
@@ -328,15 +347,6 @@ function ForecastPageContent() {
           />
         </div>
       </div>
-    </div>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0 rounded-lg border border-border bg-surface-container px-4 py-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">{label}</p>
-      <p className="mt-1 truncate text-sm font-semibold text-foreground">{value}</p>
     </div>
   );
 }

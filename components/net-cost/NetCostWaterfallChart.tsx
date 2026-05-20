@@ -119,7 +119,7 @@ export default function NetCostWaterfallChart({ data }: NetCostWaterfallChartPro
             className={cn(
               "rounded-2xl border px-4 py-3",
               step.name === "Net Kâr"
-                ? "border-primary/20 bg-primary/[0.05]"
+                ? "border-primary/20 bg-primary/5"
                 : step.isStart
                   ? "border-border/80 bg-surface-container"
                   : "border-border/80 bg-surface-container"

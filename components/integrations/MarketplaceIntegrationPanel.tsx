@@ -243,7 +243,7 @@ function MarketplaceCard({
                 onSync(item);
               }}
               disabled={syncing}
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-[color,transform] duration-200 hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="btn-primary px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
             >
               <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
               {syncing ? "Senkron sürüyor" : "Güncelle"}
@@ -254,7 +254,7 @@ function MarketplaceCard({
                 event.stopPropagation();
                 onOpen(item);
               }}
-              className="action-inline-button"
+              className="btn-secondary"
             >
               <Settings className="h-4 w-4" />
               Düzenle
@@ -321,7 +321,7 @@ function CredentialModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-2xl border border-border bg-surface-container px-4 py-2 text-sm font-bold text-soft transition-[color,transform] duration-200 hover:bg-surface-container hover:text-foreground active:scale-[0.98]"
+              className="btn-secondary px-4 py-2 text-sm"
             >
               Kapat
             </button>
@@ -420,7 +420,7 @@ function CredentialModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-2xl border border-border bg-surface-container px-5 py-3 text-sm font-bold text-soft transition-[color,transform] duration-200 hover:bg-surface-container hover:text-foreground active:scale-[0.98]"
+              className="btn-secondary px-5 py-3 text-sm"
             >
               Vazgeç
             </button>
@@ -428,7 +428,7 @@ function CredentialModal({
               type="button"
               onClick={onSave}
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-extrabold text-black transition-[color,transform] duration-200 hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="btn-primary px-5 py-3 text-sm font-extrabold disabled:cursor-not-allowed disabled:opacity-60"
               >
               <RefreshCw className={cn("h-4 w-4", saving && "animate-spin")} />
               {saving ? "Kaydediliyor" : "Kaydet ve güncelle"}
@@ -706,7 +706,7 @@ export function MarketplaceIntegrationPanel() {
                 type="button"
                 onClick={syncAll}
                 disabled={syncingSlug === "all" || loading}
-                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-black transition-[color,transform] duration-200 hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn-primary px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <RefreshCw className={cn("h-4 w-4", syncingSlug === "all" && "animate-spin")} />
                 {syncingSlug === "all" ? "Güncelleme sürüyor" : "Tümünü güncelle"}

@@ -425,7 +425,7 @@ export default function ProductDataForm({
           <div className="flex-1 space-y-8 overflow-y-auto px-5 py-6 custom-scrollbar sm:px-8">
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted uppercase tracking-widest">Ürün Adı</label>
+                <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Ürün Adı</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -438,7 +438,7 @@ export default function ProductDataForm({
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted uppercase tracking-widest">Kod</label>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Kod</label>
                   <input
                     type="text"
                     value={formData.sku}
@@ -449,7 +449,7 @@ export default function ProductDataForm({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted uppercase tracking-widest">Barcode</label>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Barcode</label>
                   <input
                     type="text"
                     value={formData.barcode}
@@ -460,7 +460,7 @@ export default function ProductDataForm({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted uppercase tracking-widest">Ürün Görseli</label>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Ürün Görseli</label>
                   <div className="min-w-0 rounded-xl border border-border bg-surface-container p-4 space-y-4">
                     <input
                       ref={fileInputRef}
@@ -514,7 +514,7 @@ export default function ProductDataForm({
                     </div>
 
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-[10px] text-muted uppercase tracking-widest">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
                         URL gerekmez. Dosya seçildiğinde kare kırpılır ve otomatik olarak depolamaya kaydedilir.
                       </p>
 
@@ -534,7 +534,7 @@ export default function ProductDataForm({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted uppercase tracking-widest">Ürün Açıklaması</label>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Ürün Açıklaması</label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -546,7 +546,7 @@ export default function ProductDataForm({
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted uppercase tracking-widest">Kategori</label>
+                <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Kategori</label>
                 <CategorySelector
                   onSelect={(cat) => setFormData((prev) => ({ ...prev, category_id: cat.id, category_path: cat.path }))}
                   initialValue={formData.category_path}
@@ -557,7 +557,7 @@ export default function ProductDataForm({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted uppercase tracking-widest text-[9px]">Üretim / Alış Maliyeti (TL)</label>
+                <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Üretim / Alış Maliyeti (TL)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -568,7 +568,7 @@ export default function ProductDataForm({
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted uppercase tracking-widest text-[9px]">Paketleme Maliyeti (TL)</label>
+                <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Paketleme Maliyeti (TL)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -579,7 +579,7 @@ export default function ProductDataForm({
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted uppercase tracking-widest text-[9px]">Desi</label>
+                <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Desi</label>
                 <input
                   type="number"
                   step="0.1"
@@ -590,7 +590,7 @@ export default function ProductDataForm({
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted uppercase tracking-widest text-[9px]">Satış Fiyatı (TL)</label>
+                <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Satış Fiyatı (TL)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -603,7 +603,7 @@ export default function ProductDataForm({
             </div>
 
             <div className="space-y-4">
-              <label className="text-xs font-bold text-muted uppercase tracking-widest">Aktif Satış Kanalları</label>
+              <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Aktif Satış Kanalları</label>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {channels.map((channel) => (
                   <button
@@ -629,7 +629,7 @@ export default function ProductDataForm({
             </div>
 
             <div className="space-y-4">
-              <label className="text-xs font-bold text-muted uppercase tracking-widest">Ürün Durumu</label>
+              <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Ürün Durumu</label>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {[
                   { id: "active", label: "Aktif" },
@@ -665,7 +665,7 @@ export default function ProductDataForm({
               <button
                 type="button"
                 onClick={resetAndClose}
-                className="w-full flex-1 rounded-xl border border-border py-3 text-sm font-bold text-foreground transition-colors duration-200 hover:bg-surface-container"
+                className="btn-secondary w-full flex-1 py-3 text-sm font-bold"
               >
                 Vazgeç
               </button>
@@ -673,7 +673,7 @@ export default function ProductDataForm({
                 type="submit"
                 form="product-data-form"
                 disabled={isSubmitting || isUploadingImage}
-                className="w-full flex-1 rounded-xl bg-primary py-3 text-sm font-bold text-black transition-colors duration-200 hover:bg-primary/90 shadow-[var(--shadow-primary)] disabled:opacity-60"
+                className="btn-primary w-full flex-1 py-3 text-sm font-bold disabled:opacity-60"
               >
                 {isSubmitting ? "Kaydediliyor..." : isUploadingImage ? "Görsel yükleniyor..." : product ? "Güncelle" : "Ürünü Ekle"}
               </button>

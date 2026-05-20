@@ -311,7 +311,7 @@ function MessageBubble({ message }: { message: ManualAdChatMessage }) {
         className={cn(
           "max-w-[min(100%,42rem)] rounded-2xl border px-4 py-3 shadow-sm",
           isAssistant
-            ? "border-primary/15 bg-primary/[0.05] text-foreground"
+            ? "border-primary/15 bg-primary/5 text-foreground"
             : "border-border bg-surface-container text-foreground"
         )}
       >

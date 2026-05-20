@@ -67,7 +67,7 @@ export function ChannelSeoProgressModal({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface-container text-muted transition-[color,transform] duration-200 hover:text-foreground active:scale-[0.98]"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface-container text-muted transition-colors duration-200 hover:text-foreground active:scale-[0.98]"
               aria-label="İlerleme penceresini kapat"
             >
               <span className="text-lg leading-none">×</span>

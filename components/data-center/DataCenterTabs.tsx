@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CircleCheckBig, CircleX, CloudDownload, Database, Plus, RotateCw, TriangleAlert } from "lucide-react";
+import { BadgePercent, CircleCheckBig, CircleX, CloudDownload, Database, DollarSign, Plus, RotateCw, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
 import type { Product, ProductUpsertInput } from "@/lib/types";
 import { DEMO_PRODUCTS } from "@/lib/demo-data";
-import { EmptyState, ErrorStateCard, SkeletonCard, SkeletonTable } from "@/components/ui-custom/GlassComponents";
+import { EmptyState, ErrorStateCard, KpiCard, SkeletonCard, SkeletonTable } from "@/components/ui-custom/GlassComponents";
 
 import ProductDataTable from "./ProductDataTable";
 import ProductDataForm from "./ProductDataForm";
@@ -32,18 +32,6 @@ type AppStats = {
   last_bulk_sync_processed?: number | null;
   last_bulk_sync_message?: string | null;
 };
-
-function MetricCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <div className="premium-surface flex h-full items-center justify-between gap-4 rounded-lg border border-border/70 bg-panel/80 px-4 py-3.5 shadow-[var(--shadow-card)]">
-      <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted/60">{label}</p>
-        {hint && <p className="mt-1 text-[11px] text-muted/60">{hint}</p>}
-      </div>
-      <p className="truncate text-lg font-semibold leading-none tracking-tight text-foreground">{value}</p>
-    </div>
-  );
-}
 
 function formatRelativeTime(value?: string | null) {
   if (!value) return "Henüz işlem yapılmadı";
@@ -425,10 +413,10 @@ export function DataCenterTabs() {
       {activeTab === "products" && (
         <div className="space-y-5">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="Ürün Sayısı" value={String(productCount)} hint="Toplam katalog" />
-            <MetricCard label="Aktif Ürün Sayısı" value={String(activeProductCount)} hint="Satışa açık" />
-            <MetricCard label="Ortalama Fiyat" value={formatCurrency(averagePrice)} hint="Liste ortalaması" />
-            <MetricCard label="Ortalama Kâr Marjı" value={`%${Number(averageProfitMargin).toFixed(1)}`} hint="Kanal sonuçlarına göre" />
+            <KpiCard title="Ürün Sayısı" value={String(productCount)} subValue="Toplam katalog" icon={Database} />
+            <KpiCard title="Aktif Ürün Sayısı" value={String(activeProductCount)} subValue="Satışa açık" icon={CircleCheckBig} tone="success" />
+            <KpiCard title="Ortalama Fiyat" value={formatCurrency(averagePrice)} subValue="Liste ortalaması" icon={DollarSign} tone="primary" />
+            <KpiCard title="Ortalama Kâr Marjı" value={`%${Number(averageProfitMargin).toFixed(1)}`} subValue="Kanal sonuçlarına göre" icon={BadgePercent} tone="warning" />
           </div>
 
           <div className="rounded-lg border border-border/70 bg-panel/70 p-4 shadow-[var(--shadow-card)] sm:p-5">
@@ -472,7 +460,7 @@ export function DataCenterTabs() {
                     setEditingProduct(null);
                     setIsProductFormOpen(true);
                   }}
-                  className="flex items-center gap-2 rounded-md bg-primary px-3.5 py-2.5 text-sm font-semibold text-black transition-colors duration-200 hover:bg-primary/90"
+                  className="btn-primary px-3.5 py-2.5 text-sm"
                 >
                   <Plus className="h-4 w-4" />
                   Ürün Ekle
@@ -541,7 +529,7 @@ export function DataCenterTabs() {
                       setEditingProduct(null);
                       setIsProductFormOpen(true);
                     }}
-                    className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-black transition-colors duration-200 hover:bg-primary/90"
+                    className="btn-primary px-4 py-2.5 text-sm"
                   >
                     <Plus className="h-4 w-4" />
                     Ürün Ekle

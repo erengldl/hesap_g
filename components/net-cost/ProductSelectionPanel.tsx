@@ -234,7 +234,7 @@ export default function ProductSelectionPanel({
                 className={cn(
                   "group relative cursor-pointer overflow-hidden rounded-lg border p-3.5 transition-colors duration-200",
                   isSelected
-                    ? "border-primary/30 bg-primary/[0.05]"
+                    ? "border-primary/30 bg-primary/5"
                     : "border-border/80 bg-surface-container hover:border-border hover:bg-surface-container"
                 )}
               >

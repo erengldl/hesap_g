@@ -134,7 +134,7 @@ export function ManualAdCampaignCard({ campaign, className }: ManualAdCampaignCa
         </div>
 
         {campaign.latestSummary ? (
-          <div className="rounded-2xl border border-primary/15 bg-primary/[0.04] p-4">
+          <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">Yapay zeka özeti</p>
             <p className="mt-2 text-sm leading-6 text-soft">{campaign.latestSummary}</p>
           </div>

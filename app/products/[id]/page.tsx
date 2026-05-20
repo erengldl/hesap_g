@@ -321,14 +321,14 @@ export default function ProductDetailPage() {
                 )}
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg border border-border bg-surface-container p-4">
+                <GlassCard className="p-4 sm:p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Kod</p>
                   <p className="mt-1 text-sm font-semibold text-foreground">{product.sku ?? "Belirtilmedi"}</p>
-                </div>
-                <div className="rounded-lg border border-border bg-surface-container p-4">
+                </GlassCard>
+                <GlassCard className="p-4 sm:p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Barkod</p>
                   <p className="mt-1 text-sm font-semibold text-foreground">{product.barcode ?? "Belirtilmedi"}</p>
-                </div>
+                </GlassCard>
               </div>
             </div>
 
@@ -503,7 +503,7 @@ export default function ProductDetailPage() {
 
             {activeTab === "description" && (
               <div className="space-y-4">
-                <div className="rounded-lg border border-border bg-surface-container p-5">
+                <GlassCard className="p-5 sm:p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <ReceiptText className="h-5 w-5 text-primary" />
                     <h3 className="text-lg font-semibold text-foreground">Açıklama</h3>
@@ -511,7 +511,7 @@ export default function ProductDetailPage() {
                   <p className="text-sm leading-6 text-soft">
                     {product.description ?? "Açıklama henüz eklenmemiş. Buradan düzenleyebilirsin."}
                   </p>
-                </div>
+                </GlassCard>
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <MetaCard label="Kategori" value={product.categoryPath ?? product.categoryName ?? "Kategorisiz"} />
@@ -524,18 +524,18 @@ export default function ProductDetailPage() {
 
             {activeTab === "margin" && (
               <div className="space-y-4">
-                <div className="rounded-lg border border-border bg-surface-container p-5">
+                <GlassCard className="p-5 sm:p-5">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Güncel durum</p>
                   <p className="mt-2 text-2xl font-semibold text-foreground">{marginStatus.label}</p>
                   <p className="mt-2 text-sm leading-6 text-soft">{marginStatus.description}</p>
-                </div>
+                </GlassCard>
 
                 <div className="space-y-3">
                   {marginSnapshots.length > 0 ? (
                     marginSnapshots.map((snapshot) => (
-                      <div
-                        key={snapshot.marketplace_id}
-                        className="rounded-lg border border-border bg-surface-container p-4 transition-colors duration-200 hover:border-primary/20 hover:bg-primary/[0.03]"
+                    <GlassCard
+                      key={snapshot.marketplace_id}
+                        className="p-4 sm:p-4 transition-colors duration-200 hover:border-primary/20 hover:bg-primary/5"
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div>
@@ -562,12 +562,12 @@ export default function ProductDetailPage() {
                           <StatPair label="Kâr" value={formatCurrency(Number(snapshot.net_profit ?? 0))} accent />
                           <StatPair label="Not" value={snapshot.warning_notes ?? "Belirtilmedi"} />
                         </div>
-                      </div>
+                      </GlassCard>
                     ))
                   ) : (
-                    <div className="rounded-lg border border-border bg-surface-container p-5 text-sm text-muted">
+                    <GlassCard className="p-5 sm:p-5 text-sm text-muted">
                       Bu ürün için henüz kanal verisi yok.
-                    </div>
+                    </GlassCard>
                   )}
                 </div>
               </div>
@@ -575,12 +575,12 @@ export default function ProductDetailPage() {
 
             {activeTab === "orders" && (
               <div className="space-y-4">
-                <div className="rounded-lg border border-border bg-surface-container p-4">
+                <GlassCard className="p-4 sm:p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Siparişler</p>
                   <p className="mt-1 text-sm text-muted">
                     {formatNumber(orderHistory.length)} kayıt · geçmiş sipariş kayıtları
                   </p>
-                </div>
+                </GlassCard>
 
                 <div className="overflow-x-auto rounded-lg border border-border">
                   <table className="w-full text-left">
@@ -642,40 +642,40 @@ export default function ProductDetailPage() {
 
 function Kpi({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className={cn("rounded-lg border p-4", accent ? "border-primary/20 bg-primary/5" : "border-border bg-surface-container")}>
+    <GlassCard className={cn("p-4 sm:p-4", accent ? "border-primary/20 bg-primary/5" : "border-border bg-surface-container")}>
       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{label}</p>
       <p className={cn("mt-2 text-lg font-semibold", accent ? "text-primary" : "text-foreground")}>{value}</p>
-    </div>
+    </GlassCard>
   );
 }
 
 function MiniStat({ label, value, caption }: { label: string; value: string; caption?: string }) {
   return (
-    <div className="rounded-lg border border-border bg-surface-container p-4">
+    <GlassCard className="p-4 sm:p-4">
       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{label}</p>
       <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
       {caption && <p className="text-[10px] text-muted">{caption}</p>}
-    </div>
+    </GlassCard>
   );
 }
 
 function MetaCard({ label, value, icon: Icon }: { label: string; value: string; icon?: React.ComponentType<{ className?: string }> }) {
   return (
-    <div className="rounded-lg border border-border bg-surface-container p-4">
+    <GlassCard className="p-4 sm:p-4">
       <div className="flex items-center gap-2">
         {Icon ? <Icon className="h-4 w-4 text-primary" /> : null}
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{label}</p>
       </div>
       <p className="mt-2 text-sm font-medium text-foreground">{value}</p>
-    </div>
+    </GlassCard>
   );
 }
 
 function StatPair({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className={cn("rounded-md border p-3", accent ? "border-primary/20 bg-primary/5" : "border-border bg-surface-container")}>
+    <GlassCard className={cn("p-3 sm:p-3", accent ? "border-primary/20 bg-primary/5" : "border-border bg-surface-container")}>
       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{label}</p>
       <p className={cn("mt-1 text-sm font-semibold", accent ? "text-primary" : "text-foreground")}>{value}</p>
-    </div>
+    </GlassCard>
   );
 }

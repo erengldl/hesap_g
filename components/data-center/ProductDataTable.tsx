@@ -259,7 +259,7 @@ function ChannelEditorCard({
       className={cn(
         PANEL_CARD_CLASS,
         "p-4 transition-colors duration-200",
-        active ? "border-primary/20 bg-primary/[0.04]" : "opacity-[0.88]"
+        active ? "border-primary/20 bg-primary/5" : "opacity-[0.88]"
       )}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1102,7 +1102,7 @@ export default function ProductDataTable({
 
                   return (
                     <React.Fragment key={product.id}>
-                      <tr className={cn("transition-colors duration-200 hover:bg-surface-container/35", isExpanded && "bg-primary/[0.04]")}>
+                      <tr className={cn("transition-colors duration-200 hover:bg-surface-container/35", isExpanded && "bg-primary/5")}>
                         <td className="px-3 py-4 align-middle">
                           {onToggleSelect ? (
                             <input

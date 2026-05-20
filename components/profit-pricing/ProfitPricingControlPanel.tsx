@@ -7,13 +7,8 @@ import type {
   EditableProfitPricingField,
   ProfitPricingBootstrapProduct,
   ProfitPricingChannelProfile,
-  ProfitPricingResult,
   SalesChannel,
 } from "@/lib/profit-pricing/types";
-import {
-  formatProfitPricingCurrency,
-  formatProfitPricingPercent,
-} from "@/lib/profit-pricing/formatters";
 import { channelLabel } from "@/lib/profit-pricing/utils";
 import { cn } from "@/lib/utils";
 
@@ -114,7 +109,6 @@ function ChannelInput(props: {
 
 function ChannelCard(props: {
   profile: ProfitPricingChannelProfile;
-  result: ProfitPricingResult | undefined;
   active: boolean;
   onSelect: (channel: SalesChannel) => void;
   onChangeField: (
@@ -123,7 +117,7 @@ function ChannelCard(props: {
     value: number | undefined
   ) => void;
 }) {
-  const { profile, result, active } = props;
+  const { profile, active } = props;
   const isWebsite = profile.channel === "website";
 
   return (
@@ -182,29 +176,6 @@ function ChannelCard(props: {
         />
       </div>
 
-      <div className="mt-2.5 grid gap-2 sm:grid-cols-3">
-        <div className="rounded-xl border border-border/70 bg-surface-container/70 px-2.5 py-2">
-          <p className="text-[9px] uppercase tracking-[0.14em] text-muted/600">Net kâr</p>
-          <p className="mt-1 text-xs font-semibold text-foreground">
-            {formatProfitPricingCurrency(result?.netProfit ?? 0)}
-          </p>
-        </div>
-        <div className="rounded-xl border border-border/70 bg-surface-container/70 px-2.5 py-2">
-          <p className="text-[9px] uppercase tracking-[0.14em] text-muted/600">Marj</p>
-          <p className="mt-1 text-xs font-semibold text-foreground">
-            {formatProfitPricingPercent(result?.profitMargin ?? null)}
-          </p>
-        </div>
-        <div className="rounded-xl border border-border/70 bg-surface-container/70 px-2.5 py-2">
-          <p className="text-[9px] uppercase tracking-[0.14em] text-muted/600">Toplam kâr</p>
-          <p className="mt-1 text-xs font-semibold text-foreground">
-            {formatProfitPricingCurrency(
-              result?.priceGrid.find((point) => point.price === profile.input.salePrice)
-                ?.estimatedTotalProfit ?? result?.priceScenarios[0]?.estimatedTotalProfit ?? 0
-            )}
-          </p>
-        </div>
-      </div>
     </div>
   );
 }
@@ -212,7 +183,6 @@ function ChannelCard(props: {
 export default function ProfitPricingControlPanel(props: {
   products: ProfitPricingBootstrapProduct[];
   channelProfiles: ProfitPricingChannelProfile[];
-  resultsByChannel: Partial<Record<SalesChannel, ProfitPricingResult>>;
   selectedChannel: SalesChannel;
   busy: boolean;
   syncState: SyncState;
@@ -299,7 +269,6 @@ export default function ProfitPricingControlPanel(props: {
             <ChannelCard
               key={profile.channel}
               profile={profile}
-              result={props.resultsByChannel[profile.channel]}
               active={props.selectedChannel === profile.channel}
               onSelect={props.onSelectChannel}
               onChangeField={props.onChangeField}

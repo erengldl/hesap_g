@@ -25,7 +25,6 @@ import type {
 } from "@/lib/profit-pricing/types";
 
 import ChannelCostWaterfall from "./ChannelCostWaterfall";
-import OptimizationRecommendationTable from "./OptimizationRecommendationTable";
 import PriceProfitCurve from "./PriceProfitCurve";
 import ProfitPricingControlPanel from "./ProfitPricingControlPanel";
 import ProfitPricingEmptyState from "./ProfitPricingEmptyState";
@@ -515,7 +514,6 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
             <ProfitPricingControlPanel
               products={props.bootstrap.products}
               channelProfiles={state.channelProfiles}
-              resultsByChannel={resultsByChannel}
               selectedChannel={state.selectedChannel}
               busy={selectionLoading}
               syncState={syncState}
@@ -529,20 +527,6 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
               onChangeField={handleChangeField}
               onOptimize={handleOptimize}
             />
-          </section>
-
-          <section className="flex w-full flex-col gap-4">
-            {activeResult ? (
-              <OptimizationRecommendationTable
-                resultsByChannel={resultsByChannel}
-                strategies={strategies}
-                activeStrategy={state.activeStrategy}
-                applyingStrategy={applyingStrategy}
-                onApplyStrategy={handleApplyStrategy}
-              />
-            ) : (
-              <DeferredPanelPlaceholder title="Optimizasyon tablosu yüklenemedi." />
-            )}
           </section>
 
           <section className="flex w-full flex-col gap-4">

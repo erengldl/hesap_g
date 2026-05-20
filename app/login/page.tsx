@@ -8,6 +8,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/layout/AuthContext";
+import { EyebrowBadge } from "@/components/ui-custom/GlassComponents";
 import { getFirebaseAuth, isFirebaseClientConfigured, signOutFirebaseClient } from "@/lib/firebase/client";
 import { getFirebaseErrorMessage } from "@/lib/firebase/errors";
 
@@ -112,11 +113,11 @@ export default function LoginPage() {
                   </div>
                   <div>
                     <p className="text-xl font-semibold tracking-[-0.05em] text-foreground">Hesap G</p>
-                    <p className="text-[10px] uppercase tracking-[0.22em] text-muted/60">Commerce control</p>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-muted/60">Commerce control</p>
                   </div>
                 </div>
 
-                <span className="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
+                <span className="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
                   Referans dashboard sistemi
                 </span>
 
@@ -150,14 +151,14 @@ export default function LoginPage() {
               </div>
               <div>
                 <p className="text-lg font-semibold tracking-[-0.05em] text-foreground">Hesap G</p>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-muted/60">Commerce control</p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted/60">Commerce control</p>
               </div>
             </div>
 
             <div className="mb-8">
-              <span className="inline-flex items-center gap-2 rounded-md border border-border/80 bg-surface-container/75 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/60">
+              <EyebrowBadge>
                 Güvenli erişim
-              </span>
+              </EyebrowBadge>
               <h2 className="mt-5 font-heading text-[2rem] font-semibold tracking-[-0.06em] text-foreground">
                 Hoş geldiniz
               </h2>

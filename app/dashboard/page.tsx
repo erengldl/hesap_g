@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { PageHeader, KpiCard, GlassCard, WarningBadge, SkeletonCard, EmptyState } from "@/components/ui-custom/GlassComponents";
+import { PageHeader, KpiCard, GlassCard, MobileCardList, WarningBadge, SkeletonCard, EmptyState } from "@/components/ui-custom/GlassComponents";
 import {
   TrendingUp, Wallet, BarChart3, ShoppingCart, Target, Zap, Info,
   Package, AlertTriangle, DollarSign, Activity, ChevronRight, Megaphone, Database, Sparkles,
@@ -186,7 +186,7 @@ export default function DashboardPage() {
             value={formatNumber(adSummary.lossMakingCount)}
             subValue={`${adSummary.watchCount} takip · ${adSummary.scaleCount} ölçek`}
             icon={AlertTriangle}
-            className="border-danger/20 bg-danger/[0.03]"
+            className="border-danger/20 bg-danger/5"
           />
         </div>
       )}
@@ -332,9 +332,11 @@ export default function DashboardPage() {
             </table>
           </div>
 
-          <div className="space-y-2 md:hidden">
-            {agg.topProducts.map((p, index) => (
-              <div key={p.id} className="rounded-lg border border-border bg-surface-container p-3">
+          <MobileCardList
+            className="space-y-2 md:hidden"
+            data={agg.topProducts}
+            renderItem={(p, index) => (
+              <GlassCard key={p.id} className="p-3 sm:p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{p.name}</p>
@@ -359,9 +361,9 @@ export default function DashboardPage() {
                     <p className="text-sm font-bold text-primary">%{p.margin}</p>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              </GlassCard>
+            )}
+          />
         </GlassCard>
 
         <GlassCard>
@@ -369,9 +371,9 @@ export default function DashboardPage() {
           {agg.stockAlerts.length > 0 ? (
             <div className="space-y-2">
               {agg.stockAlerts.slice(0, 6).map((alert, i) => (
-                <div key={`${alert.id}-${i}`} className={cn(
-                  "flex items-center justify-between gap-3 rounded-lg border p-2.5",
-                  alert.stock < 5 ? "border-danger/30 bg-danger/[0.03]" :
+                <GlassCard key={`${alert.id}-${i}`} className={cn(
+                  "flex items-center justify-between gap-3 p-2.5 transition-colors duration-200",
+                  alert.stock < 5 ? "border-danger/30 bg-danger/5" :
                   alert.stock < 10 ? "border-warning/30 bg-warning/[0.03]" :
                   "border-border bg-surface-container"
                 )}>
@@ -392,21 +394,21 @@ export default function DashboardPage() {
                     </span>
                     <span className="text-[9px] font-medium uppercase tracking-wide text-muted/60">Kritik Seviye</span>
                   </div>
-                </div>
+                </GlassCard>
               ))}
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed border-border bg-surface-container p-8 text-center">
+            <GlassCard className="border-dashed border-border bg-surface-container p-8 text-center">
               <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-success/10 text-success">
                 <Package className="h-4 w-4" />
               </div>
               <p className="text-sm font-medium text-foreground">Stoklar güvende</p>
               <p className="mt-1 text-xs text-muted">Şu an müdahale gerektiren ürün bulunmuyor.</p>
-            </div>
+            </GlassCard>
           )}
 
           {bestChannel && (
-            <div className="mt-3 flex items-center gap-3 rounded-lg border border-border bg-surface-container p-3">
+            <GlassCard className="mt-3 flex items-center gap-3 p-3">
               <div className="rounded-md bg-primary/10 p-2 text-primary">
                 <Activity className="h-4 w-4" />
               </div>
@@ -416,7 +418,7 @@ export default function DashboardPage() {
                   {bestChannelName} üzerinden <span className="text-primary">{formatCurrency(bestChannel.net_profit)}</span> net kâr elde ediliyor.
                 </p>
               </div>
-            </div>
+            </GlassCard>
           )}
         </GlassCard>
       </div>
@@ -473,18 +475,18 @@ export default function DashboardPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg border border-border bg-surface-container p-3">
+                <GlassCard className="p-3 sm:p-3">
                   <p className="mb-1 text-[9px] font-medium uppercase tracking-wide text-muted/60">ROI</p>
                   <p className="text-xl font-bold tracking-tight text-foreground">
                     {formatPercent((bestChannel.net_profit / Math.max(1, bestChannel.total_unit_cost)) * 100)}
                   </p>
-                </div>
-                <div className="rounded-lg border border-border bg-primary-soft p-3">
+                </GlassCard>
+                <GlassCard className="border-primary/20 bg-primary-soft p-3 sm:p-3">
                   <p className="mb-1 text-[9px] font-medium uppercase tracking-wide text-primary/60">Net Marj</p>
                   <p className="text-xl font-bold tracking-tight text-primary">
                     {formatPercent(bestChannel.profit_margin_percent)}
                   </p>
-                </div>
+                </GlassCard>
               </div>
             </div>
           </GlassCard>
@@ -507,10 +509,10 @@ export default function DashboardPage() {
               const profitShare = result.net_profit > 0 ? Math.max(8, (result.net_profit / maxChannelProfit) * 100) : 8;
 
               return (
-                <div
+                <GlassCard
                   key={result.channel_name}
                   className={cn(
-                    "group rounded-lg border p-3",
+                    "group p-3",
                     isBest ? "border-border bg-primary-soft/40" : "border-border bg-surface-container"
                   )}
                 >
@@ -555,7 +557,7 @@ export default function DashboardPage() {
                     <span>Vergi & Kargo Dahil</span>
                     <span>%{Math.round(result.profit_margin_percent)} Verim</span>
                   </div>
-                </div>
+                </GlassCard>
               );
             })}
           </div>
@@ -564,14 +566,14 @@ export default function DashboardPage() {
 
       <ProductComparison />
 
-      <div className="mt-4 flex items-start gap-3 rounded-lg border border-border bg-surface-container p-3">
+      <GlassCard className="mt-4 flex items-start gap-3 p-3">
         <div className="rounded-md bg-primary/10 p-2 text-primary">
           <Info className="h-4 w-4" />
         </div>
         <p className="text-xs leading-snug text-muted/60">
           {methodology || "Analiz, gerçek zamanlı pazar verileri, komisyon oranları ve lojistik maliyetleri kullanılarak yapılmıştır. Tüm veriler tahmini olup kesin finansal sonuç garanti etmez."}
         </p>
-      </div>
+      </GlassCard>
     </div>
   );
 }
@@ -756,8 +758,10 @@ function ProductComparison() {
             </table>
           </div>
 
-          <div className="space-y-3 md:hidden">
-            {results.map((p) => {
+          <MobileCardList
+            className="space-y-3 md:hidden"
+            data={results}
+            renderItem={(p) => {
               const totalCost = p.cost + p.packagingCost;
               const peakProfit = Math.max(...p.channels.map((ch) => ch.netProfit), 1);
               const bestChannel = p.channels.length > 0
@@ -765,7 +769,7 @@ function ProductComparison() {
                 : null;
 
               return (
-                <div key={p.id} className="rounded-lg border border-border bg-surface-container p-3">
+                <GlassCard key={p.id} className="p-3 sm:p-3">
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-foreground">{p.name}</p>
@@ -835,10 +839,10 @@ function ProductComparison() {
                       );
                     })}
                   </div>
-                </div>
+                </GlassCard>
               );
-            })}
-          </div>
+            }}
+          />
         </div>
       )}
     </GlassCard>

@@ -258,7 +258,7 @@ export default function ProductEditDrawer({
                   </label>
                   <input
                     type="number"
-                    className="w-full rounded-2xl border border-primary/20 bg-primary/[0.05] px-4 py-3.5 text-sm text-foreground outline-none transition-colors duration-200 focus:border-primary/40"
+                    className="w-full rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3.5 text-sm text-foreground outline-none transition-colors duration-200 focus:border-primary/40"
                     value={formData.sale_price ?? ""}
                     onChange={(e) => setFormData({ ...formData, sale_price: Number(e.target.value) })}
                   />
@@ -310,7 +310,7 @@ export default function ProductEditDrawer({
                         key={channel.id}
                         onClick={() => toggleChannel(channel.id)}
                         className={cn(
-                          "w-full rounded-2xl border px-3 py-2.5 text-xs font-medium transition-[color,transform] duration-200 active:scale-[0.98]",
+                          "w-full rounded-2xl border px-3 py-2.5 text-xs font-medium transition-colors duration-200 active:scale-[0.98]",
                           formData.active_channels?.includes(channel.id)
                             ? "border-primary/20 bg-primary/10 text-primary"
                             : "border-border/80 bg-surface-container text-muted/60 hover:border-border hover:bg-surface-container"
@@ -325,7 +325,7 @@ export default function ProductEditDrawer({
             </section>
           </div>
 
-          <section className="rounded-xl border border-primary/15 bg-primary/[0.04] p-5">
+          <section className="rounded-xl border border-primary/15 bg-primary/5 p-5">
             <div className="mb-3 flex items-center gap-3">
               <AlertCircle className="h-4 w-4 text-primary" />
               <h4 className="text-sm font-medium uppercase tracking-[0.2em] text-primary/80">
@@ -343,14 +343,14 @@ export default function ProductEditDrawer({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
               onClick={onClose}
-              className="w-full rounded-2xl border border-border/80 bg-surface-container py-3.5 text-sm font-medium text-muted/60 transition-[color,transform] duration-200 hover:bg-surface-container hover:text-foreground active:scale-[0.98] sm:flex-1"
+              className="btn-secondary w-full py-3.5 text-sm font-medium sm:flex-1"
             >
               İptal
             </button>
             <button
               onClick={handleSave}
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3.5 text-sm font-medium text-black transition-[color,transform] duration-200 hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50 sm:flex-[2]"
+              className="btn-primary flex w-full items-center justify-center gap-2 px-4 py-3.5 text-sm font-medium disabled:opacity-50 sm:flex-[2]"
             >
               {loading ? (
                 <>

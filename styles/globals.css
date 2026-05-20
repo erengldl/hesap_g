@@ -429,7 +429,7 @@ html.light {
   .btn-ghost,
   .btn-danger {
     @apply inline-flex select-none items-center justify-center gap-2 rounded-lg text-[12px];
-    @apply transition-all duration-200 active:scale-[0.98];
+    @apply transition-colors duration-200 active:scale-[0.98];
     min-height: 2.75rem;
     -webkit-tap-highlight-color: transparent;
   }
@@ -460,13 +460,12 @@ html.light {
   }
 
   .btn-primary:hover {
-    filter: brightness(1.06);
+    @apply bg-primary/90;
     box-shadow: var(--shadow-primary-hover);
   }
 
   .btn-primary:active {
     transform: translateY(1px);
-    filter: brightness(0.98);
   }
 
   .btn-secondary {
@@ -507,7 +506,7 @@ html.light {
   .action-icon-button-danger,
   .action-inline-button,
   .action-inline-button-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border transition-colors duration-200;
     @apply active:scale-[0.98];
     @apply focus-visible:outline-none focus-visible:ring-2;
   }

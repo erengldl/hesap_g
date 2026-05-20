@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PageHeader, KpiCard, GlassCard, WarningBadge, SkeletonCard, EmptyState } from "@/components/ui-custom/GlassComponents";
+import { PageHeader, KpiCard, GlassCard, MobileCardList, WarningBadge, SkeletonCard, EmptyState } from "@/components/ui-custom/GlassComponents";
 import { formatNumber } from "@/lib/formatters";
 import {
   Search, TrendingUp, AlertTriangle, CheckCircle2, FileText,
@@ -70,8 +70,8 @@ export default function SeoPage() {
   if (loading) {
     return (
       <div className="page-shell">
-        <PageHeader title="SEO Merkezi" description="SEO verileri hazırlanıyor..." />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <PageHeader eyebrow="SEO alanı" title="SEO Merkezi" description="SEO verileri hazırlanıyor..." />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           {[...Array(4)].map((_, i) => <SkeletonCard key={i} className="h-28" />)}
         </div>
         <SkeletonCard className="h-[500px]" />
@@ -82,7 +82,7 @@ export default function SeoPage() {
   if (!payload) {
     return (
       <div className="page-shell">
-        <PageHeader title="SEO Merkezi" description="Arama ve içerik önerileri." />
+        <PageHeader eyebrow="SEO alanı" title="SEO Merkezi" description="Arama ve içerik önerileri." />
         <EmptyState
           icon={Search}
           title="Henüz analiz yok"
@@ -105,15 +105,10 @@ export default function SeoPage() {
 
   return (
     <div className="page-shell">
-      <PageHeader title="SEO Merkezi" description="Ürünler için arama ve içerik önerileri.">
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-md text-primary text-[10px] font-extrabold uppercase tracking-widest animate-pulse-glow">
-          <Zap className="w-3 h-3" />
-          Akıllı öneriler
-        </div>
-      </PageHeader>
+      <PageHeader eyebrow="SEO alanı" title="SEO Merkezi" description="Ürünler için arama ve içerik önerileri." />
 
       {/* KPI Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <KpiCard
           title="Sonuç"
           value={formatNumber(audits.length)}
@@ -140,36 +135,36 @@ export default function SeoPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-6">
         {/* Keyword Stats Card */}
         <GlassCard>
-          <h3 className="text-lg font-extrabold text-foreground font-heading mb-6 flex items-center gap-2">
+          <h3 className="mb-6 flex items-center gap-2 text-lg font-bold font-heading text-foreground">
             <TrendingUp className="w-5 h-5 text-primary" />
             Kelime özeti
           </h3>
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 rounded-xl border border-border bg-surface-container">
-              <p className="text-[10px] uppercase tracking-widest text-muted mb-2 font-extrabold">Kelime</p>
-              <p className="text-2xl font-extrabold text-foreground">{formatNumber(keywordStats?.total ?? 0)}</p>
-            </div>
-            <div className="p-4 rounded-xl border border-border bg-surface-container">
-              <p className="text-[10px] uppercase tracking-widest text-muted mb-2 font-extrabold">Ortalama kullanım</p>
-              <p className="text-2xl font-extrabold text-foreground">{formatNumber(Math.round(keywordStats?.avgVolume ?? 0))}</p>
-            </div>
-            <div className="p-4 rounded-xl border border-border bg-surface-container">
-              <p className="text-[10px] uppercase tracking-widest text-muted mb-2 font-extrabold">Zorluk</p>
-              <p className="text-2xl font-extrabold text-foreground">{Math.round(keywordStats?.avgDifficulty ?? 0)}/100</p>
-            </div>
-            <div className="p-4 rounded-xl border border-border bg-surface-container">
-              <p className="text-[10px] uppercase tracking-widest text-muted mb-2 font-extrabold">Potansiyel</p>
-              <p className="text-2xl font-extrabold text-primary">{Math.round(keywordStats?.avgOpportunity ?? 0)}/100</p>
-            </div>
+            <GlassCard className="p-4 sm:p-4">
+              <p className="mb-2 text-[10px] uppercase tracking-[0.18em] font-semibold text-muted">Kelime</p>
+              <p className="text-2xl font-semibold text-foreground">{formatNumber(keywordStats?.total ?? 0)}</p>
+            </GlassCard>
+            <GlassCard className="p-4 sm:p-4">
+              <p className="mb-2 text-[10px] uppercase tracking-[0.18em] font-semibold text-muted">Ortalama kullanım</p>
+              <p className="text-2xl font-semibold text-foreground">{formatNumber(Math.round(keywordStats?.avgVolume ?? 0))}</p>
+            </GlassCard>
+            <GlassCard className="p-4 sm:p-4">
+              <p className="mb-2 text-[10px] uppercase tracking-[0.18em] font-semibold text-muted">Zorluk</p>
+              <p className="text-2xl font-semibold text-foreground">{Math.round(keywordStats?.avgDifficulty ?? 0)}/100</p>
+            </GlassCard>
+            <GlassCard className="p-4 sm:p-4">
+              <p className="mb-2 text-[10px] uppercase tracking-[0.18em] font-semibold text-muted">Potansiyel</p>
+              <p className="text-2xl font-semibold text-primary">{Math.round(keywordStats?.avgOpportunity ?? 0)}/100</p>
+            </GlassCard>
           </div>
         </GlassCard>
 
         {/* Recommendation Summary */}
         <GlassCard>
-          <h3 className="text-lg font-extrabold text-foreground font-heading mb-6 flex items-center gap-2">
+          <h3 className="mb-6 flex items-center gap-2 text-lg font-bold font-heading text-foreground">
             <Lightbulb className="w-5 h-5 text-primary" />
             Öneriler
           </h3>
@@ -179,20 +174,20 @@ export default function SeoPage() {
               { label: "Tamamlandı", count: completedCount, color: "bg-primary", textColor: "text-primary" },
               { label: "Bekliyor", count: pendingCount, color: "bg-warning", textColor: "text-warning" },
             ].map((item) => (
-              <div key={item.label} className="flex items-center justify-between p-3 rounded-xl border border-border bg-surface-container">
+              <GlassCard key={item.label} className="p-3 sm:p-3">
                 <div className="flex items-center gap-3">
                   <div className={cn("w-3 h-3 rounded-full", item.color)} />
-                  <span className="text-sm font-bold text-foreground">{item.label}</span>
+                  <span className="text-sm font-semibold text-foreground">{item.label}</span>
                 </div>
-                <span className={cn("text-lg font-extrabold", item.textColor)}>{formatNumber(item.count)}</span>
-              </div>
+                <span className={cn("text-lg font-semibold", item.textColor)}>{formatNumber(item.count)}</span>
+              </GlassCard>
             ))}
           </div>
         </GlassCard>
 
         {/* Quick Action */}
         <GlassCard>
-          <h3 className="text-lg font-extrabold text-foreground font-heading mb-6 flex items-center gap-2">
+          <h3 className="mb-6 flex items-center gap-2 text-lg font-bold font-heading text-foreground">
             <Zap className="w-5 h-5 text-primary" />
             Hızlı başlat
           </h3>
@@ -214,10 +209,10 @@ export default function SeoPage() {
       </div>
 
       {/* Recent Audits Table */}
-      <GlassCard className="mb-8">
-        <div className="flex items-center justify-between mb-8">
+      <GlassCard className="mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-extrabold text-foreground font-heading">Son sonuçlar</h3>
+            <h3 className="font-heading text-lg font-bold text-foreground">Son sonuçlar</h3>
             <p className="text-xs text-muted/60 mt-1">Son 20 analiz.</p>
           </div>
           {audits.length > 0 && (
@@ -255,7 +250,7 @@ export default function SeoPage() {
                 {audits.map((audit) => (
                   <tr key={audit.id}>
                     <td>
-                      <p className="font-extrabold text-foreground text-sm">{audit.target_label}</p>
+                      <p className="text-sm font-bold text-foreground">{audit.target_label}</p>
                       <p className="text-[10px] text-muted mt-0.5">{auditTypeLabel(audit.audit_type)}</p>
                     </td>
                     <td>
@@ -263,7 +258,7 @@ export default function SeoPage() {
                     </td>
                     <td className="text-center">
                       <span className={cn(
-                        "inline-flex px-2 py-0.5 rounded-md text-xs font-extrabold border",
+                        "inline-flex rounded-md px-2 py-0.5 text-xs font-semibold border",
                         scoreBg(audit.overall_score),
                         scoreColor(audit.overall_score)
                       )}>
@@ -271,19 +266,19 @@ export default function SeoPage() {
                       </span>
                     </td>
                     <td className="text-center">
-                      <span className={cn("text-sm font-extrabold", audit.critical_issues_count > 0 ? "text-danger" : "text-muted")}>
+                      <span className={cn("text-sm font-semibold", audit.critical_issues_count > 0 ? "text-danger" : "text-muted")}>
                         {audit.critical_issues_count}
                       </span>
                     </td>
                     <td className="text-center">
-                      <span className="text-sm font-extrabold text-warning">{audit.warning_issues_count}</span>
+                      <span className="text-sm font-semibold text-warning">{audit.warning_issues_count}</span>
                     </td>
                     <td className="text-center">
-                      <span className="text-sm font-extrabold text-info">{audit.opportunities_count}</span>
+                      <span className="text-sm font-semibold text-info">{audit.opportunities_count}</span>
                     </td>
                     <td>
                       <span className={cn(
-                        "inline-flex px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-widest border",
+                        "inline-flex rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] border",
                         audit.status === "completed" ? "bg-success/10 text-success border-success/20" :
                         audit.status === "in_progress" ? "bg-info/10 text-info border-info/20" :
                         "bg-muted/10 text-muted border-border"
@@ -304,16 +299,18 @@ export default function SeoPage() {
         )}
 
         {/* Mobile audit cards */}
-        <div className="space-y-4 md:hidden">
-          {audits.slice(0, 8).map((audit) => (
-            <div key={audit.id} className="rounded-xl border border-border bg-surface-container p-4">
+        <MobileCardList
+          className="space-y-4 md:hidden"
+          data={audits.slice(0, 8)}
+          renderItem={(audit) => (
+            <GlassCard key={audit.id} className="p-4 sm:p-4">
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="min-w-0">
-                  <p className="font-extrabold text-foreground text-sm truncate">{audit.target_label}</p>
-                  <p className="text-[10px] text-muted mt-1">{auditTypeLabel(audit.audit_type)} · {auditTypeLabel(audit.target_type)}</p>
+                  <p className="truncate text-sm font-bold text-foreground">{audit.target_label}</p>
+                  <p className="mt-1 text-[10px] text-muted">{auditTypeLabel(audit.audit_type)} · {auditTypeLabel(audit.target_type)}</p>
                 </div>
                 <span className={cn(
-                    "inline-flex shrink-0 px-2 py-0.5 rounded-md text-xs font-extrabold border",
+                    "inline-flex shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold border",
                   scoreBg(audit.overall_score),
                   scoreColor(audit.overall_score)
                 )}>
@@ -321,46 +318,46 @@ export default function SeoPage() {
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="p-2 rounded-lg bg-surface-container border border-border">
-                  <p className={cn("text-lg font-extrabold", audit.critical_issues_count > 0 ? "text-danger" : "text-muted")}>{audit.critical_issues_count}</p>
-                  <p className="text-[8px] text-muted uppercase tracking-wider">Kritik</p>
-                </div>
-                <div className="p-2 rounded-lg bg-surface-container border border-border">
-                  <p className="text-lg font-extrabold text-warning">{audit.warning_issues_count}</p>
-                   <p className="text-[8px] text-muted uppercase tracking-wider">Uyarı</p>
-                </div>
-                <div className="p-2 rounded-lg bg-surface-container border border-border">
-                  <p className="text-lg font-extrabold text-info">{audit.opportunities_count}</p>
-                   <p className="text-[8px] text-muted uppercase tracking-wider">Fırsat</p>
-                </div>
+                <GlassCard className="p-2">
+                  <p className={cn("text-lg font-semibold", audit.critical_issues_count > 0 ? "text-danger" : "text-muted")}>{audit.critical_issues_count}</p>
+                  <p className="text-[8px] uppercase tracking-[0.14em] text-muted">Kritik</p>
+                </GlassCard>
+                <GlassCard className="p-2">
+                  <p className="text-lg font-semibold text-warning">{audit.warning_issues_count}</p>
+                   <p className="text-[8px] uppercase tracking-[0.14em] text-muted">Uyarı</p>
+                </GlassCard>
+                <GlassCard className="p-2">
+                  <p className="text-lg font-semibold text-info">{audit.opportunities_count}</p>
+                   <p className="text-[8px] uppercase tracking-[0.14em] text-muted">Fırsat</p>
+                </GlassCard>
               </div>
-            </div>
-          ))}
-        </div>
+            </GlassCard>
+          )}
+        />
       </GlassCard>
 
       {/* Product Selection for Quick SEO */}
       {products.length > 0 && (
         <GlassCard>
-              <h3 className="text-lg font-extrabold text-foreground font-heading mb-6 flex items-center gap-2">
+              <h3 className="mb-6 flex items-center gap-2 text-lg font-bold font-heading text-foreground">
             <ExternalLink className="w-5 h-5 text-primary" />
             Analiz için hazır ürünler
           </h3>
           <p className="text-xs text-muted mb-6">Aşağıdaki ürünler hazır. Birini seçip analizi başlatın.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {products.slice(0, 9).map((product) => (
-              <div
+              <GlassCard
                 key={product.id}
-                className="flex items-center gap-3 p-4 rounded-xl border border-border bg-surface-container hover:bg-surface-container hover:border-primary/20 transition-colors duration-200 cursor-pointer group"
+                className="group flex cursor-pointer items-center gap-3 p-4 sm:p-4 transition-colors duration-200 hover:border-primary/20"
               >
                 <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 group-hover:bg-primary/20 transition-colors duration-200">
                   <Search className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-extrabold text-foreground truncate group-hover:text-primary transition-colors duration-200">{product.name}</p>
+                  <p className="truncate text-sm font-semibold text-foreground transition-colors duration-200 group-hover:text-primary">{product.name}</p>
                   <p className="text-[10px] text-muted truncate">{product.sku || "Kod yok"}</p>
                 </div>
-              </div>
+              </GlassCard>
             ))}
           </div>
         </GlassCard>

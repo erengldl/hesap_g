@@ -254,7 +254,7 @@ export function StoreExpensesSection() {
 
         <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-border/80 bg-surface-container px-4 py-3">
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-muted">Aktif Gider Sayısı</p>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Aktif Gider Sayısı</p>
             {loading ? (
               <SkeletonCard variant="text-line" height={24} className="mt-2 w-16" />
             ) : (
@@ -263,7 +263,7 @@ export function StoreExpensesSection() {
             <p className="mt-1 text-[10px] text-muted">{loading ? "Veriler güncelleniyor..." : `Toplam ${summary.count} kayıt`}</p>
           </div>
           <div className="rounded-2xl border border-border/80 bg-surface-container px-4 py-3">
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-muted">Aktif Aylık Toplam</p>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Aktif Aylık Toplam</p>
             {loading ? (
               <SkeletonCard variant="text-line" height={24} className="mt-2 w-24" />
             ) : (
@@ -302,11 +302,11 @@ export function StoreExpensesSection() {
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-border/80 bg-surface-container">
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted">Gider Adı</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted text-right">Aylık Tutar</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted">Açıklama / Not</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted">Durum</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-muted text-right">İşlem</th>
+                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Gider Adı</th>
+                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted text-right">Aylık Tutar</th>
+                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Açıklama / Not</th>
+                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Durum</th>
+                    <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted text-right">İşlem</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
@@ -330,7 +330,7 @@ export function StoreExpensesSection() {
                         <td className="px-6 py-4">
                           <span
                             className={cn(
-                              "rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest",
+                              "rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]",
                               status === "active"
                                 ? "border-success/20 bg-success/10 text-success"
                                 : status === "draft"
@@ -413,7 +413,7 @@ export function StoreExpensesSection() {
 
           <form className="space-y-6" onSubmit={(event) => void handleSave(event)}>
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted">Gider Adı</label>
+              <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Gider Adı</label>
               <input
                 type="text"
                 value={form.name}
@@ -424,7 +424,7 @@ export function StoreExpensesSection() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted">Aylık Tutar (TL)</label>
+              <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Aylık Tutar (TL)</label>
               <input
                 type="number"
                 min={0}
@@ -437,7 +437,7 @@ export function StoreExpensesSection() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted">Açıklama / Not</label>
+              <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Açıklama / Not</label>
               <textarea
                 value={form.note}
                 onChange={(event) => setForm({ ...form, note: event.target.value })}
@@ -448,7 +448,7 @@ export function StoreExpensesSection() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted">Durum</label>
+              <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Durum</label>
               <select
                 value={form.status}
                 onChange={(event) =>

@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { CircleAlert, Download, RefreshCcw, Search } from "lucide-react";
-import { EmptyState, ErrorStateCard, GlassCard, SkeletonCard, SkeletonTable } from "@/components/ui-custom/GlassComponents";
+import { CircleAlert, DollarSign, Download, Package, RefreshCcw, Search, ShoppingCart, TrendingUp } from "lucide-react";
+import { EmptyState, ErrorStateCard, GlassCard, KpiCard, SkeletonCard, SkeletonTable } from "@/components/ui-custom/GlassComponents";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/formatters";
 
@@ -110,26 +110,6 @@ function statusCopy(status?: string | null) {
     default:
       return { label: "Bilinmiyor", className: "border-border bg-surface-container text-soft" };
   }
-}
-
-function MetricCard({
-  label,
-  value,
-  hint,
-  accent = false,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  accent?: boolean;
-}) {
-  return (
-    <GlassCard className={cn("border-border bg-surface-container", accent && "border-primary/20 bg-primary/[0.05]")}>
-      <p className="text-[10px] font-extrabold uppercase tracking-[0.26em] text-muted">{label}</p>
-      <p className={cn("mt-2 text-2xl font-extrabold tracking-tight", accent ? "text-primary" : "text-foreground")}>{value}</p>
-      {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
-    </GlassCard>
-  );
 }
 
 export default function SalesHistorySection() {
@@ -485,7 +465,7 @@ export default function SalesHistorySection() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="grid gap-4 sm:grid-cols-2 lg:flex-1">
               <label className="space-y-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-[0.26em] text-muted">Başlangıç</span>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Başlangıç</span>
                 <input
                   name="custom_from"
                   type="date"
@@ -495,7 +475,7 @@ export default function SalesHistorySection() {
                 />
               </label>
               <label className="space-y-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-[0.26em] text-muted">Bitiş</span>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Bitiş</span>
                 <input
                   name="custom_to"
                   type="date"
@@ -547,30 +527,39 @@ export default function SalesHistorySection() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label={isReturnsView ? "İade siparişi" : "Sipariş"}
+        <KpiCard
+          title={isReturnsView ? "İade siparişi" : "Sipariş"}
           value={formatNumber(summaryData.total_orders)}
-          hint={isReturnsView ? "İade edilen siparişler" : "Tamamlanan siparişler"}
+          subValue={isReturnsView ? "İade edilen siparişler" : "Tamamlanan siparişler"}
+          icon={ShoppingCart}
         />
-        <MetricCard
-          label={isReturnsView ? "İade adet" : "Adet"}
+        <KpiCard
+          title={isReturnsView ? "İade adet" : "Adet"}
           value={formatNumber(summaryData.total_units)}
-          hint={isReturnsView ? "İade edilen toplam adet" : "Satılan toplam adet"}
+          subValue={isReturnsView ? "İade edilen toplam adet" : "Satılan toplam adet"}
+          icon={Package}
         />
-        <MetricCard label="Ciro" value={formatCurrency(summaryData.total_revenue)} hint={currentRangeLabel} accent />
-        <MetricCard
-          label={isReturnsView ? "Ortalama iade" : "Ortalama sipariş"}
+        <KpiCard
+          title="Ciro"
+          value={formatCurrency(summaryData.total_revenue)}
+          subValue={currentRangeLabel}
+          icon={DollarSign}
+          tone="primary"
+        />
+        <KpiCard
+          title={isReturnsView ? "Ortalama iade" : "Ortalama sipariş"}
           value={formatCurrency(summaryData.average_order_value)}
-          hint={isReturnsView ? "İade başına" : "Sipariş başına"}
+          subValue={isReturnsView ? "İade başına" : "Sipariş başına"}
+          icon={TrendingUp}
         />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <GlassCard className="border-border bg-surface-container">
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.26em] text-muted">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
             {isReturnsView ? "En çok iade alan kanal" : "En yüksek ciro"}
           </p>
-          <p className="mt-2 text-lg font-extrabold text-foreground">
+          <p className="mt-2 text-lg font-semibold text-foreground">
             {summaryData.top_marketplace_name ?? "Henüz öne çıkan kanal yok"}
           </p>
           <p className="mt-1 text-sm text-muted">
@@ -580,10 +569,10 @@ export default function SalesHistorySection() {
         </GlassCard>
 
         <GlassCard className="border-border bg-surface-container">
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.26em] text-muted">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
             {isReturnsView ? "En çok iade edilen ürün" : "En çok satılan ürün"}
           </p>
-          <p className="mt-2 text-lg font-extrabold text-foreground">
+          <p className="mt-2 text-lg font-semibold text-foreground">
             {summaryData.top_product_name ?? "Henüz öne çıkan ürün yok"}
           </p>
           <p className="mt-1 text-sm text-muted">
@@ -616,7 +605,7 @@ export default function SalesHistorySection() {
         <GlassCard className="!p-0 overflow-hidden border-border bg-surface-container">
           <div className="flex flex-col gap-1 border-b border-border/80 px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h4 className="text-lg font-extrabold tracking-tight text-foreground">Son satışlar</h4>
+              <h4 className="text-lg font-bold tracking-tight text-foreground">Son satışlar</h4>
               <p className="text-sm text-muted-foreground">Tarih, ürün, kanal ve sipariş bilgileri.</p>
             </div>
             <p className="text-xs font-semibold text-muted">{formatNumber(rows.length)} satır</p>
@@ -625,15 +614,15 @@ export default function SalesHistorySection() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1100px] text-left">
               <thead>
-                <tr className="bg-surface-container text-[10px] uppercase tracking-[0.24em] text-muted">
-                  <th className="px-5 py-3 font-extrabold">Tarih</th>
-                  <th className="px-5 py-3 font-extrabold">Ürün</th>
-                  <th className="px-5 py-3 font-extrabold">Kanal</th>
-                  <th className="px-5 py-3 font-extrabold">Sipariş</th>
-                  <th className="px-5 py-3 font-extrabold text-right">Adet</th>
-                  <th className="px-5 py-3 font-extrabold text-right">Birim</th>
-                  <th className="px-5 py-3 font-extrabold text-right">Tutar</th>
-                  <th className="px-5 py-3 font-extrabold text-center">Durum</th>
+                <tr className="bg-surface-container text-[10px] uppercase tracking-[0.18em] text-muted">
+                  <th className="px-5 py-3 font-semibold">Tarih</th>
+                  <th className="px-5 py-3 font-semibold">Ürün</th>
+                  <th className="px-5 py-3 font-semibold">Kanal</th>
+                  <th className="px-5 py-3 font-semibold">Sipariş</th>
+                  <th className="px-5 py-3 font-semibold text-right">Adet</th>
+                  <th className="px-5 py-3 font-semibold text-right">Birim</th>
+                  <th className="px-5 py-3 font-semibold text-right">Tutar</th>
+                  <th className="px-5 py-3 font-semibold text-center">Durum</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -673,7 +662,7 @@ export default function SalesHistorySection() {
                         <td className="px-5 py-4 text-right text-sm text-soft">{formatCurrency(row.unit_price)}</td>
                         <td className="px-5 py-4 text-right text-sm font-bold text-primary">{formatCurrency(row.line_total)}</td>
                         <td className="px-5 py-4 text-center">
-                          <span className={cn("inline-flex rounded-full border px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.22em]", status.className)}>
+                          <span className={cn("inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]", status.className)}>
                             {status.label}
                           </span>
                         </td>

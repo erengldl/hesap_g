@@ -465,7 +465,7 @@ function NotificationsTab() {
               type="button"
               onClick={() => setToggles((current) => ({ ...current, [item.key]: !current[item.key] }))}
               className={cn(
-                "w-11 h-6 rounded-full transition-all duration-200 relative active:scale-[0.98]",
+                "w-11 h-6 rounded-full transition-colors duration-200 relative active:scale-[0.98]",
                 toggles[item.key] ? "bg-primary" : "bg-border"
               )}
             >

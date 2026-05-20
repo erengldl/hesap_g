@@ -258,10 +258,10 @@ export default function Topbar({ onOpenMobileNavigation }: TopbarProps) {
                 <p className="text-sm font-semibold text-foreground">{user?.name || "Kullanıcı"}</p>
                 <p className="text-[10px] uppercase tracking-[0.18em] text-muted/60">{user?.plan || "Premium plan"}</p>
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground transition-[filter] duration-200 group-hover:brightness-110">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors duration-200 group-hover:bg-primary/90">
                 <User className="h-4 w-4" />
               </div>
-              <ChevronDown className={cn("hidden h-3 w-3 text-muted transition-[color,transform] duration-200 sm:block", menuOpen && "rotate-180")} />
+              <ChevronDown className={cn("hidden h-3 w-3 text-muted transition-colors duration-200 sm:block", menuOpen && "rotate-180")} />
             </button>
 
             {menuOpen && (

@@ -28,6 +28,31 @@ export function GlassCard({
   );
 }
 
+type KpiTone = "default" | "primary" | "success" | "warning" | "danger";
+
+const KPI_CARD_TONES: Record<KpiTone, { card: string; icon: string }> = {
+  default: {
+    card: "border-border/80 bg-surface-container",
+    icon: "border-border/70 bg-background/60 text-muted",
+  },
+  primary: {
+    card: "border-primary/20 bg-primary/5",
+    icon: "border-primary/20 bg-primary text-primary-foreground shadow-[var(--shadow-primary)]",
+  },
+  success: {
+    card: "border-success/20 bg-success/5",
+    icon: "border-success/20 bg-success/10 text-success",
+  },
+  warning: {
+    card: "border-warning/20 bg-warning/10",
+    icon: "border-warning/20 bg-warning/10 text-warning",
+  },
+  danger: {
+    card: "border-danger/20 bg-danger/10",
+    icon: "border-danger/20 bg-danger/10 text-danger",
+  },
+};
+
 interface KpiCardProps {
   title: string;
   value: string | number;
@@ -37,38 +62,53 @@ interface KpiCardProps {
     value: string;
     isPositive: boolean;
   };
+  tone?: KpiTone;
   className?: string;
 }
 
-export function KpiCard({ title, value, subValue, icon: Icon, trend, className }: KpiCardProps) {
+export function KpiCard({
+  title,
+  value,
+  subValue,
+  icon: Icon,
+  trend,
+  tone = "default",
+  className,
+}: KpiCardProps) {
+  const toneStyles = KPI_CARD_TONES[tone];
+
   return (
-    <GlassCard className={cn("group relative h-full overflow-hidden border-border/70 transition-transform duration-200 hover:-translate-y-0.5", className)}>
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/45 to-transparent" />
-      <div className="relative flex items-start justify-between gap-3">
+    <GlassCard
+      className={cn(
+        "group relative h-full overflow-hidden transition-transform duration-200 hover:-translate-y-0.5",
+        toneStyles.card,
+        className
+      )}
+    >
+      <div className="relative flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted/60">{title}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{title}</p>
           <h3 className="font-heading mt-3 max-w-full truncate text-[1.65rem] font-semibold leading-none tracking-[-0.05em] text-foreground sm:text-[1.9rem]">
             {value}
           </h3>
-          {subValue && <p className="mt-2 text-[12px] font-medium text-muted/60">{subValue}</p>}
-          {(trend || subValue) && (
+          {subValue && <p className="mt-2 text-[12px] leading-5 text-muted/60">{subValue}</p>}
+          {trend && (
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <span
                 className={cn(
                   "rounded-md border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]",
-                  trend?.isPositive
+                  trend.isPositive
                     ? "border-success/20 bg-success/10 text-success"
                     : "border-danger/20 bg-danger/10 text-danger"
                 )}
               >
-                {trend?.value ?? "Durum"}
+                {trend.value}
               </span>
-              {subValue && <span className="text-[11px] text-muted/60">Güncel akış</span>}
             </div>
           )}
         </div>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-[var(--shadow-primary)] transition-transform duration-200 group-hover:scale-[1.03]">
-          <Icon className="h-4 w-4" />
+        <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border", toneStyles.icon)}>
+          <Icon className="h-5 w-5" />
         </div>
       </div>
     </GlassCard>
@@ -115,6 +155,37 @@ export function WarningBadge({ children, className }: { children: React.ReactNod
   );
 }
 
+type EyebrowBadgeVariant = "default" | "primary";
+
+interface EyebrowBadgeProps {
+  children: React.ReactNode;
+  variant?: EyebrowBadgeVariant;
+  className?: string;
+}
+
+export function EyebrowBadge({
+  children,
+  variant = "default",
+  className,
+}: EyebrowBadgeProps) {
+  const variantStyles: Record<EyebrowBadgeVariant, string> = {
+    default: "border border-border/80 bg-surface-container/70 text-muted/60",
+    primary: "border border-primary/20 bg-primary/10 text-primary",
+  };
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-md px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em]",
+        variantStyles[variant],
+        className
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
 export function PageHeader({
   title,
   description,
@@ -130,10 +201,7 @@ export function PageHeader({
     <div className="mb-6 flex flex-col gap-4 lg:mb-7 lg:flex-row lg:items-end lg:justify-between">
       <div className="max-w-3xl space-y-2">
         {eyebrow && (
-          <div className="inline-flex items-center gap-2 rounded-md border border-border/80 bg-surface-container/70 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted/60">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            {eyebrow}
-          </div>
+          <EyebrowBadge variant="default">{eyebrow}</EyebrowBadge>
         )}
         <div className="space-y-2">
           <h1 className="font-heading text-[2.15rem] font-semibold tracking-[-0.06em] text-foreground sm:text-[2.65rem] lg:text-[2.95rem]">
@@ -149,6 +217,20 @@ export function PageHeader({
       <div className="flex flex-wrap items-center gap-2.5 lg:justify-end">{children}</div>
     </div>
   );
+}
+
+interface MobileCardListProps<T> {
+  data: T[];
+  renderItem: (item: T, index: number) => React.ReactNode;
+  className?: string;
+}
+
+export function MobileCardList<T>({
+  data,
+  renderItem,
+  className,
+}: MobileCardListProps<T>) {
+  return <div className={cn("space-y-2", className)}>{data.map((item, index) => renderItem(item, index))}</div>;
 }
 
 // ─── Loading & Empty States ─────────────────────────────────────────

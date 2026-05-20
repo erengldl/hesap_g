@@ -65,7 +65,7 @@ export default function TrafficThresholdCard({ thresholds, currentTrafficCost, b
                 key={threshold.vsChannel}
                 className={cn(
                   "rounded-2xl border p-4 transition-colors duration-200",
-                  isExceeded ? "border-danger/20 bg-danger/[0.04]" : "border-border/80 bg-surface-container"
+                  isExceeded ? "border-danger/20 bg-danger/5" : "border-border/80 bg-surface-container"
                 )}
               >
                 <div className="mb-3 flex items-center justify-between gap-4">
