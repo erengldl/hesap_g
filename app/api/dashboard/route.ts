@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { buildAdAnalysis } from "@/lib/ad-analysis";
+import { buildAdAnalysis, buildAdAnalysisSummary } from "@/lib/ad-analysis";
 import { getDb } from "@/lib/db";
 import { getProducts } from "@/lib/database-readers";
 import { buildAggregateDashboard, buildDashboardSnapshot } from "@/lib/portfolio-analytics";
@@ -187,48 +187,66 @@ function buildFallbackAggregate() {
 
 export async function GET() {
   try {
-    const aggregate = await getCachedValue("dashboard:aggregate", 15_000, async () => {
-      try {
-        return await buildAggregateDashboard() ?? buildFallbackAggregate();
-      } catch (error) {
-        console.error("Dashboard aggregate fallback:", error);
-        return buildFallbackAggregate();
-      }
-    });
+    const [aggregate, snapshot, adAnalysis, dataSignals] = await Promise.all([
+      getCachedValue("dashboard:aggregate", 15_000, async () => {
+        try {
+          return await buildAggregateDashboard() ?? buildFallbackAggregate();
+        } catch (error) {
+          console.error("Dashboard aggregate fallback:", error);
+          return buildFallbackAggregate();
+        }
+      }),
+      getCachedValue("dashboard:snapshot", 15_000, async () => {
+        try {
+          return await buildDashboardSnapshot();
+        } catch (error) {
+          console.error("Dashboard snapshot fallback:", error);
+          return null;
+        }
+      }),
+      getCachedValue("dashboard:ad-analysis", 15_000, async () => {
+        try {
+          const cachedSummary = await buildAdAnalysisSummary();
+          if (cachedSummary) {
+            return cachedSummary;
+          }
 
-    const snapshot = await getCachedValue("dashboard:snapshot", 15_000, async () => {
-      try {
-        return await buildDashboardSnapshot();
-      } catch (error) {
-        console.error("Dashboard snapshot fallback:", error);
-        return null;
-      }
-    });
+          const computed = await buildAdAnalysis();
+          if (!computed) {
+            return null;
+          }
 
-    const adAnalysis = await getCachedValue("dashboard:ad-analysis", 15_000, async () => {
-      try {
-        return await buildAdAnalysis();
-      } catch (error) {
-        console.error("Dashboard ad-analysis fallback:", error);
-        return null;
-      }
-    });
-
-    const dataSignals = await getCachedValue("dashboard:data-signals", 15_000, async () => {
-      try {
-        return await buildDashboardDataSignals();
-      } catch (error) {
-        console.error("Dashboard data signals fallback:", error);
-        return {
-          dataMode: "partial" as DashboardDataMode,
-          dataQuality: {
-            score: 0,
-            warnings: ["Veri kalitesi olculemedi."],
-            lastSyncAt: null,
-          },
-        };
-      }
-    });
+          return {
+            totalSpend: computed.totalSpend,
+            totalNetProfit: computed.totalNetProfit,
+            averagePoas: computed.averagePoas,
+            lossMakingCount: computed.lossMakingCount,
+            watchCount: computed.watchCount,
+            scaleCount: computed.scaleCount,
+            totalCampaigns: computed.totalCampaigns,
+            lastSyncedAt: computed.lastSyncedAt,
+          };
+        } catch (error) {
+          console.error("Dashboard ad-analysis fallback:", error);
+          return null;
+        }
+      }),
+      getCachedValue("dashboard:data-signals", 15_000, async () => {
+        try {
+          return await buildDashboardDataSignals();
+        } catch (error) {
+          console.error("Dashboard data signals fallback:", error);
+          return {
+            dataMode: "partial" as DashboardDataMode,
+            dataQuality: {
+              score: 0,
+              warnings: ["Veri kalitesi olculemedi."],
+              lastSyncAt: null,
+            },
+          };
+        }
+      }),
+    ]);
 
     return NextResponse.json({
       success: true,

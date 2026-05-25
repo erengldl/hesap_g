@@ -789,7 +789,7 @@ export async function buildAggregateDashboard(): Promise<AggregateDashboard | nu
       COUNT(DISTINCT o.order_id) as order_count
     FROM orders o
     JOIN order_items oi ON o.order_id = oi.order_id
-    WHERE o.status = 'completed' AND o.order_date >= date('now', '-30 days')
+    WHERE o.status = 'completed' AND o.order_date >= CURRENT_DATE - INTERVAL '30 days'
     GROUP BY o.order_date
     ORDER BY o.order_date
   `).all() as DailySalesRow[];

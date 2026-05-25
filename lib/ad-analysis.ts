@@ -158,6 +158,11 @@ export type AdAnalysisResponse = {
   campaignMetrics: CampaignProfitMetric[];
 };
 
+export type AdAnalysisSummary = Pick<
+  AdAnalysisResponse,
+  "lastSyncedAt" | "totalCampaigns" | "totalSpend" | "totalNetProfit" | "averagePoas" | "lossMakingCount" | "watchCount" | "scaleCount"
+>;
+
 const PLATFORM_CONFIG: Record<CampaignPlatformId, CampaignPlatformConfig> = {
   meta: {
     id: "meta",
@@ -305,10 +310,18 @@ export function getCampaignPlatformConfig(platform: CampaignPlatformId) {
   return PLATFORM_CONFIG[platform];
 }
 
-async function getBaselineTrafficCpa(productId: number, settingMap?: Map<number, ProductSettingRow>) {
+async function getBaselineTrafficCpa(
+  productId: number,
+  settingMap?: Map<number, ProductSettingRow>,
+  websiteGateway?: Awaited<ReturnType<typeof getOwnWebsiteGatewayRule>>
+) {
   const productSetting = settingMap?.get(productId) ?? (await getProductMarketplaceSetting(productId, 3) as ProductSettingRow | null);
-  const gateway = await getOwnWebsiteGatewayRule();
-  return round2(Number(productSetting?.traffic_cpa ?? gateway?.avg_ad_cost ?? 56.2));
+  if (productSetting?.traffic_cpa != null) {
+    return round2(Number(productSetting.traffic_cpa));
+  }
+
+  const gateway = websiteGateway ?? await getOwnWebsiteGatewayRule();
+  return round2(Number(gateway?.avg_ad_cost ?? 56.2));
 }
 
 async function getOwnWebsiteCostResult(product: Product) {
@@ -614,7 +627,10 @@ async function buildFallbackCostResult(product: Product) {
 async function collectCampaignRows(windowStart: string, windowEnd: string) {
   const productMap = await getProductMap();
   const settingMap = await getProductSettingMap();
+  const websiteGateway = await getOwnWebsiteGatewayRule();
   const costMap = new Map<number, CostResultRow>();
+  const baselineTrafficCpaMap = new Map<number, number>();
+  const fallbackCostMap = new Map<number, CostResultRow>();
   const uniqueOrderIds = new Set<number>();
 
   const costRows = await query<CostResultRow>(
@@ -713,8 +729,20 @@ async function collectCampaignRows(windowStart: string, windowEnd: string) {
       cpaSamples: [],
     };
 
-    const baselineTrafficCpa = await getBaselineTrafficCpa(product.id, settingMap);
-    const costResult = costMap.get(product.id) ?? (await buildFallbackCostResult(product));
+    let baselineTrafficCpa = baselineTrafficCpaMap.get(product.id);
+    if (baselineTrafficCpa == null) {
+      baselineTrafficCpa = await getBaselineTrafficCpa(product.id, settingMap, websiteGateway ?? undefined);
+      baselineTrafficCpaMap.set(product.id, baselineTrafficCpa);
+    }
+
+    let costResult = costMap.get(product.id);
+    if (!costResult) {
+      costResult = fallbackCostMap.get(product.id);
+      if (!costResult) {
+        costResult = await buildFallbackCostResult(product);
+        fallbackCostMap.set(product.id, costResult);
+      }
+    }
     const baseNetProfitPerUnit = round2(Number(costResult.net_profit ?? 0));
     const quantity = Math.max(1, roundWhole(Number(row.quantity ?? 1)));
     const lineTotal = round2(Number(row.line_total ?? 0));
@@ -844,6 +872,48 @@ export async function buildAdAnalysis(windowDays = 30): Promise<AdAnalysisRespon
     scatterCampaigns,
     pipeline: buildPipeline(),
     campaignMetrics: campaignRows,
+  };
+}
+
+export async function buildAdAnalysisSummary(): Promise<AdAnalysisSummary | null> {
+  const db = getDb();
+  if (!db) return null;
+
+  const summary = await db.prepare(`
+    SELECT
+      COUNT(*)::int AS total_campaigns,
+      COALESCE(SUM(spend), 0) AS total_spend,
+      COALESCE(SUM(net_profit), 0) AS total_net_profit,
+      COALESCE(AVG(poas), 0) AS average_poas,
+      COUNT(*) FILTER (WHERE health_status = 'stop')::int AS loss_making_count,
+      COUNT(*) FILTER (WHERE health_status = 'watch')::int AS watch_count,
+      COUNT(*) FILTER (WHERE health_status = 'scale')::int AS scale_count,
+      MAX(last_calculated_at) AS last_synced_at
+    FROM campaign_profit_metrics
+  `).get() as {
+    total_campaigns: number | null;
+    total_spend: number | null;
+    total_net_profit: number | null;
+    average_poas: number | null;
+    loss_making_count: number | null;
+    watch_count: number | null;
+    scale_count: number | null;
+    last_synced_at: string | null;
+  } | undefined;
+
+  if (!summary || Number(summary.total_campaigns ?? 0) === 0) {
+    return null;
+  }
+
+  return {
+    totalCampaigns: Number(summary.total_campaigns ?? 0),
+    totalSpend: round2(Number(summary.total_spend ?? 0)),
+    totalNetProfit: round2(Number(summary.total_net_profit ?? 0)),
+    averagePoas: round2(Number(summary.average_poas ?? 0)),
+    lossMakingCount: Number(summary.loss_making_count ?? 0),
+    watchCount: Number(summary.watch_count ?? 0),
+    scaleCount: Number(summary.scale_count ?? 0),
+    lastSyncedAt: summary.last_synced_at ?? new Date().toISOString(),
   };
 }
 

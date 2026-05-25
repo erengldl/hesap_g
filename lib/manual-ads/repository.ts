@@ -232,7 +232,7 @@ async function getLatestReportRow(db: ReturnType<typeof requireDb>, campaignId: 
         SELECT *
         FROM manual_ad_ai_reports
         WHERE campaign_id = ?
-        ORDER BY datetime(created_at) DESC, rowid DESC
+        ORDER BY created_at DESC, id DESC
         LIMIT 1
       `
     )
@@ -246,7 +246,7 @@ async function getMessages(db: ReturnType<typeof requireDb>, campaignId: string)
         SELECT *
         FROM manual_ad_chat_messages
         WHERE campaign_id = ?
-        ORDER BY datetime(created_at) ASC, rowid ASC
+        ORDER BY created_at ASC, id ASC
       `
     )
     .all(campaignId) as ManualAdMessageRow[];
@@ -261,14 +261,14 @@ export async function listManualAdCampaignSummaries(userId: number) {
           c.*,
           (SELECT COUNT(*) FROM manual_ad_chat_messages m WHERE m.campaign_id = c.id) AS message_count,
           (SELECT COUNT(*) FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id) AS report_count,
-          (SELECT r.id FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_report_id,
-          (SELECT r.decision FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_decision,
-          (SELECT r.score FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_score,
-          (SELECT r.summary FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_summary,
-          (SELECT r.created_at FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_report_created_at
+          (SELECT r.id FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_report_id,
+          (SELECT r.decision FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_decision,
+          (SELECT r.score FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_score,
+          (SELECT r.summary FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_summary,
+          (SELECT r.created_at FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_report_created_at
         FROM manual_ad_campaigns c
         WHERE c.user_id = ?
-        ORDER BY datetime(c.updated_at) DESC, datetime(c.created_at) DESC
+        ORDER BY c.updated_at DESC, c.created_at DESC
       `
     )
     .all(userId) as CampaignSummaryRow[];
@@ -285,11 +285,11 @@ export async function getManualAdCampaignSummary(userId: number, campaignId: str
           c.*,
           (SELECT COUNT(*) FROM manual_ad_chat_messages m WHERE m.campaign_id = c.id) AS message_count,
           (SELECT COUNT(*) FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id) AS report_count,
-          (SELECT r.id FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_report_id,
-          (SELECT r.decision FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_decision,
-          (SELECT r.score FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_score,
-          (SELECT r.summary FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_summary,
-          (SELECT r.created_at FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_report_created_at
+          (SELECT r.id FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_report_id,
+          (SELECT r.decision FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_decision,
+          (SELECT r.score FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_score,
+          (SELECT r.summary FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_summary,
+          (SELECT r.created_at FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_report_created_at
         FROM manual_ad_campaigns c
         WHERE c.user_id = ? AND c.id = ?
         LIMIT 1

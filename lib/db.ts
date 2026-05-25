@@ -8,6 +8,7 @@ const txStore = new AsyncLocalStorage<postgres.Sql | postgres.TransactionSql>();
 
 let sqlClient: postgres.Sql | null = null;
 let schemaEnsured = false;
+let schemaEnsurePromise: Promise<void> | null = null;
 
 function getOrCreateClient(): postgres.Sql {
   if (sqlClient) return sqlClient;
@@ -17,7 +18,9 @@ function getOrCreateClient(): postgres.Sql {
       "DATABASE_URL is required. Set DATABASE_URL (or POSTGRES_URL, SUPABASE_DB_URL) to a PostgreSQL connection string."
     );
   }
-  sqlClient = postgres(url, { max: 1, idle_timeout: 0, prepare: false });
+  const configuredPoolMax = Number(process.env.PG_POOL_MAX ?? 5);
+  const poolMax = Number.isFinite(configuredPoolMax) && configuredPoolMax > 0 ? configuredPoolMax : 5;
+  sqlClient = postgres(url, { max: poolMax, idle_timeout: 0, prepare: false });
   return sqlClient;
 }
 
@@ -235,8 +238,19 @@ export function getDb(): PgDatabase {
 
 async function ensureSchema() {
   if (schemaEnsured) return;
-  await initializePgSchema(getSql());
-  schemaEnsured = true;
+  if (!schemaEnsurePromise) {
+    schemaEnsurePromise = initializePgSchema(getSql())
+      .then(() => {
+        schemaEnsured = true;
+      })
+      .finally(() => {
+        if (!schemaEnsured) {
+          schemaEnsurePromise = null;
+        }
+      });
+  }
+
+  await schemaEnsurePromise;
 }
 
 export async function query<T = Record<string, unknown>>(

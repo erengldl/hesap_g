@@ -88,7 +88,7 @@ export async function getProductSalesTrend(productId: number, days: 30 | 90 = 30
       JOIN order_items oi ON oi.order_id = o.order_id
       WHERE o.product_id = ?
         AND COALESCE(o.status, 'completed') NOT IN ('cancelled', 'returned', 'pending')
-        AND o.order_date >= date('now', ?)
+        AND o.order_date >= CURRENT_DATE + CAST(? AS interval)
         ${marketplaceId ? "AND o.marketplace_id = ?" : ""}
       GROUP BY o.order_date
       ORDER BY o.order_date ASC
@@ -138,7 +138,7 @@ export async function getProductSalesVelocity(productId: number, days = 30, mark
       JOIN order_items oi ON oi.order_id = o.order_id
       WHERE o.product_id = ?
         AND COALESCE(o.status, 'completed') NOT IN ('cancelled', 'returned', 'pending')
-        AND o.order_date >= date('now', ?)
+        AND o.order_date >= CURRENT_DATE + CAST(? AS interval)
         ${marketplaceId ? "AND o.marketplace_id = ?" : ""}
     `,
     marketplaceId ? [productId, `-${days - 1} days`, marketplaceId] : [productId, `-${days - 1} days`]

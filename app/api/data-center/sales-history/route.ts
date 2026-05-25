@@ -99,7 +99,7 @@ export async function GET(request: Request) {
       JOIN order_items oi ON oi.order_id = o.order_id
       LEFT JOIN marketplaces m ON m.marketplace_id = o.marketplace_id
       LEFT JOIN products p ON p.product_id = COALESCE(oi.product_id, o.product_id)
-      WHERE o.order_date >= date('now', ?)
+      WHERE o.order_date >= CURRENT_DATE + CAST(? AS interval)
         AND ${isReturnView ? "COALESCE(o.status, 'completed') = 'returned'" : "COALESCE(o.status, 'completed') NOT IN ('cancelled', 'returned', 'pending')"}
     `;
     let whereParams: Array<string> = [`-${rangeDays - 1} days`];

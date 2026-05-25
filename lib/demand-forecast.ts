@@ -244,7 +244,7 @@ async function getLatestCostSnapshots(productId?: number) {
     FROM cost_results cr
     LEFT JOIN marketplaces m ON m.marketplace_id = cr.marketplace_id
     ${productId ? "WHERE cr.product_id = ?" : ""}
-    ORDER BY datetime(COALESCE(cr.calculated_at, CURRENT_TIMESTAMP)) DESC, cr.id DESC
+    ORDER BY COALESCE(cr.calculated_at, CURRENT_TIMESTAMP) DESC, cr.id DESC
   `, productId ? [productId] : []);
 
   const latestByProduct = new Map<number, CostSnapshotRow>();
@@ -309,7 +309,7 @@ async function getCurrentSalesVolumeForProduct(productId: number) {
     FROM orders o
     JOIN order_items oi ON oi.order_id = o.order_id
     WHERE o.product_id = ?
-      AND o.order_date >= date('now', '-30 days')
+      AND o.order_date >= CURRENT_DATE - INTERVAL '30 days'
       AND COALESCE(o.status, 'completed') NOT IN ('cancelled', 'returned', 'pending')
   `, [productId]);
 
@@ -323,7 +323,7 @@ async function getCurrentSalesVolumeForSelection(productId: number, marketplaceI
     JOIN order_items oi ON oi.order_id = o.order_id
     WHERE o.product_id = ?
       AND o.marketplace_id = ?
-      AND o.order_date >= date('now', '-30 days')
+      AND o.order_date >= CURRENT_DATE - INTERVAL '30 days'
       AND COALESCE(o.status, 'completed') NOT IN ('cancelled', 'returned', 'pending')
   `, [productId, marketplaceId]);
 

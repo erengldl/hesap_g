@@ -43,6 +43,12 @@ def get_tables(connection: sqlite3.Connection):
     ).fetchall()
 
 
+def build_select_sql(table_name: str) -> str:
+    if table_name == "categories":
+        return 'SELECT * FROM "categories" ORDER BY COALESCE(level, 0), category_id'
+    return f'SELECT * FROM "{table_name}"'
+
+
 def get_dependency_order(connection: sqlite3.Connection):
     tables = get_tables(connection)
     table_names = [row["name"] for row in tables]
@@ -145,7 +151,7 @@ def print_group(connection: sqlite3.Connection, table_names: list[str]):
     statements = []
     for table_name in table_names:
       columns = [row["name"] for row in connection.execute(f'PRAGMA table_info("{table_name}")').fetchall()]
-      rows = connection.execute(f'SELECT * FROM "{table_name}"').fetchall()
+      rows = connection.execute(build_select_sql(table_name)).fetchall()
       if not columns or not rows:
           continue
       column_list = ", ".join(f'"{column}"' for column in columns)
@@ -159,7 +165,10 @@ def print_group(connection: sqlite3.Connection, table_names: list[str]):
 
 def print_batch(connection: sqlite3.Connection, table_name: str, offset: int, limit: int):
     columns = [row["name"] for row in connection.execute(f'PRAGMA table_info("{table_name}")').fetchall()]
-    rows = connection.execute(f'SELECT * FROM "{table_name}" LIMIT ? OFFSET ?', (limit, offset)).fetchall()
+    rows = connection.execute(
+        build_select_sql(table_name) + " LIMIT ? OFFSET ?",
+        (limit, offset),
+    ).fetchall()
     if not columns or not rows:
         print("")
         return
@@ -197,7 +206,7 @@ def print_dump(connection: sqlite3.Connection, batch_size: int):
         column_list = ", ".join(f'"{column}"' for column in columns)
         for offset in range(0, total_rows, batch_size):
             rows = connection.execute(
-                f'SELECT * FROM "{table_name}" LIMIT ? OFFSET ?',
+                build_select_sql(table_name) + " LIMIT ? OFFSET ?",
                 (batch_size, offset),
             ).fetchall()
             values = ",\n".join(

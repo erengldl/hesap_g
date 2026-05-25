@@ -1,6 +1,43 @@
 import type postgres from "postgres";
 import bcrypt from "bcryptjs";
 
+async function isPgSchemaReady(sql: postgres.Sql): Promise<boolean> {
+  const rows = await sql<{
+    has_products: boolean;
+    has_orders: boolean;
+    has_store_expenses: boolean;
+    has_product_channel_seo_jobs: boolean;
+    has_users_firebase_uid: boolean;
+    has_cost_results_ml_return_rate: boolean;
+  }[]>`
+    SELECT
+      to_regclass('public.products') IS NOT NULL AS has_products,
+      to_regclass('public.orders') IS NOT NULL AS has_orders,
+      to_regclass('public.store_expenses') IS NOT NULL AS has_store_expenses,
+      to_regclass('public.product_channel_seo_jobs') IS NOT NULL AS has_product_channel_seo_jobs,
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'firebase_uid'
+      ) AS has_users_firebase_uid,
+      EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'cost_results' AND column_name = 'ml_return_rate'
+      ) AS has_cost_results_ml_return_rate
+  `;
+
+  const row = rows[0];
+  return Boolean(
+    row?.has_products &&
+      row.has_orders &&
+      row.has_store_expenses &&
+      row.has_product_channel_seo_jobs &&
+      row.has_users_firebase_uid &&
+      row.has_cost_results_ml_return_rate
+  );
+}
+
 function hasColumn(sql: postgres.Sql, table: string, column: string): Promise<boolean> {
   return sql`
     SELECT EXISTS (
@@ -22,6 +59,10 @@ async function ensureColumn(
 }
 
 export async function initializePgSchema(sql: postgres.Sql) {
+  if (await isPgSchemaReady(sql)) {
+    return;
+  }
+
   // Core tables
   await sql.unsafe(`
     CREATE TABLE IF NOT EXISTS products (
