@@ -26,5 +26,13 @@ export function getFirebaseErrorMessage(
       ? String((error as FirebaseErrorLike).code || "")
       : "";
 
-  return FIREBASE_ERROR_MESSAGES[code] || fallback;
+  if (FIREBASE_ERROR_MESSAGES[code]) {
+    return FIREBASE_ERROR_MESSAGES[code];
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim();
+  }
+
+  return fallback;
 }

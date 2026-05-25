@@ -12,7 +12,8 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/layout/AuthContext";
 import { FormField } from "@/components/ui-custom/FormComponents";
 import { EyebrowBadge } from "@/components/ui-custom/GlassComponents";
-import { getFirebaseAuth, isFirebaseClientConfigured, signOutFirebaseClient } from "@/lib/firebase/client";
+import { loadPublicAuthConfig } from "@/lib/firebase/auth-config-client";
+import { getFirebaseAuth, signOutFirebaseClient } from "@/lib/firebase/client";
 import { getFirebaseErrorMessage } from "@/lib/firebase/errors";
 import { loginSchema, type LoginSchemaInput } from "@/lib/validation-schemas";
 
@@ -58,8 +59,17 @@ export default function LoginPage() {
     setServerError("");
     setLoading(true);
 
+    let authMode: "local" | "firebase" | "misconfigured" = "local";
     try {
-      if (isFirebaseClientConfigured()) {
+      const authConfig = await loadPublicAuthConfig();
+      authMode = authConfig.authMode;
+
+      if (authMode === "misconfigured") {
+        setServerError(authConfig.error || "Firebase sunucu yapilandirmasi eksik.");
+        return;
+      }
+
+      if (authMode === "firebase") {
         const auth = await getFirebaseAuth();
         const credential = await signInWithEmailAndPassword(auth, values.email.trim(), values.password);
         const idToken = await credential.user.getIdToken(true);
@@ -94,7 +104,7 @@ export default function LoginPage() {
       router.push(redirectPath);
       router.refresh();
     } catch (error) {
-      if (isFirebaseClientConfigured()) {
+      if (authMode === "firebase") {
         await signOutFirebaseClient().catch(() => {});
       }
 

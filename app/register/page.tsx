@@ -9,7 +9,8 @@ import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/layout/AuthContext";
 import { EyebrowBadge } from "@/components/ui-custom/GlassComponents";
-import { getFirebaseAuth, isFirebaseClientConfigured, signOutFirebaseClient } from "@/lib/firebase/client";
+import { loadPublicAuthConfig } from "@/lib/firebase/auth-config-client";
+import { getFirebaseAuth, signOutFirebaseClient } from "@/lib/firebase/client";
 import { getFirebaseErrorMessage } from "@/lib/firebase/errors";
 
 async function exchangeFirebaseSession(idToken: string, displayName: string) {
@@ -59,8 +60,17 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
+    let authMode: "local" | "firebase" | "misconfigured" = "local";
     try {
-      if (isFirebaseClientConfigured()) {
+      const authConfig = await loadPublicAuthConfig();
+      authMode = authConfig.authMode;
+
+      if (authMode === "misconfigured") {
+        setError(authConfig.error || "Firebase sunucu yapilandirmasi eksik.");
+        return;
+      }
+
+      if (authMode === "firebase") {
         const auth = await getFirebaseAuth();
         const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
         await updateProfile(credential.user, { displayName: name.trim() });
@@ -95,7 +105,7 @@ export default function RegisterPage() {
       router.push("/dashboard");
       router.refresh();
     } catch (error) {
-      if (isFirebaseClientConfigured()) {
+      if (authMode === "firebase") {
         await signOutFirebaseClient().catch(() => {});
       }
       setError(getFirebaseErrorMessage(error, "Sunucu hatası. Lütfen tekrar deneyin."));

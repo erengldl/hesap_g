@@ -14,19 +14,11 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const authenticated = hasAuthCookie(request);
-
   if (PUBLIC_ROUTES.has(pathname)) {
-    if (!authenticated) {
-      return NextResponse.next();
-    }
-
-    const redirectUrl = nextUrl.clone();
-    redirectUrl.pathname = "/dashboard";
-    redirectUrl.search = "";
-    return NextResponse.redirect(redirectUrl);
+    return NextResponse.next();
   }
 
+  const authenticated = hasAuthCookie(request);
   if (authenticated) {
     return NextResponse.next();
   }
