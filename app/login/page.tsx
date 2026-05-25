@@ -32,6 +32,21 @@ async function exchangeFirebaseSession(idToken: string, displayName: string | nu
   return data.user;
 }
 
+async function loginWithLocalCredentials(email: string, password: string) {
+  const res = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || "Giriş başarısız.");
+  }
+
+  return data.user;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -69,45 +84,56 @@ export default function LoginPage() {
         return;
       }
 
+      const email = values.email.trim();
+
       if (authMode === "firebase") {
-        const auth = await getFirebaseAuth();
-        const credential = await signInWithEmailAndPassword(auth, values.email.trim(), values.password);
-        const idToken = await credential.user.getIdToken(true);
-        const sessionUser = await exchangeFirebaseSession(idToken, credential.user.displayName || null);
+        try {
+          const auth = await getFirebaseAuth();
+          const credential = await signInWithEmailAndPassword(auth, email, values.password);
+          const idToken = await credential.user.getIdToken(true);
+          const sessionUser = await exchangeFirebaseSession(idToken, credential.user.displayName || null);
 
-        if (sessionUser) {
-          setUser(sessionUser);
+          if (sessionUser) {
+            setUser(sessionUser);
+          }
+
+          router.push(redirectPath);
+          router.refresh();
+          return;
+        } catch (firebaseError) {
+          await signOutFirebaseClient().catch(() => {});
+
+          try {
+            const localUser = await loginWithLocalCredentials(email, values.password);
+            if (localUser) {
+              setUser(localUser);
+            }
+
+            router.push(redirectPath);
+            router.refresh();
+            return;
+          } catch (localError) {
+            const localMessage =
+              localError instanceof Error && localError.message.trim()
+                ? localError.message.trim()
+                : "";
+
+            setServerError(
+              localMessage || getFirebaseErrorMessage(firebaseError, "Sunucu hatası. Lütfen tekrar deneyin.")
+            );
+            return;
+          }
         }
-
-        router.push(redirectPath);
-        router.refresh();
-        return;
       }
 
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: values.email.trim(), password: values.password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        setServerError(data.error || "Giriş başarısız.");
-        return;
-      }
-
-      if (data.user) {
-        setUser(data.user);
+      const localUser = await loginWithLocalCredentials(email, values.password);
+      if (localUser) {
+        setUser(localUser);
       }
 
       router.push(redirectPath);
       router.refresh();
     } catch (error) {
-      if (authMode === "firebase") {
-        await signOutFirebaseClient().catch(() => {});
-      }
-
       setServerError(getFirebaseErrorMessage(error, "Sunucu hatası. Lütfen tekrar deneyin."));
     } finally {
       setLoading(false);
