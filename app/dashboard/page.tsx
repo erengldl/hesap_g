@@ -218,7 +218,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="page-shell">
-        <PageHeader eyebrow="Genel BakÃƒâ€Ã‚Â±Ãƒâ€¦Ã…Â¸" title="ÃƒÆ’Ã¢â‚¬â€œzet" description="Veriler hazÃƒâ€Ã‚Â±rlanÃƒâ€Ã‚Â±yor..." />
+        <PageHeader eyebrow="Genel Bakis" title="Ozet" description="Veriler hazirlaniyor..." />
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {[...Array(4)].map((_, i) => <SkeletonCard key={i} className="h-24" />)}
         </div>
@@ -233,11 +233,11 @@ export default function DashboardPage() {
   if (!agg) {
     return (
       <div className="page-shell">
-        <PageHeader eyebrow="Genel BakÃƒâ€Ã‚Â±Ãƒâ€¦Ã…Â¸" title="ÃƒÆ’Ã¢â‚¬â€œzet" description="SatÃƒâ€Ã‚Â±Ãƒâ€¦Ã…Â¸ kanallarÃƒâ€Ã‚Â± ve kÃƒÆ’Ã‚Â¢rlÃƒâ€Ã‚Â±lÃƒâ€Ã‚Â±Ãƒâ€Ã…Â¸Ãƒâ€Ã‚Â± kÃƒâ€Ã‚Â±sa bakÃƒâ€Ã‚Â±Ãƒâ€¦Ã…Â¸ta gÃƒÆ’Ã‚Â¶rÃƒÆ’Ã‚Â¼n." />
+        <PageHeader eyebrow="Genel Bakis" title="Ozet" description="Satis kanallari ve karlilik kisa bakista gorunur." />
         <EmptyState
           icon={BarChart3}
-          title="HenÃƒÆ’Ã‚Â¼z ÃƒÆ’Ã‚Â¶zet oluÃƒâ€¦Ã…Â¸turulmadÃƒâ€Ã‚Â±"
-          description="ÃƒÆ’Ã¢â‚¬â€œzetin gÃƒÆ’Ã‚Â¶rÃƒÆ’Ã‚Â¼nmesi iÃƒÆ’Ã‚Â§in ÃƒÆ’Ã‚Â¶nce ÃƒÆ’Ã‚Â¼rÃƒÆ’Ã‚Â¼n ve sipariÃƒâ€¦Ã…Â¸ verisi ekleyin."
+          title="Henuz ozet olusturulmadi"
+          description="Ozeti gormek icin once urun ve siparis verisi ekleyin."
           action={(
             <div className="flex flex-wrap justify-center gap-2">
               <SeedDemoButton
@@ -249,7 +249,7 @@ export default function DashboardPage() {
                 href="/veri-merkezi"
                 className="btn-primary py-3 px-6 text-sm"
               >
-                ÃƒÆ’Ã…â€œrÃƒÆ’Ã‚Â¼n Merkezini AÃƒÆ’Ã‚Â§
+                Urun Merkezini Ac
               </Link>
               {seedDemoError ? (
                 <p className="basis-full text-center text-sm font-medium text-danger">{seedDemoError}</p>
@@ -265,53 +265,53 @@ export default function DashboardPage() {
 
   return (
     <div className="page-shell">
-      <PageHeader eyebrow="Genel BakÃƒâ€Ã‚Â±Ãƒâ€¦Ã…Â¸" title="ÃƒÆ’Ã¢â‚¬â€œzet" description="TÃƒÆ’Ã‚Â¼m ÃƒÆ’Ã‚Â¼rÃƒÆ’Ã‚Â¼nler, kanallar ve sipariÃƒâ€¦Ã…Â¸ler ÃƒÆ’Ã‚Â¼zerinden kÃƒâ€Ã‚Â±sa finansal ÃƒÆ’Ã‚Â¶zet.">
+      <PageHeader eyebrow="Genel Bakis" title="Ozet" description="Tum urunler, kanallar ve siparisler uzerinden kisa finansal ozet.">
         <EyebrowBadge className={cn("gap-1.5", dataModeMeta.className)}>
           <dataModeMeta.icon className="h-3.5 w-3.5" />
           {dataModeMeta.label}
         </EyebrowBadge>
         <div className="flex items-center gap-1.5 rounded-md border border-border bg-surface-container px-2 py-0.5 text-[10px] font-medium text-muted">
           <Zap className="h-3 w-3 text-primary" />
-          CanlÃƒâ€Ã‚Â± Analiz
+          Canli Analiz
         </div>
       </PageHeader>
 
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard title="Toplam Ciro" value={formatCurrency(agg.totalRevenue)} icon={DollarSign}
-          subValue={`${formatNumber(agg.totalOrders)} sipariÃƒâ€¦Ã…Â¸`} />
-        <KpiCard title="Ortalama KÃƒÆ’Ã‚Â¢r MarjÃƒâ€Ã‚Â±" value={formatPercent(agg.avgMargin)} icon={TrendingUp}
-          trend={{ value: "%25-%45 aralÃƒâ€Ã‚Â±Ãƒâ€Ã…Â¸Ãƒâ€Ã‚Â±", isPositive: true }} />
-        <KpiCard title="Tahmini Net KÃƒÆ’Ã‚Â¢r" value={formatCurrency(agg.totalProfit)} icon={Wallet}
-          subValue={`${agg.totalProducts} aktif ÃƒÆ’Ã‚Â¼rÃƒÆ’Ã‚Â¼n`} />
-        <KpiCard title="Tamamlanan SipariÃƒâ€¦Ã…Â¸" value={formatNumber(agg.totalOrders)} icon={ShoppingCart}
-          subValue="Son 90 gÃƒÆ’Ã‚Â¼n" />
+          subValue={`${formatNumber(agg.totalOrders)} siparis`} />
+        <KpiCard title="Ortalama Kar Marji" value={formatPercent(agg.avgMargin)} icon={TrendingUp}
+          trend={{ value: "%25-%45 araligi", isPositive: true }} />
+        <KpiCard title="Tahmini Net Kar" value={formatCurrency(agg.totalProfit)} icon={Wallet}
+          subValue={`${agg.totalProducts} aktif urun`} />
+        <KpiCard title="Tamamlanan Siparis" value={formatNumber(agg.totalOrders)} icon={ShoppingCart}
+          subValue="Son 90 gun" />
       </div>
 
       {adSummary && (
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <KpiCard
-            title="Reklam HarcamasÃƒâ€Ã‚Â±"
+            title="Reklam Harcamasi"
             value={formatCurrency(adSummary.totalSpend)}
             subValue={`${formatNumber(adSummary.totalCampaigns)} kampanya`}
             icon={Megaphone}
           />
           <KpiCard
-            title="Reklam Net KÃƒÆ’Ã‚Â¢rÃƒâ€Ã‚Â±"
+            title="Reklam Net Kari"
             value={formatCurrency(adSummary.totalNetProfit)}
             subValue={`Senkron: ${new Intl.DateTimeFormat("tr-TR", { dateStyle: "short" }).format(new Date(adSummary.lastSyncedAt))}`}
             icon={Wallet}
             className="border-border/80 bg-surface-container"
           />
           <KpiCard
-            title="KÃƒÆ’Ã‚Â¢r oranÃƒâ€Ã‚Â±"
+            title="Kar Orani"
             value={`${adSummary.averagePoas.toFixed(2)}x`}
-            subValue="KÃƒÆ’Ã‚Â¢r / harcama"
+            subValue="Kar / harcama"
             icon={TrendingUp}
           />
           <KpiCard
             title="Kritik Kampanyalar"
             value={formatNumber(adSummary.lossMakingCount)}
-            subValue={`${adSummary.watchCount} takip Ãƒâ€šÃ‚Â· ${adSummary.scaleCount} ÃƒÆ’Ã‚Â¶lÃƒÆ’Ã‚Â§ek`}
+            subValue={`${adSummary.watchCount} takip | ${adSummary.scaleCount} olcek`}
             icon={AlertTriangle}
             className="border-danger/20 bg-danger/5"
           />
@@ -320,14 +320,14 @@ export default function DashboardPage() {
 
       <GlassCard className="mb-4">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h3 className="panel-title">HÃƒâ€Ã‚Â±zlÃƒâ€Ã‚Â± GeÃƒÆ’Ã‚Â§iÃƒâ€¦Ã…Â¸</h3>
-          <WarningBadge>Tek akÃƒâ€Ã‚Â±Ãƒâ€¦Ã…Â¸</WarningBadge>
+          <h3 className="panel-title">Hizli Gecis</h3>
+          <WarningBadge>Tek akis</WarningBadge>
         </div>
         <div className="grid grid-cols-2 gap-2 xl:grid-cols-5">
           {[
             { label: "Tahmin", href: "/forecast", icon: TrendingUp },
-            { label: "KÃƒÆ’Ã‚Â¢rlÃƒâ€Ã‚Â±lÃƒâ€Ã‚Â±k", href: "/profit-pricing", icon: Target },
-            { label: "ÃƒÆ’Ã…â€œrÃƒÆ’Ã‚Â¼nler", href: "/veri-merkezi", icon: Database },
+            { label: "Karlilik", href: "/profit-pricing", icon: Target },
+            { label: "Urunler", href: "/veri-merkezi", icon: Database },
             { label: "Reklam", href: "/reklam-analizi", icon: Megaphone },
             { label: "SEO", href: "/channel-seo", icon: Sparkles },
           ].map((action) => (
@@ -349,7 +349,7 @@ export default function DashboardPage() {
           <div className="mb-3 flex items-center justify-between gap-3">
             <h3 className="panel-title">Performans Trendi</h3>
             <div className="flex items-center gap-2">
-              <WarningBadge>30 GÃƒÆ’Ã‚Â¼nlÃƒÆ’Ã‚Â¼k Veri</WarningBadge>
+              <WarningBadge>30 Gunluk Veri</WarningBadge>
               <span className="text-[10px] font-medium text-muted">Zirve: {formatCurrency(trendMax)}</span>
             </div>
           </div>
@@ -426,15 +426,15 @@ export default function DashboardPage() {
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <GlassCard>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 className="panel-title">Lider ÃƒÆ’Ã…â€œrÃƒÆ’Ã‚Â¼nler</h3>
-            <span className="rounded-md border border-border bg-surface-container px-2 py-0.5 text-[10px] font-medium text-muted">BrÃƒÆ’Ã‚Â¼t Ciro</span>
+            <h3 className="panel-title">Lider Urunler</h3>
+            <span className="rounded-md border border-border bg-surface-container px-2 py-0.5 text-[10px] font-medium text-muted">Brut Ciro</span>
           </div>
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-border/50 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted/60">
-                  <th className="pb-2">ÃƒÆ’Ã…â€œrÃƒÆ’Ã‚Â¼n DetayÃƒâ€Ã‚Â±</th>
-                  <th className="pb-2 text-right">SipariÃƒâ€¦Ã…Â¸</th>
+                  <th className="pb-2">Urun Detayi</th>
+                  <th className="pb-2 text-right">Siparis</th>
                   <th className="pb-2 text-right">Ciro</th>
                   <th className="pb-2 text-right">Marj</th>
                 </tr>
@@ -489,7 +489,7 @@ export default function DashboardPage() {
 
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   <div className="rounded-md border border-border bg-surface-soft p-2">
-                    <p className="mb-1 text-[9px] uppercase tracking-wide text-muted/60">SipariÃƒâ€¦Ã…Â¸</p>
+                    <p className="mb-1 text-[9px] uppercase tracking-wide text-muted/60">Siparis</p>
                     <p className="text-sm font-bold text-foreground">{formatNumber(p.orders)}</p>
                   </div>
                   <div className="rounded-md border border-border bg-surface-soft p-2">
@@ -555,8 +555,8 @@ export default function DashboardPage() {
               <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-success/10 text-success">
                 <Package className="h-4 w-4" />
               </div>
-              <p className="text-sm font-medium text-foreground">Stoklar gÃƒÆ’Ã‚Â¼vende</p>
-              <p className="mt-1 text-xs text-muted">Ãƒâ€¦Ã‚Âu an mÃƒÆ’Ã‚Â¼dahale gerektiren ÃƒÆ’Ã‚Â¼rÃƒÆ’Ã‚Â¼n bulunmuyor.</p>
+              <p className="text-sm font-medium text-foreground">Stoklar guvende</p>
+              <p className="mt-1 text-xs text-muted">Su an mudahale gerektiren urun bulunmuyor.</p>
             </GlassCard>
           )}
 
@@ -568,7 +568,7 @@ export default function DashboardPage() {
               <div>
                 <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-primary/80">En iyi kanal</p>
                 <p className="mt-0.5 text-sm font-semibold text-foreground">
-                  {bestChannelName} ÃƒÆ’Ã‚Â¼zerinden <span className="text-primary">{formatCurrency(bestChannel.net_profit)}</span> net kÃƒÆ’Ã‚Â¢r elde ediliyor.
+                  {bestChannelName} uzerinden <span className="text-primary">{formatCurrency(bestChannel.net_profit)}</span> net kar elde ediliyor.
                 </p>
               </div>
             </GlassCard>
@@ -579,7 +579,7 @@ export default function DashboardPage() {
       {bestChannel && payload?.costBreakdown && (
         <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <GlassCard>
-            <h3 className="panel-title mb-3">Maliyet KÃƒâ€Ã‚Â±rÃƒâ€Ã‚Â±lÃƒâ€Ã‚Â±mÃƒâ€Ã‚Â± ({bestChannelName})</h3>
+            <h3 className="panel-title mb-3">Maliyet Kirilimi ({bestChannelName})</h3>
             <div className="h-[220px] min-w-0">
               {chartsReady && isClient ? (
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} initialDimension={{ width: 1, height: 1 }}>
@@ -601,7 +601,7 @@ export default function DashboardPage() {
           </GlassCard>
 
           <GlassCard>
-            <h3 className="panel-title mb-3">BaÃƒâ€¦Ã…Â¸abaÃƒâ€¦Ã…Â¸ Analizi</h3>
+            <h3 className="panel-title mb-3">Basabas Analizi</h3>
             <div className="space-y-4">
               <div className="flex items-end justify-between">
                 <div className="space-y-1">
@@ -609,7 +609,7 @@ export default function DashboardPage() {
                   <p className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{formatCurrency(bestChannel.total_unit_cost)}</p>
                 </div>
                 <div className="space-y-1 text-right">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted/60">ÃƒÆ’Ã¢â‚¬â€œnerilen SatÃƒâ€Ã‚Â±Ãƒâ€¦Ã…Â¸</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted/60">Onerilen Satis</p>
                   <p className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">{formatCurrency(bestChannel.sale_price)}</p>
                 </div>
               </div>
@@ -623,7 +623,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="mt-2 flex justify-between text-[10px] font-medium uppercase tracking-wide">
                   <span className="text-muted">Maliyet %{Math.round((bestChannel.total_unit_cost / Math.max(1, bestChannel.sale_price)) * 100)}</span>
-                  <span className="text-primary">Net kÃƒÆ’Ã‚Â¢r %{Math.round(bestChannel.profit_margin_percent)}</span>
+                  <span className="text-primary">Net kar %{Math.round(bestChannel.profit_margin_percent)}</span>
                 </div>
               </div>
 
@@ -650,8 +650,8 @@ export default function DashboardPage() {
         <GlassCard className="mb-4">
           <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div className="space-y-1">
-              <h3 className="panel-title">Kanal KÃƒÆ’Ã‚Â¢rlÃƒâ€Ã‚Â±lÃƒâ€Ã‚Â±k Matrisi</h3>
-              <p className="text-xs font-medium text-muted/60">ÃƒÆ’Ã…â€œrÃƒÆ’Ã‚Â¼n bazÃƒâ€Ã‚Â±nda platformlar arasÃƒâ€Ã‚Â± finansal performans farkÃƒâ€Ã‚Â±.</p>
+              <h3 className="panel-title">Kanal Karlilik Matrisi</h3>
+              <p className="text-xs font-medium text-muted/60">Urun bazinda platformlar arasi finansal performans farki.</p>
             </div>
             <WarningBadge>Sistem Tahmini</WarningBadge>
           </div>
@@ -673,7 +673,7 @@ export default function DashboardPage() {
                     <div>
                       <p className="text-sm font-medium text-foreground">{result.channel_name}</p>
                       <p className="mt-0.5 text-[10px] font-medium text-muted/60">
-                        {formatCurrency(result.sale_price)} <span className="opacity-40">ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢</span> {formatCurrency(result.total_unit_cost)}
+                        {formatCurrency(result.sale_price)} <span className="opacity-40">/</span> {formatCurrency(result.total_unit_cost)}
                       </p>
                     </div>
                     <span
@@ -682,13 +682,13 @@ export default function DashboardPage() {
                         isBest ? "bg-primary-soft text-primary border-border" : "bg-surface-soft text-muted border-border"
                       )}
                     >
-                      {isBest ? "En iyi" : "DiÃƒâ€Ã…Â¸er"}
+                      {isBest ? "En iyi" : "Diger"}
                     </span>
                   </div>
 
                   <div className="mb-4 flex items-end justify-between">
                     <div className="space-y-1">
-                      <p className="text-[9px] font-medium uppercase tracking-wide text-muted/60">Net KÃƒÆ’Ã‚Â¢r</p>
+                      <p className="text-[9px] font-medium uppercase tracking-wide text-muted/60">Net Kar</p>
                       <p className="text-2xl font-bold tracking-tight text-foreground">{formatCurrency(result.net_profit)}</p>
                     </div>
                     <div className="space-y-1 text-right">
@@ -862,10 +862,10 @@ function ProductComparison() {
         setProductsLoaded(true);
         setProductsError(null);
       } else {
-        setProductsError("ÃƒÆ’Ã…â€œrÃƒÆ’Ã‚Â¼n listesi boÃƒâ€¦Ã…Â¸ geldi.");
+        setProductsError("Urun listesi bos geldi.");
       }
     } catch {
-      setProductsError("ÃƒÆ’Ã…â€œrÃƒÆ’Ã‚Â¼n listesi yÃƒÆ’Ã‚Â¼klenemedi.");
+      setProductsError("Urun listesi yuklenemedi.");
     } finally {
       setProductsLoading(false);
     }
@@ -902,11 +902,11 @@ function ProductComparison() {
         setResults(data.products);
       } else {
         setResults(null);
-        setCompareError(data?.error || "KarÃƒâ€¦Ã…Â¸Ãƒâ€Ã‚Â±laÃƒâ€¦Ã…Â¸tÃƒâ€Ã‚Â±rma sonuÃƒÆ’Ã‚Â§larÃƒâ€Ã‚Â± alÃƒâ€Ã‚Â±namadÃƒâ€Ã‚Â±.");
+        setCompareError(data?.error || "Karsilastirma sonuclari alinamadi.");
       }
     } catch {
       setResults(null);
-      setCompareError("KarÃƒâ€¦Ã…Â¸Ãƒâ€Ã‚Â±laÃƒâ€¦Ã…Â¸tÃƒâ€Ã‚Â±rma sonuÃƒÆ’Ã‚Â§larÃƒâ€Ã‚Â± alÃƒâ€Ã‚Â±namadÃƒâ€Ã‚Â±.");
+      setCompareError("Karsilastirma sonuclari alinamadi.");
     } finally {
       setComparing(false);
     }
@@ -917,7 +917,7 @@ function ProductComparison() {
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-1">
           <h3 className="font-heading text-base font-bold text-foreground">Benchmark Analizi</h3>
-          <p className="text-xs font-medium text-muted/60">SeÃƒÆ’Ã‚Â§ili ÃƒÆ’Ã‚Â¼rÃƒÆ’Ã‚Â¼nlerin platformlar arasÃƒâ€Ã‚Â± kÃƒÆ’Ã‚Â¢rlÃƒâ€Ã‚Â±lÃƒâ€Ã‚Â±Ãƒâ€Ã…Â¸Ãƒâ€Ã‚Â±.</p>
+          <p className="text-xs font-medium text-muted/60">Secili urunlerin platformlar arasi karliligi.</p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto">
           <select
@@ -927,7 +927,7 @@ function ProductComparison() {
               className="w-full rounded-md border border-border bg-surface-container px-3 py-2 text-sm font-medium text-foreground outline-none transition-[border-color,box-shadow] duration-200 focus:border-primary/40 focus:ring-1 focus:ring-primary/20 sm:w-[260px]"
           >
             <option value="" disabled className="text-muted">
-              {productsLoading && !productsLoaded ? "ÃƒÆ’Ã…â€œrÃƒÆ’Ã‚Â¼nler yÃƒÆ’Ã‚Â¼kleniyor..." : "ÃƒÆ’Ã…â€œrÃƒÆ’Ã‚Â¼n seÃƒÆ’Ã‚Â§in..."}
+              {productsLoading && !productsLoaded ? "Urunler yukleniyor..." : "Urun secin..."}
             </option>
             {products.filter((p) => !selected.includes(p.id)).map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
@@ -938,7 +938,7 @@ function ProductComparison() {
             disabled={selected.length < 2 || comparing}
             className="w-full rounded-md bg-primary px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-primary-foreground transition-colors duration-200 hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-30 sm:w-auto"
           >
-            {comparing ? "ANALÃƒâ€Ã‚Â°Z EDÃƒâ€Ã‚Â°LÃƒâ€Ã‚Â°YOR..." : "KIYASLA"}
+            {comparing ? "ANALIZ EDILIYOR..." : "KIYASLA"}
           </button>
         </div>
         {productsError && (
@@ -973,7 +973,7 @@ function ProductComparison() {
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-border/50 text-[9px] font-semibold uppercase tracking-[0.1em] text-muted/60">
-                  <th className="pb-2">ÃƒÆ’Ã…â€œrÃƒÆ’Ã‚Â¼n Spesifikasyonu</th>
+                  <th className="pb-2">Urun Spesifikasyonu</th>
                   <th className="pb-2 text-right">Baz Maliyet</th>
                   {results[0]?.channels.map((ch) => (
                     <th key={ch.channelName} className="pb-2 text-right">{ch.channelName}</th>
@@ -1062,7 +1062,7 @@ function ProductComparison() {
 
                           <div className="mb-3 grid grid-cols-2 gap-3">
                             <div>
-                              <p className="mb-1 text-[9px] font-medium uppercase tracking-wide text-muted/60">Net KÃƒÆ’Ã‚Â¢r</p>
+                              <p className="mb-1 text-[9px] font-medium uppercase tracking-wide text-muted/60">Net Kar</p>
                               <p className={cn("text-lg font-semibold tracking-tight", ch.margin > 30 ? "text-primary" : ch.margin > 15 ? "text-warning" : "text-danger")}>
                                 {formatCurrency(ch.netProfit)}
                               </p>
