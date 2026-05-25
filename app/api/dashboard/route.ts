@@ -5,7 +5,6 @@ import { getDb } from "@/lib/db";
 import { getProducts } from "@/lib/database-readers";
 import { buildAggregateDashboard, buildDashboardSnapshot } from "@/lib/portfolio-analytics";
 import { getCachedValue } from "@/lib/server-cache";
-import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -187,9 +186,6 @@ function buildFallbackAggregate() {
 }
 
 export async function GET() {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
-
   try {
     const aggregate = getCachedValue("dashboard:aggregate", 15_000, () => {
       try {
