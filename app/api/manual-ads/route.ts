@@ -13,7 +13,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: "Oturum bulunamadi." }, { status: 401 });
     }
 
-    const campaigns = listManualAdCampaignSummaries(user.userId);
+    const campaigns = await listManualAdCampaignSummaries(user.userId);
     return NextResponse.json({
       success: true,
       campaigns,
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Doğrulama başarısız.", errors: validation.errors }, { status: 400 });
     }
 
-    const detail = createManualAdCampaign(user.userId, validation.value);
+    const detail = await createManualAdCampaign(user.userId, validation.value);
     return NextResponse.json({
       success: true,
       campaign: detail.campaign,

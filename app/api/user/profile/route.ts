@@ -20,8 +20,8 @@ export async function PATCH(request: Request) {
     const db = getDb();
     if (!db) return serverError();
 
-    db.prepare(
-      "UPDATE users SET name = ?, company = ?, phone = ?, updated_at = datetime('now') WHERE user_id = ?"
+    await db.prepare(
+      "UPDATE users SET name = ?, company = ?, phone = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?"
     ).run(name.trim(), company?.trim() || null, phone?.trim() || null, user.userId);
 
     return ok(undefined, {

@@ -19,18 +19,18 @@ function normalizeChannels(channels: string[]) {
   );
 }
 
-function getDefaultMarketplaceShippingCompanyId(marketplaceId: number) {
-  const row = getOne<{ shipping_company_id: number }>(
+async function getDefaultMarketplaceShippingCompanyId(marketplaceId: number) {
+  const row = await getOne<{ shipping_company_id: number }>(
     "SELECT shipping_company_id FROM marketplace_shipping_options WHERE marketplace_id = ? ORDER BY shipping_company_id ASC LIMIT 1",
     [marketplaceId]
   );
   return row?.shipping_company_id ?? null;
 }
 
-function persistProductSettings(db: NonNullable<ReturnType<typeof getDb>>, productId: number, payload: ProductUpsertInput) {
+async function persistProductSettings(db: NonNullable<ReturnType<typeof getDb>>, productId: number, payload: ProductUpsertInput) {
   const channels = normalizeChannels(payload.active_channels);
-  const gatewayRule = getOwnWebsiteGatewayRule();
-  const existingSettings = db
+  const gatewayRule = await getOwnWebsiteGatewayRule();
+  const existingSettings = await db
     .prepare(
       `
         SELECT
@@ -70,21 +70,21 @@ function persistProductSettings(db: NonNullable<ReturnType<typeof getDb>>, produ
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  db.prepare("DELETE FROM product_marketplace_settings WHERE product_id = ?").run(productId);
+  await db.prepare("DELETE FROM product_marketplace_settings WHERE product_id = ?").run(productId);
 
   for (const channel of channels) {
     const marketplaceSlug = channel === "my_website" ? "own_website" : channel;
-    const marketplace = getMarketplaceBySlug(marketplaceSlug);
+    const marketplace = await getMarketplaceBySlug(marketplaceSlug);
     if (!marketplace) continue;
 
     const isOwnWebsite = marketplaceSlug === "own_website";
     const existingSetting = settingsByMarketplaceId.get(marketplace.id);
-    insertSetting.run(
+    await insertSetting.run(
       productId,
       marketplace.id,
       isOwnWebsite
         ? null
-        : existingSetting?.shipping_company_id ?? getDefaultMarketplaceShippingCompanyId(marketplace.id),
+        : existingSetting?.shipping_company_id ?? await getDefaultMarketplaceShippingCompanyId(marketplace.id),
       payload.sale_price,
       existingSetting?.buybox_price ?? null,
       isOwnWebsite
@@ -100,7 +100,7 @@ function persistProductSettings(db: NonNullable<ReturnType<typeof getDb>>, produ
   }
 }
 
-export function saveProductRecord(payload: ProductUpsertInput, productId?: number) {
+export async function saveProductRecord(payload: ProductUpsertInput, productId?: number) {
   const db = getDb();
   if (!db) {
     throw new Error("Database connection unavailable");
@@ -113,14 +113,14 @@ export function saveProductRecord(payload: ProductUpsertInput, productId?: numbe
 
   const resolvedProductId = productId ?? null;
   if (resolvedProductId) {
-    const existingProduct = getOne<{ product_id: number }>("SELECT product_id FROM products WHERE product_id = ? LIMIT 1", [resolvedProductId]);
+    const existingProduct = await getOne<{ product_id: number }>("SELECT product_id FROM products WHERE product_id = ? LIMIT 1", [resolvedProductId]);
     if (!existingProduct) {
       throw new Error("Product not found");
     }
   }
 
   const existingProfileId = resolvedProductId
-    ? getOne<{ profile_id: number | null }>("SELECT profile_id FROM products WHERE product_id = ? LIMIT 1", [resolvedProductId])?.profile_id ?? 1
+    ? (await getOne<{ profile_id: number | null }>("SELECT profile_id FROM products WHERE product_id = ? LIMIT 1", [resolvedProductId]))?.profile_id ?? 1
     : 1;
 
   const insertProduct = db.prepare(`
@@ -134,9 +134,9 @@ export function saveProductRecord(payload: ProductUpsertInput, productId?: numbe
   `);
 
   let nextProductId = resolvedProductId;
-  db.transaction(() => {
+  await db.transaction(async () => {
     if (resolvedProductId) {
-      updateProduct.run(
+      await updateProduct.run(
         payload.name,
         payload.sku ?? null,
         payload.barcode ?? payload.sku ?? null,
@@ -152,7 +152,7 @@ export function saveProductRecord(payload: ProductUpsertInput, productId?: numbe
         resolvedProductId
       );
     } else {
-      const result = insertProduct.run(
+      const result = await insertProduct.run(
         payload.name,
         payload.sku ?? null,
         payload.barcode ?? payload.sku ?? null,
@@ -173,27 +173,27 @@ export function saveProductRecord(payload: ProductUpsertInput, productId?: numbe
       throw new Error("Product id could not be resolved");
     }
 
-    persistProductSettings(db, nextProductId, payload);
-  })();
+    await persistProductSettings(db, nextProductId, payload);
+  });
 
   return nextProductId as number;
 }
 
-export function deleteProductRecord(productId: number) {
+export async function deleteProductRecord(productId: number) {
   const db = getDb();
   if (!db) {
     throw new Error("Database connection unavailable");
   }
 
-  db.transaction(() => {
-    db.prepare("DELETE FROM price_optimization_runs WHERE product_id = ?").run(productId);
-    db.prepare("DELETE FROM demand_forecasts WHERE product_id = ?").run(productId);
-    db.prepare("DELETE FROM inventory_daily WHERE product_id = ?").run(productId);
-    db.prepare("DELETE FROM order_items WHERE product_id = ?").run(productId);
-    db.prepare("DELETE FROM orders WHERE product_id = ?").run(productId);
-    db.prepare("DELETE FROM cost_results WHERE product_id = ?").run(productId);
-    db.prepare("DELETE FROM product_marketplace_settings WHERE product_id = ?").run(productId);
-    db.prepare("DELETE FROM seo_generations WHERE product_id = ?").run(productId);
-    db.prepare("DELETE FROM products WHERE product_id = ?").run(productId);
-  })();
+  await db.transaction(async () => {
+    await db.prepare("DELETE FROM price_optimization_runs WHERE product_id = ?").run(productId);
+    await db.prepare("DELETE FROM demand_forecasts WHERE product_id = ?").run(productId);
+    await db.prepare("DELETE FROM inventory_daily WHERE product_id = ?").run(productId);
+    await db.prepare("DELETE FROM order_items WHERE product_id = ?").run(productId);
+    await db.prepare("DELETE FROM orders WHERE product_id = ?").run(productId);
+    await db.prepare("DELETE FROM cost_results WHERE product_id = ?").run(productId);
+    await db.prepare("DELETE FROM product_marketplace_settings WHERE product_id = ?").run(productId);
+    await db.prepare("DELETE FROM seo_generations WHERE product_id = ?").run(productId);
+    await db.prepare("DELETE FROM products WHERE product_id = ?").run(productId);
+  });
 }

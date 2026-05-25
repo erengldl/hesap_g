@@ -7,12 +7,12 @@ import { trainReturnRiskModelFromDataCenter } from "./trainer";
 import { getReturnRiskEvaluationSummary } from "./evaluator";
 import type { ReturnRiskPredictionInput } from "./types";
 
-export function predictReturnRiskFromDataCenter(
+export async function predictReturnRiskFromDataCenter(
   input: Omit<ReturnRiskPredictionInput, "context" | "modelArtifact"> & {
     context?: ReturnRiskPredictionInput["context"];
   }
 ) {
-  const dataCenterContext = buildReturnRiskContextForProduct({
+  const dataCenterContext = await buildReturnRiskContextForProduct({
     productId: input.productId,
     channel: input.channel,
   });
@@ -29,8 +29,8 @@ export function predictReturnRiskFromDataCenter(
   });
 }
 
-export function trainReturnRiskModel() {
-  return trainReturnRiskModelFromDataCenter();
+export async function trainReturnRiskModel() {
+  return await trainReturnRiskModelFromDataCenter();
 }
 
 export function evaluateReturnRiskModel() {

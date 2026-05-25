@@ -9,7 +9,7 @@ export async function POST() {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
   try {
-    const result = trainReturnRiskModel();
+    const result = await trainReturnRiskModel();
 
     if (!result.ok) {
       return NextResponse.json(

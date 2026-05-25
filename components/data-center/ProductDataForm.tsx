@@ -294,7 +294,7 @@ export default function ProductDataForm({
     setImageUploadError("");
 
     if (!product?.id) {
-      if (currentImageUrl.startsWith("/uploads/products/")) {
+      if (currentImageUrl) {
         setIsDeletingImage(true);
         try {
           const response = await fetch(`/api/v1/products/upload-image?url=${encodeURIComponent(currentImageUrl)}`, {
@@ -303,10 +303,10 @@ export default function ProductDataForm({
 
           const data = (await response.json().catch(() => null)) as { success?: boolean; error?: string } | null;
           if (!response.ok || !data?.success) {
-            throw new Error(data?.error || "Görsel silinemedi.");
+            throw new Error(data?.error || "Gorsel silinemedi.");
           }
         } catch (error) {
-          setImageUploadError(error instanceof Error ? error.message : "Görsel silinemedi.");
+          setImageUploadError(error instanceof Error ? error.message : "Gorsel silinemedi.");
           return;
         } finally {
           setIsDeletingImage(false);

@@ -76,8 +76,8 @@ function buildContinuousSeries(rows: TrendRow[], days: number) {
   return series;
 }
 
-export function getProductSalesTrend(productId: number, days: 30 | 90 = 30, marketplaceId?: number) {
-  const rows = query<TrendRow>(
+export async function getProductSalesTrend(productId: number, days: 30 | 90 = 30, marketplaceId?: number) {
+  const rows = await query<TrendRow>(
     `
       SELECT
         o.order_date AS date,
@@ -99,8 +99,8 @@ export function getProductSalesTrend(productId: number, days: 30 | 90 = 30, mark
   return buildContinuousSeries(rows, days);
 }
 
-export function getProductOrderHistory(productId: number, limit = 20) {
-  return query<OrderHistoryRow>(
+export async function getProductOrderHistory(productId: number, limit = 20) {
+  return (await query<OrderHistoryRow>(
     `
       SELECT
         o.order_id,
@@ -122,7 +122,7 @@ export function getProductOrderHistory(productId: number, limit = 20) {
       LIMIT ?
     `,
     [productId, limit]
-  ).map((row) => ({
+  )).map((row) => ({
     ...row,
     quantity: roundWhole(row.quantity),
     unit_price: round2(Number(row.unit_price ?? 0)),
@@ -130,8 +130,8 @@ export function getProductOrderHistory(productId: number, limit = 20) {
   }));
 }
 
-export function getProductSalesVelocity(productId: number, days = 30, marketplaceId?: number) {
-  const row = query<{ units: number }>(
+export async function getProductSalesVelocity(productId: number, days = 30, marketplaceId?: number) {
+  const row = (await query<{ units: number }>(
     `
       SELECT COALESCE(SUM(oi.quantity), 0) AS units
       FROM orders o
@@ -142,13 +142,13 @@ export function getProductSalesVelocity(productId: number, days = 30, marketplac
         ${marketplaceId ? "AND o.marketplace_id = ?" : ""}
     `,
     marketplaceId ? [productId, `-${days - 1} days`, marketplaceId] : [productId, `-${days - 1} days`]
-  )[0];
+  ))[0];
 
   return round2((row?.units ?? 0) / Math.max(1, days));
 }
 
-export function getProductMarginSnapshots(productId: number) {
-  return query<CostResultRow>(
+export async function getProductMarginSnapshots(productId: number) {
+  return (await query<CostResultRow>(
     `
       SELECT
         cr.marketplace_id,
@@ -164,7 +164,7 @@ export function getProductMarginSnapshots(productId: number) {
       ORDER BY cr.profit_margin_percent DESC, cr.marketplace_id ASC
     `,
     [productId]
-  ).map((row) => ({
+  )).map((row) => ({
     ...row,
     list_price: round2(Number(row.list_price ?? 0)),
     total_unit_cost: round2(Number(row.total_unit_cost ?? 0)),

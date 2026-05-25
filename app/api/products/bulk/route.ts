@@ -54,8 +54,8 @@ export async function POST(request: Request) {
       }
 
       try {
-        const productId = saveProductRecord(payload);
-        recalculateCostResultsForProduct(productId);
+        const productId = await saveProductRecord(payload);
+        await recalculateCostResultsForProduct(productId);
         productIds.push(productId);
       } catch (error) {
         errors.push({

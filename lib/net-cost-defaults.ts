@@ -57,22 +57,23 @@ function safeNumber(value: number | null | undefined, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function getMarketplaceDefaultCarrierId(marketplaceId: number) {
-  const row = getOne<{ shipping_company_id: number | null }>(
+async function getMarketplaceDefaultCarrierId(marketplaceId: number) {
+  const row = await getOne<{ shipping_company_id: number | null }>(
     "SELECT shipping_company_id FROM marketplace_shipping_options WHERE marketplace_id = ? ORDER BY shipping_company_id ASC LIMIT 1",
     [marketplaceId]
   );
   return row?.shipping_company_id ?? null;
 }
 
-function getCarrierIdByName(marketplaceName: string, carrierName?: string | null) {
+async function getCarrierIdByName(marketplaceName: string, carrierName?: string | null) {
   if (!carrierName) return null;
-  const carrier = getCarriersByMarketplace(marketplaceName).find((item) => item.name === carrierName);
+  const carriers = await getCarriersByMarketplace(marketplaceName);
+  const carrier = carriers.find((item) => item.name === carrierName);
   return carrier?.shipping_company_id ?? null;
 }
 
-function getProductContext(productId: number) {
-  return getOne<ProductRow>(
+async function getProductContext(productId: number) {
+  return await getOne<ProductRow>(
     `
       SELECT
         p.product_id AS id,
@@ -92,8 +93,8 @@ function getProductContext(productId: number) {
   );
 }
 
-function getHistoricalCostRows(productId: number, marketplaceId: number) {
-  return query<HistoricalCostRow>(
+async function getHistoricalCostRows(productId: number, marketplaceId: number) {
+  return await query<HistoricalCostRow>(
     `
       SELECT
         cr.product_id,
@@ -145,10 +146,10 @@ function resolveHistoricalWeight(target: ProductRow, row: HistoricalCostRow) {
   return round2(categorySimilarity * desiSimilarity * costSimilarity * recency * profitSignal);
 }
 
-function recommendMarketplaceCarrierId(productId: number, marketplaceId: number, product: ProductRow) {
-  const historicalRows = getHistoricalCostRows(productId, marketplaceId);
+async function recommendMarketplaceCarrierId(productId: number, marketplaceId: number, product: ProductRow) {
+  const historicalRows = await getHistoricalCostRows(productId, marketplaceId);
   if (historicalRows.length === 0) {
-    return getMarketplaceDefaultCarrierId(marketplaceId);
+    return await getMarketplaceDefaultCarrierId(marketplaceId);
   }
 
   const scoreMap = new Map<number, number>();
@@ -160,18 +161,18 @@ function recommendMarketplaceCarrierId(productId: number, marketplaceId: number,
   }
 
   if (scoreMap.size === 0) {
-    return getMarketplaceDefaultCarrierId(marketplaceId);
+    return await getMarketplaceDefaultCarrierId(marketplaceId);
   }
 
-  return [...scoreMap.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] ?? getMarketplaceDefaultCarrierId(marketplaceId);
+  return [...scoreMap.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] ?? await getMarketplaceDefaultCarrierId(marketplaceId);
 }
 
-function buildFallbackProductSetting(product: ProductRow, marketplaceId: number): ProductMarketplaceSettingRow {
-  const marketplace = getMarketplaceById(marketplaceId);
+async function buildFallbackProductSetting(product: ProductRow, marketplaceId: number): Promise<ProductMarketplaceSettingRow> {
+  const marketplace = await getMarketplaceById(marketplaceId);
   const salePrice = round2(safeNumber(product.sale_price, 0) > 0 ? safeNumber(product.sale_price, 0) : Math.max((safeNumber(product.cost, 0) + safeNumber(product.packaging_cost, 0)) * 1.95, 0));
   const isOwnWebsite = marketplace?.slug === "own_website";
-  const gateway = isOwnWebsite ? getOwnWebsiteGatewayRule() : null;
-  const recommendedCarrierId = isOwnWebsite ? null : recommendMarketplaceCarrierId(product.id, marketplaceId, product);
+  const gateway = isOwnWebsite ? await getOwnWebsiteGatewayRule() : null;
+  const recommendedCarrierId = isOwnWebsite ? null : await recommendMarketplaceCarrierId(product.id, marketplaceId, product);
   const mlProduct: NetCostMlInput["product"] = {
     id: product.id,
     category_id: product.category_id ?? undefined,
@@ -183,7 +184,7 @@ function buildFallbackProductSetting(product: ProductRow, marketplaceId: number)
     desi: Number(product.desi ?? 0),
   };
   const mlSignals = isOwnWebsite
-    ? predictNetCostSignals({
+    ? await predictNetCostSignals({
         product: mlProduct,
         marketplaceId,
         salePrice,
@@ -209,14 +210,14 @@ function buildFallbackProductSetting(product: ProductRow, marketplaceId: number)
   };
 }
 
-export function resolveProductMarketplaceDefaults(productId: number, marketplaceId: number) {
-  const persisted = getProductMarketplaceSetting(productId, marketplaceId);
-  const product = getProductContext(productId);
+export async function resolveProductMarketplaceDefaults(productId: number, marketplaceId: number) {
+  const persisted = await getProductMarketplaceSetting(productId, marketplaceId);
+  const product = await getProductContext(productId);
   if (!product) {
     return persisted ? (persisted as ProductMarketplaceSettingRow) : null;
   }
 
-  const fallback = buildFallbackProductSetting(product, marketplaceId);
+  const fallback = await buildFallbackProductSetting(product, marketplaceId);
   if (!persisted) {
     return fallback;
   }
@@ -249,7 +250,7 @@ function readChannelInput(body: Record<string, unknown>, channelKey: string) {
   return null;
 }
 
-function upsertSetting(
+async function upsertSetting(
   db: NonNullable<ReturnType<typeof getDb>>,
   productId: number,
   marketplaceId: number,
@@ -262,7 +263,7 @@ function upsertSetting(
     trafficCpa: number | null;
   }
 ) {
-  db.prepare(`
+  await db.prepare(`
     INSERT INTO product_marketplace_settings (
       product_id,
       marketplace_id,
@@ -292,7 +293,7 @@ function upsertSetting(
   );
 }
 
-export function persistNetCostDefaultsFromCalculation(
+export async function persistNetCostDefaultsFromCalculation(
   productId: number,
   body: Record<string, unknown>,
   results: ChannelCostResult[]
@@ -302,7 +303,7 @@ export function persistNetCostDefaultsFromCalculation(
     return false;
   }
 
-  const product = getProductContext(productId);
+  const product = await getProductContext(productId);
   if (!product) {
     return false;
   }
@@ -316,9 +317,9 @@ export function persistNetCostDefaultsFromCalculation(
   const hepsiburadaInput = readChannelInput(body, "hepsiburada");
   const websiteInput = readChannelInput(body, "my_website");
 
-  db.transaction(() => {
+  await db.transaction(async () => {
     if (trendyolResult) {
-      upsertSetting(db, productId, 1, {
+      await upsertSetting(db, productId, 1, {
         shippingCompanyId: trendyolResult.shipping_company_id ?? null,
         salePrice: round2(Number(trendyolResult.sale_price ?? trendyolInput?.salePrice ?? trendyolInput?.sale_price ?? product.sale_price ?? 0)),
         manualShippingCost: null,
@@ -329,7 +330,7 @@ export function persistNetCostDefaultsFromCalculation(
     }
 
     if (hepsiburadaResult) {
-      upsertSetting(db, productId, 2, {
+      await upsertSetting(db, productId, 2, {
         shippingCompanyId: hepsiburadaResult.shipping_company_id ?? null,
         salePrice: round2(Number(hepsiburadaResult.sale_price ?? hepsiburadaInput?.salePrice ?? hepsiburadaInput?.sale_price ?? product.sale_price ?? 0)),
         manualShippingCost: null,
@@ -341,9 +342,9 @@ export function persistNetCostDefaultsFromCalculation(
 
     if (websiteResult) {
       const trafficSettings = websiteInput?.trafficSettings as { manualCpa?: number; mode?: string } | undefined;
-      const ownWebsiteGateway = getOwnWebsiteGatewayRule();
+      const ownWebsiteGateway = await getOwnWebsiteGatewayRule();
       const fallbackGatewayRuleId = Number(websiteInput?.gatewayRuleId ?? websiteInput?.payment_gateway_rule_id ?? null) || null;
-      upsertSetting(db, productId, 3, {
+      await upsertSetting(db, productId, 3, {
         shippingCompanyId: null,
         salePrice: round2(Number(websiteResult.sale_price ?? websiteInput?.salePrice ?? websiteInput?.sale_price ?? product.sale_price ?? 0)),
         manualShippingCost: round2(Number(websiteResult.manual_shipping_cost ?? websiteInput?.shippingCost ?? websiteInput?.manual_shipping_cost ?? 0)),
@@ -352,18 +353,18 @@ export function persistNetCostDefaultsFromCalculation(
         trafficCpa: round2(Number(trafficSettings?.manualCpa ?? websiteInput?.cpa ?? websiteInput?.manualCpa ?? websiteResult.ml_predicted_cpa ?? websiteResult.traffic_ad_cost ?? 0)),
       });
     }
-  })();
+  });
 
   return true;
 }
 
-export function persistNetCostDefaultsFromForm(productId: number, body: Record<string, unknown>) {
+export async function persistNetCostDefaultsFromForm(productId: number, body: Record<string, unknown>) {
   const db = getDb();
   if (!db) {
     return false;
   }
 
-  const product = getProductContext(productId);
+  const product = await getProductContext(productId);
   if (!product) {
     return false;
   }
@@ -376,10 +377,10 @@ export function persistNetCostDefaultsFromForm(productId: number, body: Record<s
   const hepsiburadaActive = hepsiburadaInput?.active !== false;
   const websiteActive = websiteInput?.active !== false;
 
-  db.transaction(() => {
+  await db.transaction(async () => {
     if (trendyolActive && trendyolInput) {
-      upsertSetting(db, productId, 1, {
-        shippingCompanyId: getCarrierIdByName("Trendyol", String(trendyolInput.carrierName ?? "")),
+      await upsertSetting(db, productId, 1, {
+        shippingCompanyId: await getCarrierIdByName("Trendyol", String(trendyolInput.carrierName ?? "")),
         salePrice: round2(Number(trendyolInput.salePrice ?? trendyolInput.sale_price ?? product.sale_price ?? 0)),
         manualShippingCost: null,
         paymentGatewayRuleId: null,
@@ -389,8 +390,8 @@ export function persistNetCostDefaultsFromForm(productId: number, body: Record<s
     }
 
     if (hepsiburadaActive && hepsiburadaInput) {
-      upsertSetting(db, productId, 2, {
-        shippingCompanyId: getCarrierIdByName("Hepsiburada", String(hepsiburadaInput.carrierName ?? "")),
+      await upsertSetting(db, productId, 2, {
+        shippingCompanyId: await getCarrierIdByName("Hepsiburada", String(hepsiburadaInput.carrierName ?? "")),
         salePrice: round2(Number(hepsiburadaInput.salePrice ?? hepsiburadaInput.sale_price ?? product.sale_price ?? 0)),
         manualShippingCost: null,
         paymentGatewayRuleId: null,
@@ -401,9 +402,9 @@ export function persistNetCostDefaultsFromForm(productId: number, body: Record<s
 
     if (websiteActive && websiteInput) {
       const trafficSettings = websiteInput.trafficSettings as { manualCpa?: number; mode?: string } | undefined;
-      const ownWebsiteGateway = getOwnWebsiteGatewayRule();
+      const ownWebsiteGateway = await getOwnWebsiteGatewayRule();
       const fallbackGatewayRuleId = Number(websiteInput.gatewayRuleId ?? websiteInput.payment_gateway_rule_id ?? null) || null;
-      upsertSetting(db, productId, 3, {
+      await upsertSetting(db, productId, 3, {
         shippingCompanyId: null,
         salePrice: round2(Number(websiteInput.salePrice ?? websiteInput.sale_price ?? product.sale_price ?? 0)),
         manualShippingCost: round2(Number(websiteInput.shippingCost ?? websiteInput.manualShippingCost ?? websiteInput.manual_shipping_cost ?? ownWebsiteGateway?.manual_shipping_cost ?? 0)),
@@ -412,7 +413,7 @@ export function persistNetCostDefaultsFromForm(productId: number, body: Record<s
         trafficCpa: round2(Number(trafficSettings?.manualCpa ?? websiteInput.cpa ?? websiteInput.manualCpa ?? 0)),
       });
     }
-  })();
+  });
 
   return true;
 }

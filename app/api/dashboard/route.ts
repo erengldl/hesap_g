@@ -36,9 +36,9 @@ function normalizeQualityWarnings(rawWarnings: string[]) {
   return warnings;
 }
 
-function buildDashboardDataSignals(): { dataMode: DashboardDataMode; dataQuality: DashboardDataQuality } {
+async function buildDashboardDataSignals(): Promise<{ dataMode: DashboardDataMode; dataQuality: DashboardDataQuality }> {
   const db = getDb();
-  const products = getProducts();
+  const products = await getProducts();
   const hasProducts = products.length > 0;
   const hasDemoProducts = products.some((product) => isDemoSku(product.sku));
   const hasLiveProducts = products.some((product) => !isDemoSku(product.sku));
@@ -55,7 +55,7 @@ function buildDashboardDataSignals(): { dataMode: DashboardDataMode; dataQuality
     };
   }
 
-  const orderSignalRow = db.prepare(`
+  const orderSignalRow = await db.prepare(`
     SELECT
       SUM(
         CASE
@@ -79,28 +79,28 @@ function buildDashboardDataSignals(): { dataMode: DashboardDataMode; dataQuality
     WHERE o.status = 'completed'
   `).get() as { demo_orders: number | null; live_orders: number | null } | undefined;
 
-  const latestSyncRow = db.prepare(`
+  const latestSyncRow = await db.prepare(`
     SELECT created_at
     FROM data_center_sync_runs
     ORDER BY created_at DESC, sync_id DESC
     LIMIT 1
   `).get() as { created_at: string | null } | undefined;
 
-  const latestOrderSyncRow = db.prepare(`
+  const latestOrderSyncRow = await db.prepare(`
     SELECT COALESCE(last_synced_at, updated_at, created_at) AS sync_at
     FROM orders
     ORDER BY COALESCE(last_synced_at, updated_at, created_at) DESC, order_id DESC
     LIMIT 1
   `).get() as { sync_at: string | null } | undefined;
 
-  const warningRows = db.prepare(`
+  const warningRows = await db.prepare(`
     SELECT warning_notes
     FROM cost_results
     WHERE warning_notes IS NOT NULL AND TRIM(warning_notes) <> ''
     LIMIT 100
   `).all() as Array<{ warning_notes: string }>;
 
-  const missingCategoryRow = db.prepare(`
+  const missingCategoryRow = await db.prepare(`
     SELECT COUNT(*) AS missing_count
     FROM products
     WHERE category_id IS NULL OR TRIM(COALESCE(category_path, '')) = ''
@@ -187,36 +187,36 @@ function buildFallbackAggregate() {
 
 export async function GET() {
   try {
-    const aggregate = getCachedValue("dashboard:aggregate", 15_000, () => {
+    const aggregate = await getCachedValue("dashboard:aggregate", 15_000, async () => {
       try {
-        return buildAggregateDashboard() ?? buildFallbackAggregate();
+        return await buildAggregateDashboard() ?? buildFallbackAggregate();
       } catch (error) {
         console.error("Dashboard aggregate fallback:", error);
         return buildFallbackAggregate();
       }
     });
 
-    const snapshot = getCachedValue("dashboard:snapshot", 15_000, () => {
+    const snapshot = await getCachedValue("dashboard:snapshot", 15_000, async () => {
       try {
-        return buildDashboardSnapshot();
+        return await buildDashboardSnapshot();
       } catch (error) {
         console.error("Dashboard snapshot fallback:", error);
         return null;
       }
     });
 
-    const adAnalysis = getCachedValue("dashboard:ad-analysis", 15_000, () => {
+    const adAnalysis = await getCachedValue("dashboard:ad-analysis", 15_000, async () => {
       try {
-        return buildAdAnalysis();
+        return await buildAdAnalysis();
       } catch (error) {
         console.error("Dashboard ad-analysis fallback:", error);
         return null;
       }
     });
 
-    const dataSignals = getCachedValue("dashboard:data-signals", 15_000, () => {
+    const dataSignals = await getCachedValue("dashboard:data-signals", 15_000, async () => {
       try {
-        return buildDashboardDataSignals();
+        return await buildDashboardDataSignals();
       } catch (error) {
         console.error("Dashboard data signals fallback:", error);
         return {

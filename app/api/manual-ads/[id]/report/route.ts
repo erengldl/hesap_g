@@ -17,12 +17,12 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     const { id } = await params;
-    const detail = getManualAdCampaignDetail(user.userId, id);
+    const detail = await getManualAdCampaignDetail(user.userId, id);
     if (!detail) {
       return NextResponse.json({ success: false, error: "Kampanya bulunamadı." }, { status: 404 });
     }
 
-    const report = detail.latestReport ?? getLatestManualAdReport(id);
+    const report = detail.latestReport ?? await getLatestManualAdReport(id);
     if (!report) {
       return NextResponse.json({ success: false, error: "Rapor bulunamadı." }, { status: 404 });
     }

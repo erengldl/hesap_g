@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const db = getDb();
     if (!db) return serverError();
 
-    const row = db.prepare("SELECT password_hash FROM users WHERE user_id = ?").get(user.userId) as {
+    const row = await db.prepare("SELECT password_hash FROM users WHERE user_id = ?").get(user.userId) as {
       password_hash: string;
     } | undefined;
 
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     }
 
     const newHash = await hashPassword(newPassword);
-    db.prepare("UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE user_id = ?").run(
+    await db.prepare("UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?").run(
       newHash,
       user.userId
     );

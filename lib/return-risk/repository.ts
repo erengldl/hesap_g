@@ -91,9 +91,9 @@ function toTrainingRow(row: ReturnRiskOrderRow): ReturnRiskTrainingRow | null {
   };
 }
 
-export function listReturnRiskTrainingRows(limit = 10000): ReturnRiskTrainingRow[] {
+export async function listReturnRiskTrainingRows(limit = 10000): Promise<ReturnRiskTrainingRow[]> {
   try {
-    const rows = query<ReturnRiskOrderRow>(
+    const rows = await query<ReturnRiskOrderRow>(
       `
         SELECT
           o.order_id,
@@ -193,7 +193,7 @@ function buildDataset(rows: ReturnRiskTrainingRow[]): ReturnRiskDataset {
   };
 }
 
-function getCachedDataset(limit = 10000) {
+async function getCachedDataset(limit = 10000) {
   const normalizedLimit = Math.max(1, Math.min(50000, Math.round(limit)));
   const now = Date.now();
   const cached = datasetCache.get(normalizedLimit);
@@ -201,7 +201,7 @@ function getCachedDataset(limit = 10000) {
     return cached.dataset;
   }
 
-  const rows = listReturnRiskTrainingRows(normalizedLimit);
+  const rows = await listReturnRiskTrainingRows(normalizedLimit);
   const dataset = buildDataset(rows);
   datasetCache.set(normalizedLimit, {
     dataset,
@@ -222,10 +222,10 @@ function makeSlice(rows: ReturnRiskTrainingRow[]) {
   };
 }
 
-export function buildReturnRiskContextForProduct(params: {
+export async function buildReturnRiskContextForProduct(params: {
   productId: string | number;
   channel: SalesChannel;
-}): ReturnRiskContext {
+}): Promise<ReturnRiskContext> {
   const productId = String(params.productId);
   const cacheKey = `${productId}:${params.channel}`;
   const now = Date.now();
@@ -234,7 +234,7 @@ export function buildReturnRiskContextForProduct(params: {
     return cached.context;
   }
 
-  const dataset = getCachedDataset();
+  const dataset = await getCachedDataset();
   const productRows = dataset.byProduct.get(productId) ?? [];
   const categoryId = dataset.productMeta.get(productId)?.categoryId;
   const categoryRows = categoryId ? dataset.byCategory.get(categoryId) ?? [] : [];

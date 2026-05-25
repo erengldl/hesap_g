@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   if (session instanceof NextResponse) return session;
   try {
     const url = new URL(request.url);
-    const dbProducts = getProducts();
+    const dbProducts = await getProducts();
     const limit = Number(url.searchParams.get("limit") ?? 0);
     const query = (url.searchParams.get("q") ?? "").trim().toLocaleLowerCase("tr");
     const products = dbProducts.length > 0 ? dbProducts : DEMO_PRODUCTS;
@@ -64,8 +64,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: validationErrors.join(" ") }, { status: 400 });
     }
 
-    const productId = saveProductRecord(payload);
-    const results = recalculateCostResultsForProduct(productId);
+    const productId = await saveProductRecord(payload);
+    const results = await recalculateCostResultsForProduct(productId);
 
     return NextResponse.json({
       success: true,

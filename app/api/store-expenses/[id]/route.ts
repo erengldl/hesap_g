@@ -46,7 +46,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ success: false, error: "Database connection unavailable" }, { status: 500 });
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE store_expenses
       SET name = ?, monthly_amount = ?, note = ?, status = ?, updated_at = CURRENT_TIMESTAMP
       WHERE expense_id = ?
@@ -76,7 +76,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
       return NextResponse.json({ success: false, error: "Database connection unavailable" }, { status: 500 });
     }
 
-    db.prepare("DELETE FROM store_expenses WHERE expense_id = ?").run(expenseId);
+    await db.prepare("DELETE FROM store_expenses WHERE expense_id = ?").run(expenseId);
     recalculateAllCostResults();
 
     return NextResponse.json({ success: true, expenseId });

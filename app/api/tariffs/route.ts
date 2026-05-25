@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
   try {
     if (type === 'carriers') {
-      const carriers = getCarriersByMarketplace(marketplace);
+      const carriers = await getCarriersByMarketplace(marketplace);
       return NextResponse.json({
         success: true,
         carriers: carriers.map(c => ({ id: c.shipping_company_id, name: c.name })),
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     }
 
     if (type === 'cheapest_carrier' && desi) {
-      const result = getCheapestCarrierForDesi(marketplace, parseFloat(desi));
+      const result = await getCheapestCarrierForDesi(marketplace, parseFloat(desi));
       return NextResponse.json({
         success: true,
         cheapest: result,
@@ -42,12 +42,12 @@ export async function GET(request: Request) {
 
     if (type === 'commission') {
       if (categoryId) {
-        const commission = getCommissionForCategory(marketplace, parseInt(categoryId));
+        const commission = await getCommissionForCategory(marketplace, parseInt(categoryId));
         return NextResponse.json({ success: true, commission });
       }
 
       if (queryText) {
-        const tariffs = getCommissionTariffsByMarketplace(marketplace) as Array<{
+        const tariffs = (await getCommissionTariffsByMarketplace(marketplace)) as Array<{
           category_name?: string | null;
           category_path?: string | null;
           raw_category_name?: string | null;
@@ -60,11 +60,11 @@ export async function GET(request: Request) {
         return NextResponse.json({ success: true, tariffs: filteredTariffs, mode: 'detail' });
       }
 
-      const summary = getCommissionTariffSummaryByMarketplace(marketplace);
-      const tariffs = getCommissionTariffsByMarketplace(marketplace);
+      const summary = await getCommissionTariffSummaryByMarketplace(marketplace);
+      const tariffs = await getCommissionTariffsByMarketplace(marketplace);
       return NextResponse.json({ success: true, summary, tariffs, mode: 'summary' });
     } else if (type === 'shipping') {
-      const matrix = getShippingTariffMatrix(marketplace);
+      const matrix = await getShippingTariffMatrix(marketplace);
       return NextResponse.json({ success: true, matrix });
     }
 

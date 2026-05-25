@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const saved = upsertChannelSeoContents(validation.value);
+    const saved = await upsertChannelSeoContents(validation.value);
     return NextResponse.json({
       ok: true,
       data: {

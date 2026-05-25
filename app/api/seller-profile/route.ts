@@ -21,8 +21,8 @@ function getDefaultProfile() {
   };
 }
 
-function getProfileWithUnitCost() {
-  const profile = getOne<{
+async function getProfileWithUnitCost() {
+  const profile = await getOne<{
     profile_id: number;
     company_type: string;
     tax_bracket: number | null;
@@ -38,7 +38,7 @@ function getProfileWithUnitCost() {
     LIMIT 1
   `) ?? getDefaultProfile();
 
-  const totalFixedCost = getStoreExpenseMonthlyTotal(profile.profile_id ?? 1);
+  const totalFixedCost = await getStoreExpenseMonthlyTotal(profile.profile_id ?? 1);
   const expectedOrders = Math.max(1, Number(profile.expected_monthly_order_count ?? 1));
 
   return {
@@ -54,7 +54,7 @@ export async function GET() {
   try {
     return NextResponse.json({
       success: true,
-      profile: getProfileWithUnitCost(),
+      profile: await getProfileWithUnitCost(),
     });
   } catch (error) {
     console.error("Seller profile GET error:", error);
@@ -78,7 +78,7 @@ export async function PUT(request: Request) {
       expected_monthly_order_count: Number(body.expected_monthly_order_count ?? 1),
     };
 
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO seller_profiles (
         profile_id,
         company_type,
@@ -95,11 +95,11 @@ export async function PUT(request: Request) {
       payload.expected_monthly_order_count
     );
 
-    recalculateCostResultsForProfile(1);
+    await recalculateCostResultsForProfile(1);
 
     return NextResponse.json({
       success: true,
-      profile: getProfileWithUnitCost(),
+      profile: await getProfileWithUnitCost(),
     });
   } catch (error) {
     console.error("Seller profile PUT error:", error);

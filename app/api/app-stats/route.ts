@@ -19,9 +19,9 @@ export async function GET() {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
   try {
-    const payload = getCachedValue('app-stats:default', 15_000, () => {
-      const counts = getDatabaseCounts();
-      const productStats = query<{
+    const payload = await getCachedValue('app-stats:default', 15_000, async () => {
+      const counts = await getDatabaseCounts();
+      const productStats = (await query<{
         product_count: number;
         active_product_count: number;
         average_price: number;
@@ -39,25 +39,25 @@ export async function GET() {
           LEFT JOIN product_marketplace_settings pms ON p.product_id = pms.product_id
           GROUP BY p.product_id
         ) per_product
-      `)[0] ?? { product_count: 0, active_product_count: 0, average_price: 0 };
+      `))[0] ?? { product_count: 0, active_product_count: 0, average_price: 0 };
 
-      const activeStoreExpenseTotal = getStoreExpenseMonthlyTotal(1);
-      const revenueTotals = query<RevenueTotalsRow>(`
+      const activeStoreExpenseTotal = await getStoreExpenseMonthlyTotal(1);
+      const revenueTotals = (await query<RevenueTotalsRow>(`
         SELECT
           COALESCE(SUM(oi.line_total), 0) AS total_revenue,
           COUNT(DISTINCT o.order_id) AS total_orders
         FROM orders o
         JOIN order_items oi ON o.order_id = oi.order_id
         WHERE o.status = 'completed'
-      `)[0] ?? { total_revenue: 0, total_orders: 0 };
-      const stockAlertCount = query<StockAlertCountRow>(`
+      `))[0] ?? { total_revenue: 0, total_orders: 0 };
+      const stockAlertCount = (await query<StockAlertCountRow>(`
         SELECT COUNT(*) AS stock_alert_count
         FROM inventory_daily id
         WHERE id.inventory_date = (SELECT MAX(inventory_date) FROM inventory_daily)
           AND id.stock_qty < 20
-      `)[0]?.stock_alert_count ?? 0;
+      `))[0]?.stock_alert_count ?? 0;
 
-      const marginRows = query<{ product_id: number; max_margin: number }>(`
+      const marginRows = await query<{ product_id: number; max_margin: number }>(`
         SELECT product_id, MAX(profit_margin_percent) AS max_margin
         FROM cost_results
         GROUP BY product_id

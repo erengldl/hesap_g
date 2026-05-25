@@ -19,22 +19,22 @@ type MarketplaceRow = {
   marketplace_id: number;
 };
 
-function getCategoryId(db: Database, path: string, fallbackId: number) {
-  const row = db
+async function getCategoryId(db: Database, path: string, fallbackId: number) {
+  const row = await db
     .prepare("SELECT category_id FROM categories WHERE path = ? LIMIT 1")
     .get(path) as { category_id: number } | undefined;
   return row?.category_id ?? fallbackId;
 }
 
-function getMarketplaceId(db: Database, slug: string, fallbackId: number) {
-  const row = db
+async function getMarketplaceId(db: Database, slug: string, fallbackId: number) {
+  const row = await db
     .prepare("SELECT marketplace_id FROM marketplaces WHERE slug = ? LIMIT 1")
     .get(slug) as MarketplaceRow | undefined;
   return row?.marketplace_id ?? fallbackId;
 }
 
-function getOrCreateGatewayId(db: Database, marketplaceId: number) {
-  const existing = db
+async function getOrCreateGatewayId(db: Database, marketplaceId: number) {
+  const existing = await db
     .prepare(
       "SELECT id FROM payment_gateway_rules WHERE marketplace_id = ? AND gateway_name = ? LIMIT 1"
     )
@@ -44,7 +44,7 @@ function getOrCreateGatewayId(db: Database, marketplaceId: number) {
     return existing.id;
   }
 
-  const result = db
+  const result = await db
     .prepare(
       "INSERT INTO payment_gateway_rules (seller_profile_id, marketplace_id, gateway_name, fee_rate_percent, fixed_fee_per_order, vat_rate_percent, fee_values_include_vat, is_active) VALUES (1, ?, 'Kullanici Tanimli Odeme Altyapisi', 3.49, 0.25, 20, 1, 1)"
     )
@@ -68,40 +68,40 @@ export async function ensureDemoData(): Promise<SeedDemoResponse> {
   }
 
   try {
-    const ownWebsiteId = getMarketplaceId(db, "own_website", 3);
-    getOrCreateGatewayId(db, ownWebsiteId);
+    const ownWebsiteId = await getMarketplaceId(db, "own_website", 3);
+    await getOrCreateGatewayId(db, ownWebsiteId);
 
     const ensureSellerProfile = db.prepare(
       "INSERT INTO seller_profiles (profile_id, company_type, monthly_employee_cost, monthly_warehouse_cost, monthly_invoice_accounting_cost, monthly_other_expenses, expected_monthly_order_count) VALUES (1, 'Sahis Sirketi', 0, 3000, 1000, 1000, 500) ON CONFLICT(profile_id) DO NOTHING"
     );
 
-    db.transaction(() => {
-      const tableExists = (name: string) =>
-        db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name);
+    await db.transaction(async () => {
+      const tableExists = async (name: string) =>
+        await db.prepare("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='public' AND tablename=?").get(name);
 
-      if (tableExists("price_optimization_runs")) db.prepare("DELETE FROM price_optimization_runs").run();
-      if (tableExists("order_items")) db.prepare("DELETE FROM order_items").run();
-      if (tableExists("orders")) db.prepare("DELETE FROM orders").run();
-      if (tableExists("inventory_daily")) db.prepare("DELETE FROM inventory_daily").run();
-      if (tableExists("demand_forecasts")) db.prepare("DELETE FROM demand_forecasts").run();
-      if (tableExists("seo_generations")) db.prepare("DELETE FROM seo_generations").run();
-      db.prepare("DELETE FROM cost_results").run();
-      db.prepare("DELETE FROM product_marketplace_settings").run();
-      db.prepare("DELETE FROM products").run();
-    })();
+      if (await tableExists("price_optimization_runs")) await db.prepare("DELETE FROM price_optimization_runs").run();
+      if (await tableExists("order_items")) await db.prepare("DELETE FROM order_items").run();
+      if (await tableExists("orders")) await db.prepare("DELETE FROM orders").run();
+      if (await tableExists("inventory_daily")) await db.prepare("DELETE FROM inventory_daily").run();
+      if (await tableExists("demand_forecasts")) await db.prepare("DELETE FROM demand_forecasts").run();
+      if (await tableExists("seo_generations")) await db.prepare("DELETE FROM seo_generations").run();
+      await db.prepare("DELETE FROM cost_results").run();
+      await db.prepare("DELETE FROM product_marketplace_settings").run();
+      await db.prepare("DELETE FROM products").run();
+    });
 
     const findProduct = db.prepare("SELECT product_id FROM products WHERE name = ? LIMIT 1");
 
     let productsInserted = 0;
     let productsSkipped = 0;
 
-    ensureSellerProfile.run();
+    await ensureSellerProfile.run();
 
     for (const product of DEMO_PRODUCT_SEEDS) {
-      const categoryId = getCategoryId(db, product.categoryPath, product.fallbackCategoryId);
-      const existing = findProduct.get(product.name) as ProductRow | undefined;
+      const categoryId = await getCategoryId(db, product.categoryPath, product.fallbackCategoryId);
+      const existing = await findProduct.get(product.name) as ProductRow | undefined;
 
-      saveProductRecord(
+      await saveProductRecord(
         {
           name: product.name,
           sku: product.sku,
@@ -125,7 +125,7 @@ export async function ensureDemoData(): Promise<SeedDemoResponse> {
       }
     }
 
-    const salesSummary = generateDemoSalesHistory(db, { days: 90, resetSalesTables: false });
+    const salesSummary = await generateDemoSalesHistory(db, { days: 90, resetSalesTables: false });
     const successSummary =
       `Eski urunler silindi, ${productsInserted} yeni demo urun ve ` +
       `son 90 gune ait ${salesSummary.ordersInserted} demo siparis eklendi.`;

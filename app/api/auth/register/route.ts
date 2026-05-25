@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const existing = db.prepare("SELECT user_id FROM users WHERE email = ?").get(email) as { user_id: number } | undefined;
+    const existing = await db.prepare("SELECT user_id FROM users WHERE email = ?").get(email) as { user_id: number } | undefined;
     if (existing) {
       return NextResponse.json(
         { success: false, error: "Bu e-posta adresi zaten kayitli." },
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 
     const passwordHash = await hashPassword(password);
 
-    const result = db.prepare(
+    const result = await db.prepare(
       "INSERT INTO users (email, password_hash, name, plan) VALUES (?, ?, ?, ?)"
     ).run(email, passwordHash, name, "Premium Plan");
 

@@ -5,8 +5,8 @@ import { trainReturnRiskLogisticModel } from "./model";
 import { saveReturnRiskModelArtifact } from "./model-registry";
 import type { ReturnRiskTrainingResult } from "./types";
 
-export function trainReturnRiskModelFromDataCenter(): ReturnRiskTrainingResult {
-  const rows = listReturnRiskTrainingRows();
+export async function trainReturnRiskModelFromDataCenter(): Promise<ReturnRiskTrainingResult> {
+  const rows = await listReturnRiskTrainingRows();
   const positiveRows = rows.filter((row) => row.isReturnedOrLost).length;
   const trained = trainReturnRiskLogisticModel(rows);
 

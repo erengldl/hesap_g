@@ -28,8 +28,8 @@ function getDefaultSettings() {
   };
 }
 
-function getSettings() {
-  const rule = getOwnWebsiteGatewayRule();
+async function getSettings() {
+  const rule = await getOwnWebsiteGatewayRule();
   if (!rule) {
     return {
       payment_gateway_rule_id: null,
@@ -59,7 +59,7 @@ export async function GET() {
   try {
     return NextResponse.json({
       success: true,
-      settings: getSettings(),
+      settings: await getSettings(),
     });
   } catch (error) {
     console.error("Website settings GET error:", error);
@@ -72,7 +72,7 @@ export async function PUT(request: Request) {
   if (session instanceof NextResponse) return session;
   try {
     const body = (await request.json()) as Partial<WebsiteSettingsPayload>;
-    const db = getDb();
+    const db = await getDb();
     if (!db) {
       return NextResponse.json({ success: false, error: "Database connection unavailable" }, { status: 500 });
     }
@@ -87,9 +87,9 @@ export async function PUT(request: Request) {
       avg_conversion_rate: Number(body.avg_conversion_rate ?? 2.6),
     };
 
-    const existing = getOwnWebsiteGatewayRule();
+    const existing = await getOwnWebsiteGatewayRule();
     if (existing) {
-      db.prepare(`
+      await db.prepare(`
         UPDATE payment_gateway_rules
         SET gateway_name = ?,
             fee_rate_percent = ?,
@@ -113,7 +113,7 @@ export async function PUT(request: Request) {
         existing.id
       );
     } else {
-      db.prepare(`
+      await db.prepare(`
         INSERT INTO payment_gateway_rules (
           seller_profile_id,
           marketplace_id,
@@ -138,11 +138,11 @@ export async function PUT(request: Request) {
       );
     }
 
-    recalculateAllCostResults();
+    await recalculateAllCostResults();
 
     return NextResponse.json({
       success: true,
-      settings: getSettings(),
+      settings: await getSettings(),
     });
   } catch (error) {
     console.error("Website settings PUT error:", error);

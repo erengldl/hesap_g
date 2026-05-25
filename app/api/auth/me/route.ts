@@ -20,7 +20,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, user });
     }
 
-    const profile = db.prepare(`
+    const profile = await db.prepare(`
       SELECT company, phone
       FROM users
       WHERE user_id = ?

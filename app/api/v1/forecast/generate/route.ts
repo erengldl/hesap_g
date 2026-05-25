@@ -39,19 +39,19 @@ function toMaybeNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function buildSafeBootstrap(input: {
+async function buildSafeBootstrap(input: {
   productId?: number;
   marketplaceId?: number;
   horizonDays: ForecastHorizon;
 }) {
   try {
     return {
-      ...buildDemandForecastBootstrap(input.productId, input.marketplaceId, input.horizonDays),
+      ...await buildDemandForecastBootstrap(input.productId, input.marketplaceId, input.horizonDays),
       success: true as const,
     };
   } catch (error) {
     console.error("Forecast bootstrap fallback error:", error);
-    const products = getProducts().slice(0, 100).map((product) => ({
+    const products = (await getProducts()).slice(0, 100).map((product) => ({
       ...product,
       current_stock: Number((product as { stock?: number }).stock ?? 0),
       current_sales_volume: 0,
@@ -60,7 +60,7 @@ function buildSafeBootstrap(input: {
       confidence_score: "Low",
       stock_status: "healthy" as const,
     }));
-    const marketplaces = getMarketplaces().slice(0, 20).map((marketplace) => ({
+    const marketplaces = (await getMarketplaces()).slice(0, 20).map((marketplace) => ({
       ...marketplace,
       current_price: 0,
       current_unit_cost: 0,
@@ -160,7 +160,7 @@ export async function GET(request: Request) {
   if (session instanceof NextResponse) return session;
   try {
     const url = new URL(request.url);
-    const bootstrap = buildSafeBootstrap({
+    const bootstrap = await buildSafeBootstrap({
       productId: parseProductId(url),
       marketplaceId: parseMarketplaceId(url),
       horizonDays: parseHorizonDays(url.searchParams.get("horizonDays")) ?? 14,
@@ -169,7 +169,7 @@ export async function GET(request: Request) {
     return NextResponse.json(bootstrap);
   } catch (error) {
     console.error("Forecast bootstrap error:", error);
-    return NextResponse.json(buildSafeBootstrap({ horizonDays: 14 }), { status: 200 });
+    return NextResponse.json(await buildSafeBootstrap({ horizonDays: 14 }), { status: 200 });
   }
 }
 
@@ -187,12 +187,12 @@ export async function POST(request: Request) {
       persist: body.persist !== false,
     };
 
-    const result = generateDemandForecast(input);
+    const result = await generateDemandForecast(input);
 
     return NextResponse.json(result);
   } catch (error) {
     console.error("Forecast generation error:", error);
-    const bootstrap = buildSafeBootstrap({ horizonDays: 14 });
+    const bootstrap = await buildSafeBootstrap({ horizonDays: 14 });
     return NextResponse.json({
       success: true,
       result: bootstrap.result,

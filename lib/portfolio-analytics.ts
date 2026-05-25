@@ -141,32 +141,32 @@ function toProductModel(row: ProductRow, salePrice: number, activeChannels: stri
   };
 }
 
-function getMarketplaceById(marketplaceId: number) {
-  return getOne<MarketplaceRow>("SELECT marketplace_id, name, slug FROM marketplaces WHERE marketplace_id = ? LIMIT 1", [marketplaceId]);
+async function getMarketplaceById(marketplaceId: number) {
+  return await getOne<MarketplaceRow>("SELECT marketplace_id, name, slug FROM marketplaces WHERE marketplace_id = ? LIMIT 1", [marketplaceId]);
 }
 
-function getMarketplaceShippingCompanyId(marketplaceId: number) {
-  const row = getOne<{ shipping_company_id: number }>(
+async function getMarketplaceShippingCompanyId(marketplaceId: number) {
+  const row = await getOne<{ shipping_company_id: number }>(
     "SELECT shipping_company_id FROM marketplace_shipping_options WHERE marketplace_id = ? ORDER BY shipping_company_id ASC LIMIT 1",
     [marketplaceId]
   );
   return row?.shipping_company_id ?? null;
 }
 
-function getShippingCompanyName(shippingCompanyId: number | null) {
+async function getShippingCompanyName(shippingCompanyId: number | null) {
   if (!shippingCompanyId) return null;
-  const row = getOne<ShippingCompanyRow>(
+  const row = await getOne<ShippingCompanyRow>(
     "SELECT shipping_company_id, name FROM shipping_companies WHERE shipping_company_id = ? LIMIT 1",
     [shippingCompanyId]
   );
   return row?.name ?? null;
 }
 
-function getProductContext(productId?: number): ProductContext | null {
-  const resolvedProductId = productId ?? getDefaultProductId();
+async function getProductContext(productId?: number): Promise<ProductContext | null> {
+  const resolvedProductId = productId ?? await getDefaultProductId();
   if (!resolvedProductId) return null;
 
-  const product = getOne<ProductRow>(`
+  const product = await getOne<ProductRow>(`
     SELECT
       p.product_id AS id,
       p.name,
@@ -186,7 +186,7 @@ function getProductContext(productId?: number): ProductContext | null {
 
   if (!product) return null;
 
-  const rawSettings = query<ProductSettingRow>(`
+  const rawSettings = await query<ProductSettingRow>(`
     SELECT
       ms.setting_id,
       ms.product_id,
@@ -204,7 +204,7 @@ function getProductContext(productId?: number): ProductContext | null {
     ORDER BY ms.marketplace_id ASC
   `, [resolvedProductId]);
 
-  const sellerProfile = getOne<SellerProfileRow>(`
+  const sellerProfile = await getOne<SellerProfileRow>(`
     SELECT
       profile_id,
       company_type,
@@ -218,7 +218,7 @@ function getProductContext(productId?: number): ProductContext | null {
     LIMIT 1
   `, [product.profile_id ?? 1]) ?? DEFAULT_SELLER_PROFILE;
 
-  const websiteGateway = getOwnWebsiteGatewayRule() ?? DEFAULT_WEBSITE_GATEWAY;
+  const websiteGateway = await getOwnWebsiteGatewayRule() ?? DEFAULT_WEBSITE_GATEWAY;
 
   let settings = rawSettings;
   if (settings.length === 0) {
@@ -228,7 +228,7 @@ function getProductContext(productId?: number): ProductContext | null {
         setting_id: 0,
         product_id: product.id,
         marketplace_id: 1,
-        shipping_company_id: getMarketplaceShippingCompanyId(1),
+        shipping_company_id: await getMarketplaceShippingCompanyId(1),
         sale_price: fallbackSalePrice,
         manual_shipping_cost: null,
         payment_gateway_rule_id: null,
@@ -240,7 +240,7 @@ function getProductContext(productId?: number): ProductContext | null {
         setting_id: 0,
         product_id: product.id,
         marketplace_id: 2,
-        shipping_company_id: getMarketplaceShippingCompanyId(2),
+        shipping_company_id: await getMarketplaceShippingCompanyId(2),
         sale_price: fallbackSalePrice,
         manual_shipping_cost: null,
         payment_gateway_rule_id: null,
@@ -278,29 +278,29 @@ function getProductContext(productId?: number): ProductContext | null {
   };
 }
 
-function resolveRecentMonthlyOrders(productId: number, fallbackOrders: number) {
-  const historyOrders = Math.round(getProductSalesVelocity(productId, 30) * 30);
+async function resolveRecentMonthlyOrders(productId: number, fallbackOrders: number) {
+  const historyOrders = Math.round((await getProductSalesVelocity(productId, 30)) * 30);
   return Math.max(1, historyOrders || fallbackOrders);
 }
 
-function getSellerFixedCostPerUnit(productId: number, profileId: number, sellerProfile: SellerProfileRow) {
-  const totalFixedCost = getStoreExpenseMonthlyTotal(profileId);
-  const orders = resolveRecentMonthlyOrders(productId, Number(sellerProfile.expected_monthly_order_count ?? 1));
+async function getSellerFixedCostPerUnit(productId: number, profileId: number, sellerProfile: SellerProfileRow) {
+  const totalFixedCost = await getStoreExpenseMonthlyTotal(profileId);
+  const orders = await resolveRecentMonthlyOrders(productId, Number(sellerProfile.expected_monthly_order_count ?? 1));
   return round2(totalFixedCost / orders);
 }
 
-function getDefaultShippingCost(product: ProductRow, context: ProductContext, setting: ProductSettingRow) {
+async function getDefaultShippingCost(product: ProductRow, context: ProductContext, setting: ProductSettingRow) {
   const marketplaceSlug = setting.marketplace_slug ?? "";
   if (marketplaceSlug === "own_website") {
     return round2(Number(setting.manual_shipping_cost ?? context.websiteGateway?.manual_shipping_cost ?? DEFAULT_WEBSITE_GATEWAY.manual_shipping_cost));
   }
 
-  const shippingCompanyId = setting.shipping_company_id ?? getMarketplaceShippingCompanyId(setting.marketplace_id);
+  const shippingCompanyId = setting.shipping_company_id ?? await getMarketplaceShippingCompanyId(setting.marketplace_id);
   if (!shippingCompanyId) {
     return round2(Number(setting.manual_shipping_cost ?? context.websiteGateway?.manual_shipping_cost ?? DEFAULT_WEBSITE_GATEWAY.manual_shipping_cost));
   }
 
-  const shippingRate = getOne<{ price: number }>(
+  const shippingRate = await getOne<{ price: number }>(
     `SELECT price
      FROM shipping_rate_rules
      WHERE marketplace_id = ? AND shipping_company_id = ? AND ? BETWEEN desi_min AND desi_max
@@ -316,8 +316,8 @@ function getDefaultShippingCost(product: ProductRow, context: ProductContext, se
   return round2(Number(setting.manual_shipping_cost ?? context.websiteGateway?.manual_shipping_cost ?? DEFAULT_WEBSITE_GATEWAY.manual_shipping_cost));
 }
 
-function getPlatformFeeCost(marketplaceId: number, salePrice: number, shippingMode: string | null) {
-  const feeRows = query<PlatformFeeRow>(
+async function getPlatformFeeCost(marketplaceId: number, salePrice: number, shippingMode: string | null) {
+  const feeRows = await query<PlatformFeeRow>(
     `SELECT marketplace_id, fee_type, fee_value_net, fee_value_gross, fee_rate_percent_net, fee_rate_percent_gross, shipment_type, is_active
      FROM platform_fee_rules
      WHERE marketplace_id = ? AND is_active = 1`,
@@ -345,7 +345,7 @@ function getPlatformFeeCost(marketplaceId: number, salePrice: number, shippingMo
   );
 }
 
-function getCommissionCost(marketplaceName: string, categoryId: number | null, salePrice: number) {
+async function getCommissionCost(marketplaceName: string, categoryId: number | null, salePrice: number) {
   if (!categoryId) {
     const fallbackRate = 15;
     return {
@@ -356,7 +356,7 @@ function getCommissionCost(marketplaceName: string, categoryId: number | null, s
     };
   }
 
-  const commission = getCommissionForCategory(marketplaceName, categoryId);
+  const commission = await getCommissionForCategory(marketplaceName, categoryId);
   const rate = Number(commission?.commissionRate ?? 0);
   return {
     rate,
@@ -366,8 +366,8 @@ function getCommissionCost(marketplaceName: string, categoryId: number | null, s
   };
 }
 
-export function calculateChannelCosts(context: ProductContext) {
-  const unitFixedCost = getSellerFixedCostPerUnit(context.product.id, context.product.profile_id ?? 1, context.sellerProfile);
+export async function calculateChannelCosts(context: ProductContext) {
+  const unitFixedCost = await getSellerFixedCostPerUnit(context.product.id, context.product.profile_id ?? 1, context.sellerProfile);
   const results: Array<ChannelCostResult & {
     marketplace_id: number;
     marketplace_slug: string;
@@ -380,16 +380,16 @@ export function calculateChannelCosts(context: ProductContext) {
   }> = [];
 
   for (const setting of context.settings) {
-    const marketplace = getMarketplaceById(setting.marketplace_id);
+    const marketplace = await getMarketplaceById(setting.marketplace_id);
     if (!marketplace) continue;
 
     const salePrice = round2(Number(setting.sale_price ?? 0));
     const marketplaceSlug = setting.marketplace_slug ?? marketplace.slug ?? "";
     const isOwnWebsite = marketplaceSlug === "own_website" || marketplace.name === "Kendi Websitem";
     const shippingMode = setting.shipping_mode ?? (isOwnWebsite ? "manual" : "marketplace_rate");
-    const shippingCompanyId = isOwnWebsite ? null : (setting.shipping_company_id ?? getMarketplaceShippingCompanyId(setting.marketplace_id));
-    const shippingCompanyName = getShippingCompanyName(shippingCompanyId);
-    const shippingCost = getDefaultShippingCost(context.product, context, {
+    const shippingCompanyId = isOwnWebsite ? null : (setting.shipping_company_id ?? await getMarketplaceShippingCompanyId(setting.marketplace_id));
+    const shippingCompanyName = await getShippingCompanyName(shippingCompanyId);
+    const shippingCost = await getDefaultShippingCost(context.product, context, {
       ...setting,
       marketplace_name: marketplace.name,
       marketplace_slug: marketplaceSlug,
@@ -398,11 +398,11 @@ export function calculateChannelCosts(context: ProductContext) {
 
     const commission = isOwnWebsite
       ? { rate: 0, cost: 0, warning: null, matchType: "manual" }
-      : getCommissionCost(marketplace.name, context.product.category_id, salePrice);
+      : await getCommissionCost(marketplace.name, context.product.category_id, salePrice);
 
     const platformFeeCost = isOwnWebsite
       ? 0
-      : getPlatformFeeCost(setting.marketplace_id, salePrice, shippingMode);
+      : await getPlatformFeeCost(setting.marketplace_id, salePrice, shippingMode);
 
     const gatewayRule = isOwnWebsite ? context.websiteGateway : null;
     const baseGatewayCost = salePrice * (Number(gatewayRule?.fee_rate_percent ?? 0) / 100) + Number(gatewayRule?.fixed_fee_per_order ?? 0);
@@ -427,7 +427,7 @@ export function calculateChannelCosts(context: ProductContext) {
 
     const netProfit = round2(salePrice - unitCost);
     const profitMarginPercent = salePrice > 0 ? round2((netProfit / salePrice) * 100) : 0;
-    const vatEstimate = calculateVatEstimate({
+    const vatEstimate = await calculateVatEstimate({
       salePrice,
       productCost: Number(context.product.cost ?? 0),
       packagingCost: Number(context.product.packaging_cost ?? 0),
@@ -483,16 +483,16 @@ export function calculateChannelCosts(context: ProductContext) {
   return results;
 }
 
-export function recalculateCostResultsForProduct(productId?: number) {
-  return recalculateCostResultsForProductFromDatabase(productId);
+export async function recalculateCostResultsForProduct(productId?: number) {
+  return await recalculateCostResultsForProductFromDatabase(productId);
 }
 
-export function recalculateAllCostResults() {
-  return recalculateAllCostResultsFromDatabase();
+export async function recalculateAllCostResults() {
+  return await recalculateAllCostResultsFromDatabase();
 }
 
-export function recalculateCostResultsForProfile(profileId: number) {
-  return recalculateCostResultsForProfileFromDatabase(profileId);
+export async function recalculateCostResultsForProfile(profileId: number) {
+  return await recalculateCostResultsForProfileFromDatabase(profileId);
 }
 
 export function getMostProfitableChannel(results: ChannelCostResult[]) {
@@ -500,13 +500,13 @@ export function getMostProfitableChannel(results: ChannelCostResult[]) {
   return results.reduce((best, current) => (current.net_profit > best.net_profit ? current : best));
 }
 
-export function buildDashboardSnapshot(productId?: number) {
-  const context = getProductContext(productId);
+export async function buildDashboardSnapshot(productId?: number) {
+  const context = await getProductContext(productId);
   if (!context) {
     return null;
   }
 
-  const results = calculateChannelCosts(context);
+  const results = await calculateChannelCosts(context);
   const bestChannel = getMostProfitableChannel(results);
 
   if (!bestChannel) {
@@ -542,14 +542,14 @@ export function buildDashboardSnapshot(productId?: number) {
   };
 }
 
-export type DashboardSnapshot = NonNullable<ReturnType<typeof buildDashboardSnapshot>>;
+export type DashboardSnapshot = NonNullable<Awaited<ReturnType<typeof buildDashboardSnapshot>>>;
 
-export function buildPriceSimulation(productId?: number) {
-  const snapshot = buildDashboardSnapshot(productId);
+export async function buildPriceSimulation(productId?: number) {
+  const snapshot = await buildDashboardSnapshot(productId);
   if (!snapshot) return null;
 
   const { product, bestChannel } = snapshot;
-  const baseDemand = Math.max(10, Math.round(getProductSalesVelocity(product.id, 30) * 30) || Math.round(Number(product.sale_price ?? 0) / 8) || 10);
+  const baseDemand = Math.max(10, Math.round((await getProductSalesVelocity(product.id, 30)) * 30) || Math.round(Number(product.sale_price ?? 0) / 8) || 10);
   const slope = 0.3;
   const offsets = [-100, -50, 0, 50, 100, 150];
 
@@ -597,16 +597,16 @@ export function buildPriceSimulation(productId?: number) {
   };
 }
 
-export function buildDemandForecast(productId?: number) {
-  return buildDemandForecastEngine(productId);
+export async function buildDemandForecast(productId?: number) {
+  return await buildDemandForecastEngine(productId);
 }
 
-export function buildAdAnalysis(productId?: number, snapshot?: DashboardSnapshot | null) {
-  const resolvedSnapshot = snapshot ?? buildDashboardSnapshot(productId);
+export async function buildAdAnalysis(productId?: number, snapshot?: DashboardSnapshot | null) {
+  const resolvedSnapshot = snapshot ?? await buildDashboardSnapshot(productId);
   if (!resolvedSnapshot) return null;
 
-  const websiteGateway = getOwnWebsiteGatewayRule() ?? DEFAULT_WEBSITE_GATEWAY;
-  const sales = Math.max(1, Math.round(getProductSalesVelocity(resolvedSnapshot.product.id, 30) * 30) || 1);
+  const websiteGateway = await getOwnWebsiteGatewayRule() ?? DEFAULT_WEBSITE_GATEWAY;
+  const sales = Math.max(1, Math.round((await getProductSalesVelocity(resolvedSnapshot.product.id, 30)) * 30) || 1);
   const ctr = 2.5;
   const conversionRate = Number(websiteGateway.avg_conversion_rate ?? 2.6);
   const clicks = Math.max(1, Math.round(sales / (conversionRate / 100)));
@@ -694,12 +694,12 @@ export type AggregateDashboard = {
   methodology: string;
 };
 
-export function buildAggregateDashboard(): AggregateDashboard | null {
-  const db = getDb();
+export async function buildAggregateDashboard(): Promise<AggregateDashboard | null> {
+  const db = await getDb();
   if (!db) return null;
 
   // Total metrics
-  const totals = db.prepare(`
+  const totals = await db.prepare(`
     SELECT
       COALESCE(SUM(oi.line_total), 0) as total_revenue,
       COUNT(DISTINCT o.order_id) as total_orders,
@@ -711,7 +711,7 @@ export function buildAggregateDashboard(): AggregateDashboard | null {
   `).get() as { total_revenue: number; total_orders: number; total_products: number };
 
   // Channel breakdown
-  const channelRows = db.prepare(`
+  const channelRows = await db.prepare(`
     SELECT
       m.name as channel_name,
       m.slug as channel_slug,
@@ -734,7 +734,7 @@ export function buildAggregateDashboard(): AggregateDashboard | null {
   }));
 
   // Top 5 products
-  const topProductRows = db.prepare(`
+  const topProductRows = await db.prepare(`
     SELECT
       p.product_id,
       p.name as product_name,
@@ -782,7 +782,7 @@ export function buildAggregateDashboard(): AggregateDashboard | null {
   });
 
   // Last 30 days sales trend
-  const trendRows = db.prepare(`
+  const trendRows = await db.prepare(`
     SELECT
       o.order_date,
       COALESCE(SUM(oi.line_total), 0) as total_revenue,
@@ -801,7 +801,7 @@ export function buildAggregateDashboard(): AggregateDashboard | null {
   }));
 
   // Stock alerts (products with < 20 stock)
-  const stockAlertRows = db.prepare(`
+  const stockAlertRows = await db.prepare(`
     SELECT
       p.product_id,
       p.name as product_name,
@@ -826,7 +826,7 @@ export function buildAggregateDashboard(): AggregateDashboard | null {
   }));
 
   // Estimated total profit (using avg margin)
-  const avgMarginFromProducts = db.prepare(`
+  const avgMarginFromProducts = await db.prepare(`
     SELECT AVG((pms.sale_price - p.cost - p.packaging_cost) / pms.sale_price) * 100 as avg_margin
     FROM products p
     JOIN product_marketplace_settings pms ON p.product_id = pms.product_id
@@ -877,19 +877,19 @@ export type AdAnalysisAggregate = {
   methodology: string;
 };
 
-export function buildAdAnalysisAggregate(): AdAnalysisAggregate | null {
-  const db = getDb();
+export async function buildAdAnalysisAggregate(): Promise<AdAnalysisAggregate | null> {
+  const db = await getDb();
   if (!db) return null;
 
   // Get own_website gateway rule for ad cost estimation
-  const gateway = db.prepare(
+  const gateway = await db.prepare(
     "SELECT avg_ad_cost, avg_conversion_rate FROM payment_gateway_rules WHERE marketplace_id = (SELECT marketplace_id FROM marketplaces WHERE slug='own_website' LIMIT 1) LIMIT 1"
   ).get() as { avg_ad_cost: number; avg_conversion_rate: number } | undefined;
 
   const unitAdCost = gateway?.avg_ad_cost ?? 35;
 
   // Channel performance from actual orders
-  const channelRows = db.prepare(`
+  const channelRows = await db.prepare(`
     SELECT
       m.name as channel_name,
       COALESCE(SUM(oi.line_total), 0) as total_revenue,

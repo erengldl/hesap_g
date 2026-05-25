@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Veritabani baglantisi saglanamadi." }, { status: 500 });
     }
 
-    const user = db.prepare("SELECT user_id, email, password_hash, name, plan, is_active FROM users WHERE email = ?").get(email) as {
+    const user = await db.prepare("SELECT user_id, email, password_hash, name, plan, is_active FROM users WHERE email = ?").get(email) as {
       user_id: number;
       email: string;
       password_hash: string;
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     }
 
     // Update last login
-    db.prepare("UPDATE users SET last_login_at = datetime('now') WHERE user_id = ?").run(user.user_id);
+    await db.prepare("UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE user_id = ?").run(user.user_id);
 
     const authUser: AuthUser = {
       userId: user.user_id,

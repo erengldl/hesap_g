@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       productId?: string | number;
       channel?: string;
     };
-    const resolved = resolveProfitPricingRequest(body);
+    const resolved = await resolveProfitPricingRequest(body);
 
     return NextResponse.json({
       ok: true,

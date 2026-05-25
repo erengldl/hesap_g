@@ -37,7 +37,7 @@ function toFiniteNumber(value: unknown) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
-export function resolveVatRateForCategory(categoryId: number | null): VatRateResolution {
+export async function resolveVatRateForCategory(categoryId: number | null): Promise<VatRateResolution> {
   if (!categoryId) {
     return {
       ratePercent: DEFAULT_VAT_RATE_PERCENT,
@@ -53,7 +53,7 @@ export function resolveVatRateForCategory(categoryId: number | null): VatRateRes
   while (currentCategoryId && !visited.has(currentCategoryId)) {
     visited.add(currentCategoryId);
 
-    const category = getOne<CategoryRow>(
+    const category = await getOne<CategoryRow>(
       "SELECT * FROM categories WHERE category_id = ? LIMIT 1",
       [currentCategoryId]
     );
@@ -71,7 +71,7 @@ export function resolveVatRateForCategory(categoryId: number | null): VatRateRes
       };
     }
 
-    const legacyRule = getOne<CategoryTaxRuleRow>(
+    const legacyRule = await getOne<CategoryTaxRuleRow>(
       "SELECT tax_rate FROM category_tax_rules WHERE category_id = ? LIMIT 1",
       [currentCategoryId]
     );
@@ -97,13 +97,13 @@ export function resolveVatRateForCategory(categoryId: number | null): VatRateRes
   };
 }
 
-export function calculateVatEstimate(params: {
+export async function calculateVatEstimate(params: {
   salePrice: number;
   productCost: number;
   packagingCost: number;
   categoryId: number | null;
-}): VatEstimate {
-  const resolution = resolveVatRateForCategory(params.categoryId);
+}): Promise<VatEstimate> {
+  const resolution = await resolveVatRateForCategory(params.categoryId);
   const rateMultiplier = resolution.ratePercent / 100;
   const salePrice = Math.max(0, Number(params.salePrice ?? 0));
   const costBase =

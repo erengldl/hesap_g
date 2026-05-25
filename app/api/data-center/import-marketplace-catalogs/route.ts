@@ -83,7 +83,7 @@ export async function POST() {
       ? `${backendPayload.marketplaces_processed.join(", ")} katalogları içe aktarıldı. ${importedProducts} ürün güncellendi/eklendi.`
       : `${importedProducts} ürün içe aktarıldı.`;
 
-    db.prepare(
+    await db.prepare(
       `
       INSERT INTO data_center_sync_runs (
         sync_scope,

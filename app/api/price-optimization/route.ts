@@ -11,7 +11,7 @@ function parseNumeric(value: string | null, fallback: number) {
 }
 
 async function buildResponse(productId?: number, marketplaceId?: number) {
-  const preview = buildSynchronizedOptimizationPreview(productId, marketplaceId);
+  const preview = await buildSynchronizedOptimizationPreview(productId, marketplaceId);
   if (!preview) {
     return NextResponse.json({ success: false, error: "Optimizasyon verisi bulunamadÃ„Â±." }, { status: 404 });
   }

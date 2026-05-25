@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = runPriceOptimization(input);
+    const result = await runPriceOptimization(input);
     if (!result) {
       return NextResponse.json({ success: false, error: "Fiyat optimizasyonu hesaplanamadÃ„Â±." }, { status: 404 });
     }
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
     let runId: string | undefined;
     if (shouldPersist) {
-      runId = savePriceOptimizationRun(draftResult) ?? undefined;
+      runId = await savePriceOptimizationRun(draftResult) ?? undefined;
       if (!runId) {
         return NextResponse.json({ success: false, error: "Optimizasyon kaydÃ„Â± oluÃ…Å¸turulamadÃ„Â±." }, { status: 500 });
       }

@@ -185,22 +185,22 @@ function resolveBuyerName(rand: () => number) {
   return BUYER_NAMES[Math.floor(rand() * BUYER_NAMES.length)] ?? "Demo Alıcı";
 }
 
-function resetSalesTables(db: Database) {
-  db.prepare("DELETE FROM order_items").run();
-  db.prepare("DELETE FROM orders").run();
-  db.prepare("DELETE FROM inventory_daily").run();
+async function resetSalesTables(db: Database) {
+  await db.prepare("DELETE FROM order_items").run();
+  await db.prepare("DELETE FROM orders").run();
+  await db.prepare("DELETE FROM inventory_daily").run();
 }
 
-export function generateDemoSalesHistory(db: Database, options: DemoSalesGenerationOptions = {}): DemoSalesGenerationSummary {
+export async function generateDemoSalesHistory(db: Database, options: DemoSalesGenerationOptions = {}): Promise<DemoSalesGenerationSummary> {
   const days = Math.max(1, Math.trunc(options.days ?? 90));
   const endDate = stripTime(options.startDate ?? new Date());
   const startDate = addDays(endDate, -(days - 1));
 
   if (options.resetSalesTables) {
-    resetSalesTables(db);
+    await resetSalesTables(db);
   }
 
-  const rows = db.prepare(
+  const rows = await db.prepare(
     `
       SELECT
         p.product_id,
@@ -243,7 +243,7 @@ export function generateDemoSalesHistory(db: Database, options: DemoSalesGenerat
     rowsByProduct.set(row.product_id, list);
   }
 
-  const transaction = db.transaction(() => {
+  const counts = await db.transaction(async () => {
     const orderInsert = db.prepare(
       `
         INSERT INTO orders (
@@ -405,7 +405,7 @@ export function generateDemoSalesHistory(db: Database, options: DemoSalesGenerat
                   : "İptal edildi";
           const rowBarcode = channel.barcode ?? channel.sku ?? `BAR-${channel.product_id}`;
 
-          const orderResult = orderInsert.run(
+          const orderResult = await orderInsert.run(
             channel.product_id,
             channel.marketplace_id,
             currentDateKey,
@@ -451,7 +451,7 @@ export function generateDemoSalesHistory(db: Database, options: DemoSalesGenerat
           );
 
           const orderId = Number(orderResult.lastInsertRowid);
-          itemInsert.run(
+          await itemInsert.run(
             orderId,
             externalOrderNumber,
             externalPackageNumber,
@@ -500,7 +500,7 @@ export function generateDemoSalesHistory(db: Database, options: DemoSalesGenerat
           }
           const reservedQty = Math.max(0, Math.round(stock * 0.06));
           inventoryState.set(inventoryKey, stock);
-          inventoryInsert.run(channel.product_id, channel.marketplace_id, currentDateKey, stock, reservedQty);
+          await inventoryInsert.run(channel.product_id, channel.marketplace_id, currentDateKey, stock, reservedQty);
           inventoryRowsInserted += 1;
         }
       }
@@ -512,8 +512,6 @@ export function generateDemoSalesHistory(db: Database, options: DemoSalesGenerat
       inventoryRowsInserted,
     };
   });
-
-  const counts = transaction();
 
   return {
     days,

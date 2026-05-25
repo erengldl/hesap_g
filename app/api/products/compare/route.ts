@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Database unavailable" }, { status: 500 });
     }
 
-    const products = ids.map((id) => {
-      const product = db.prepare(`
+    const productResults = await Promise.all(ids.map(async (id) => {
+      const product = await db.prepare(`
         SELECT p.product_id, p.name, p.sku, p.cost, p.packaging_cost, p.image_url, p.category_path
         FROM products p WHERE p.product_id = ?
       `).get(id) as {
@@ -30,14 +30,14 @@ export async function GET(request: NextRequest) {
 
       if (!product) return null;
 
-      const channels = db.prepare(`
+      const channels = await db.prepare(`
         SELECT m.name as channel_name, m.slug, pms.sale_price
         FROM product_marketplace_settings pms
         JOIN marketplaces m ON pms.marketplace_id = m.marketplace_id
         WHERE pms.product_id = ?
       `).all(id) as Array<{ channel_name: string; slug: string; sale_price: number }>;
 
-      const costs = recalculateCostResultsForProductFromDatabase(id);
+      const costs = await recalculateCostResultsForProductFromDatabase(id);
 
       return {
         id: product.product_id,
@@ -58,7 +58,9 @@ export async function GET(request: NextRequest) {
           };
         }),
       };
-    }).filter(Boolean);
+    }));
+
+    const products = productResults.filter(Boolean);
 
     return NextResponse.json({ success: true, products });
   } catch (error) {

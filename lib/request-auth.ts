@@ -12,7 +12,7 @@ export async function getAuthenticatedUserFromCookieHeader(
   if (firebaseSessionCookie) {
     try {
       const claims = await verifyFirebaseSessionCookie(firebaseSessionCookie);
-      const firebaseUser = upsertFirebaseUserFromClaims(claims, claims.name ?? null);
+      const firebaseUser = await upsertFirebaseUserFromClaims(claims, claims.name ?? null);
       if (firebaseUser) {
         return firebaseUser;
       }

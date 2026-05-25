@@ -32,10 +32,10 @@ function resolveChannel(params: SearchParams): SalesChannel | undefined {
   return undefined;
 }
 
-function resolveBootstrap(searchParams: SearchParams) {
+async function resolveBootstrap(searchParams: SearchParams) {
   try {
     return {
-      bootstrap: buildProfitPricingBootstrap({
+      bootstrap: await buildProfitPricingBootstrap({
         productId: parseProductId(readFirstValue(searchParams.productId)),
         channel: resolveChannel(searchParams),
       }),
@@ -54,7 +54,7 @@ export default async function ProfitPricingRoute(props: {
   searchParams?: Promise<SearchParams>;
 }) {
   const searchParams = props.searchParams ? await props.searchParams : {};
-  const { bootstrap, error } = resolveBootstrap(searchParams);
+  const { bootstrap, error } = await resolveBootstrap(searchParams);
 
   if (bootstrap) {
     return <ProfitPricingPage bootstrap={bootstrap} />;

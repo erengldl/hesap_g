@@ -22,14 +22,14 @@ async function getManualAdReportContext(campaignId: string) {
     return null;
   }
 
-  const detail = getManualAdCampaignDetail(user.userId, campaignId);
+  const detail = await getManualAdCampaignDetail(user.userId, campaignId);
   if (!detail) {
     return null;
   }
 
   return {
     ...detail,
-    latestReport: detail.latestReport ?? getLatestManualAdReport(campaignId),
+    latestReport: detail.latestReport ?? await getLatestManualAdReport(campaignId),
   };
 }
 

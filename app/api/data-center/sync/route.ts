@@ -10,22 +10,22 @@ export async function POST() {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
   try {
-    const db = getDb();
+    const db = await getDb();
     if (!db) {
       return NextResponse.json({ success: false, error: "Database connection unavailable" }, { status: 500 });
     }
 
-    const products = getProducts();
+    const products = await getProducts();
     const productCount = products.length;
     const activeProductCount = products.filter((product) => (product.status ?? "draft") === "active").length;
-    const processedProducts = recalculateAllCostResults();
+    const processedProducts = await recalculateAllCostResults();
     const syncedAt = new Date().toISOString();
     const note =
       productCount > 0
         ? `${productCount} ÃƒÂ¼rÃƒÂ¼n veri merkezine yÃƒÂ¼klendi.`
         : "Veri merkezinde yÃƒÂ¼klenecek gerÃƒÂ§ek ÃƒÂ¼rÃƒÂ¼n bulunamadÃ„Â±.";
 
-    db.prepare(
+    await db.prepare(
       `
       INSERT INTO data_center_sync_runs (
         sync_scope,

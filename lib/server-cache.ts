@@ -5,7 +5,9 @@ type CacheEntry<T> = {
 
 const cache = new Map<string, CacheEntry<unknown>>();
 
-export function getCachedValue<T>(key: string, ttlMs: number, factory: () => T): T {
+export function getCachedValue<T>(key: string, ttlMs: number, factory: () => T): T;
+export async function getCachedValue<T>(key: string, ttlMs: number, factory: () => Promise<T>): Promise<T>;
+export function getCachedValue<T>(key: string, ttlMs: number, factory: () => T | Promise<T>): T | Promise<T> {
   const now = Date.now();
   const cached = cache.get(key);
 
@@ -14,11 +16,14 @@ export function getCachedValue<T>(key: string, ttlMs: number, factory: () => T):
   }
 
   const value = factory();
-  cache.set(key, {
-    value,
-    expiresAt: now + ttlMs,
-  });
+  if (value instanceof Promise) {
+    return value.then((resolved) => {
+      cache.set(key, { value: resolved, expiresAt: now + ttlMs });
+      return resolved;
+    });
+  }
 
+  cache.set(key, { value, expiresAt: now + ttlMs });
   return value;
 }
 

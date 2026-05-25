@@ -54,7 +54,7 @@ export async function GET(request: Request) {
 
     const whereClause = filters.length > 0 ? `WHERE ${filters.join(" AND ")}` : "";
 
-    const runs = query<RawRunRow>(
+    const runs = await query<RawRunRow>(
       `
       SELECT
         r.run_id,

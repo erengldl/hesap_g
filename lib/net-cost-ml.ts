@@ -135,8 +135,8 @@ function getShippingPrior(product: NetCostMlInput["product"]) {
   return clamp(1 + Math.max(0, (desi - 1.5) * 0.012), 1, 1.15);
 }
 
-function getReturnStats(whereClause: string, params: unknown[]) {
-  const row = getOne<ReturnStatsRow>(
+async function getReturnStats(whereClause: string, params: unknown[]) {
+  const row = await getOne<ReturnStatsRow>(
     `
       SELECT
         COUNT(*) AS total_orders,
@@ -155,17 +155,17 @@ function getReturnStats(whereClause: string, params: unknown[]) {
   return { total, returned, rate };
 }
 
-function getMarketplaceStats(marketplaceId: number) {
-  return getReturnStats("WHERE marketplace_id = ?", [marketplaceId]);
+async function getMarketplaceStats(marketplaceId: number) {
+  return await getReturnStats("WHERE marketplace_id = ?", [marketplaceId]);
 }
 
-function getProductStats(productId: number, marketplaceId: number) {
-  return getReturnStats("WHERE product_id = ? AND marketplace_id = ?", [productId, marketplaceId]);
+async function getProductStats(productId: number, marketplaceId: number) {
+  return await getReturnStats("WHERE product_id = ? AND marketplace_id = ?", [productId, marketplaceId]);
 }
 
-function getCategoryStats(categoryId: number | null | undefined) {
+async function getCategoryStats(categoryId: number | null | undefined) {
   if (!categoryId) return { total: 0, returned: 0, rate: 0 };
-  return getReturnStats(
+  return await getReturnStats(
     `
       WHERE product_id IN (
         SELECT product_id
@@ -177,9 +177,9 @@ function getCategoryStats(categoryId: number | null | undefined) {
   );
 }
 
-function getCategoryMarketplaceStats(categoryId: number | null | undefined, marketplaceId: number) {
+async function getCategoryMarketplaceStats(categoryId: number | null | undefined, marketplaceId: number) {
   if (!categoryId) return { total: 0, returned: 0, rate: 0 };
-  return getReturnStats(
+  return await getReturnStats(
     `
       WHERE product_id IN (
         SELECT product_id
@@ -192,9 +192,9 @@ function getCategoryMarketplaceStats(categoryId: number | null | undefined, mark
   );
 }
 
-function getProfileStats(profileId: number | null | undefined) {
+async function getProfileStats(profileId: number | null | undefined) {
   if (!profileId) return { total: 0, returned: 0, rate: 0 };
-  return getReturnStats(
+  return await getReturnStats(
     `
       WHERE product_id IN (
         SELECT product_id
@@ -206,12 +206,12 @@ function getProfileStats(profileId: number | null | undefined) {
   );
 }
 
-function getGlobalStats() {
-  return getReturnStats("WHERE 1 = 1", []);
+async function getGlobalStats() {
+  return await getReturnStats("WHERE 1 = 1", []);
 }
 
-function getTrafficCandidateRows(productId: number) {
-  const persistedRows = query<TrafficCpaRow>(
+async function getTrafficCandidateRows(productId: number) {
+  const persistedRows = await query<TrafficCpaRow>(
     `
       SELECT
         pms.traffic_cpa,
@@ -239,7 +239,7 @@ function getTrafficCandidateRows(productId: number) {
     [productId]
   );
 
-  const adResultRows = query<TrafficCpaRow>(
+  const adResultRows = await query<TrafficCpaRow>(
     `
       SELECT
         cr.unit_ad_cost AS traffic_cpa,
@@ -267,8 +267,8 @@ function getTrafficCandidateRows(productId: number) {
   return [...persistedRows, ...adResultRows];
 }
 
-function getShippingHistoryRows(productId: number, marketplaceId: number) {
-  const orderRows = query<ShippingHistoryRow>(
+async function getShippingHistoryRows(productId: number, marketplaceId: number) {
+  const orderRows = await query<ShippingHistoryRow>(
     `
       SELECT
         o.realized_shipping_cost AS observed_shipping_cost,
@@ -296,7 +296,7 @@ function getShippingHistoryRows(productId: number, marketplaceId: number) {
     [marketplaceId, productId]
   );
 
-  const costRows = query<ShippingHistoryRow>(
+  const costRows = await query<ShippingHistoryRow>(
     `
       SELECT
         cr.realized_shipping_cost AS observed_shipping_cost,
@@ -346,13 +346,13 @@ function resolveConfidenceScore(sampleSize: number, agreementScore: number, hasR
   return "Low" as const;
 }
 
-function resolveReturnRate(product: NetCostMlInput["product"], marketplaceId: number) {
-  const productStats = getProductStats(product.id, marketplaceId);
-  const categoryStats = getCategoryStats(product.category_id);
-  const categoryMarketplaceStats = getCategoryMarketplaceStats(product.category_id, marketplaceId);
-  const profileStats = getProfileStats(product.profile_id);
-  const marketplaceStats = getMarketplaceStats(marketplaceId);
-  const globalStats = getGlobalStats();
+async function resolveReturnRate(product: NetCostMlInput["product"], marketplaceId: number) {
+  const productStats = await getProductStats(product.id, marketplaceId);
+  const categoryStats = await getCategoryStats(product.category_id);
+  const categoryMarketplaceStats = await getCategoryMarketplaceStats(product.category_id, marketplaceId);
+  const profileStats = await getProfileStats(product.profile_id);
+  const marketplaceStats = await getMarketplaceStats(marketplaceId);
+  const globalStats = await getGlobalStats();
 
   const prior = getReturnPrior(product);
   const candidates = [
@@ -396,9 +396,9 @@ function resolveReturnRate(product: NetCostMlInput["product"], marketplaceId: nu
   };
 }
 
-function resolveTrafficCpa(product: NetCostMlInput["product"], salePrice: number, currentTrafficCpa?: number | null) {
-  const candidateRows = getTrafficCandidateRows(product.id);
-  const gateway = getOwnWebsiteGatewayRule();
+async function resolveTrafficCpa(product: NetCostMlInput["product"], salePrice: number, currentTrafficCpa?: number | null) {
+  const candidateRows = await getTrafficCandidateRows(product.id);
+  const gateway = await getOwnWebsiteGatewayRule();
   const fallback = round2(safeNumber(gateway?.avg_ad_cost, 56.2));
   const basePrior = currentTrafficCpa && currentTrafficCpa > 0 ? round2(currentTrafficCpa) : fallback;
   const categoryRoot = toRootCategory(product.category_path ?? product.category_name);
@@ -458,14 +458,14 @@ function resolveTrafficCpa(product: NetCostMlInput["product"], salePrice: number
   };
 }
 
-function resolveShippingMultiplier(
+async function resolveShippingMultiplier(
   product: NetCostMlInput["product"],
   marketplaceId: number,
   baseShippingCost: number,
   shippingCompanyId?: number | null
 ) {
-  const historyRows = getShippingHistoryRows(product.id, marketplaceId);
-  const shippingRates = query<{
+  const historyRows = await getShippingHistoryRows(product.id, marketplaceId);
+  const shippingRates = await query<{
     marketplace_id: number;
     shipping_company_id: number;
     desi_min: number;
@@ -578,7 +578,7 @@ function buildReturnCost(
   return round2((returnRate / 100) * lossPerReturn);
 }
 
-export function predictNetCostSignals(input: NetCostMlInput): NetCostMlSignals {
+export async function predictNetCostSignals(input: NetCostMlInput): Promise<NetCostMlSignals> {
   const cacheKey = [
     input.product.id,
     input.marketplaceId,
@@ -597,9 +597,9 @@ export function predictNetCostSignals(input: NetCostMlInput): NetCostMlSignals {
     return cached.value;
   }
 
-  const returnSignals = resolveReturnRate(input.product, input.marketplaceId);
+  const returnSignals = await resolveReturnRate(input.product, input.marketplaceId);
   const cpaSignals = input.channelType === "own_website"
-    ? resolveTrafficCpa(input.product, input.salePrice, input.currentTrafficCpa)
+    ? await resolveTrafficCpa(input.product, input.salePrice, input.currentTrafficCpa)
     : {
         cpa: 0,
         confidence: "Low" as const,
@@ -607,7 +607,7 @@ export function predictNetCostSignals(input: NetCostMlInput): NetCostMlSignals {
         note: "Pazaryeri kanalında CPA modeli kullanılmaz.",
         source: "n/a",
       };
-  const shippingSignals = resolveShippingMultiplier(
+  const shippingSignals = await resolveShippingMultiplier(
     input.product,
     input.marketplaceId,
     Math.max(0, safeNumber(input.baseShippingCost, 0)),

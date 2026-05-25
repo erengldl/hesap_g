@@ -15,8 +15,8 @@ export async function POST(request: Request) {
       channels?: string[];
     };
     const input = body.input ?? {};
-    const resolved = resolveProfitPricingRequest(input);
-    const comparison = buildServerSideChannelComparison(input);
+    const resolved = await resolveProfitPricingRequest(input);
+    const comparison = await buildServerSideChannelComparison(input);
     const filtered = Array.isArray(body.channels) && body.channels.length > 0
       ? comparison.filter((item) => body.channels?.includes(item.channel))
       : comparison;

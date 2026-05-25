@@ -10,7 +10,7 @@ export async function GET(request: Request) {
 
   try {
     if (type === 'shipping') {
-      const companies = getShippingCompanies() as any[];
+      const companies = (await getShippingCompanies()) as any[];
       const carriers = Array.from(new Set(companies.map(c => c.name))).filter(Boolean);
       return NextResponse.json({ success: true, carriers });
     }

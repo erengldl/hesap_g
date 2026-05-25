@@ -33,31 +33,28 @@ function toAuthUser(row: FirebaseUserRow, firebaseUid: string): AuthUser {
   };
 }
 
-export function upsertFirebaseUserFromClaims(
+export async function upsertFirebaseUserFromClaims(
   claims: FirebaseClaims,
   displayName?: string | null
-): AuthUser | null {
+): Promise<AuthUser | null> {
   const db = getDb();
-  if (!db) {
-    return null;
-  }
 
   const email = String(claims.email || "").trim().toLowerCase();
   if (!email) {
     return null;
   }
 
-  const name = String(displayName || claims.name || email.split("@")[0] || "Kullanıcı").trim();
+  const name = String(displayName || claims.name || email.split("@")[0] || "Kullanici").trim();
 
-  const existingByUid = db
+  const existingByUid = await db
     .prepare(
       "SELECT user_id, email, name, plan, company, phone, firebase_uid FROM users WHERE firebase_uid = ? LIMIT 1"
     )
     .get(claims.uid) as FirebaseUserRow | undefined;
 
   if (existingByUid) {
-    db.prepare(
-      "UPDATE users SET email = ?, name = ?, is_active = 1, last_login_at = datetime('now'), updated_at = datetime('now') WHERE user_id = ?"
+    await db.prepare(
+      "UPDATE users SET email = ?, name = ?, is_active = 1, last_login_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?"
     ).run(email, name, existingByUid.user_id);
 
     return toAuthUser(
@@ -70,15 +67,15 @@ export function upsertFirebaseUserFromClaims(
     );
   }
 
-  const existingByEmail = db
+  const existingByEmail = await db
     .prepare(
       "SELECT user_id, email, name, plan, company, phone, firebase_uid FROM users WHERE email = ? LIMIT 1"
     )
     .get(email) as FirebaseUserRow | undefined;
 
   if (existingByEmail) {
-    db.prepare(
-      "UPDATE users SET firebase_uid = ?, name = ?, is_active = 1, last_login_at = datetime('now'), updated_at = datetime('now') WHERE user_id = ?"
+    await db.prepare(
+      "UPDATE users SET firebase_uid = ?, name = ?, is_active = 1, last_login_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?"
     ).run(claims.uid, name, existingByEmail.user_id);
 
     return toAuthUser(
@@ -92,8 +89,8 @@ export function upsertFirebaseUserFromClaims(
     );
   }
 
-  const result = db.prepare(
-    "INSERT INTO users (email, password_hash, name, plan, firebase_uid, last_login_at) VALUES (?, ?, ?, ?, ?, datetime('now'))"
+  const result = await db.prepare(
+    "INSERT INTO users (email, password_hash, name, plan, firebase_uid, last_login_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)"
   ).run(email, FIREBASE_MANAGED_PASSWORD_HASH, name, "Premium Plan", claims.uid);
 
   return {

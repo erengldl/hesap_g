@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getDb, getDatabaseMode } from "@/lib/db";
-import { isRemoteDatabase } from "@/lib/remote-db";
 
 export const dynamic = "force-dynamic";
 
@@ -9,23 +8,13 @@ export async function GET() {
     const geminiApiKey = process.env.GEMINI_API_KEY?.trim() ?? "";
     const geminiModel = process.env.GEMINI_MODEL?.trim() || null;
     const db = getDb();
-    if (!db) {
-      return NextResponse.json({
-        success: false,
-        status: "degraded",
-        database_mode: getDatabaseMode(),
-        gemini_configured: geminiApiKey.length > 0,
-        gemini_model: geminiModel,
-        timestamp: new Date().toISOString(),
-      });
-    }
 
-    db.prepare("SELECT 1").get();
+    await db.prepare("SELECT 1").get();
 
     return NextResponse.json({
       success: true,
       status: "ok",
-      database_mode: isRemoteDatabase(db) ? "supabase" : getDatabaseMode(),
+      database_mode: getDatabaseMode(),
       gemini_configured: geminiApiKey.length > 0,
       gemini_model: geminiModel,
       timestamp: new Date().toISOString(),

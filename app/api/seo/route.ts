@@ -15,19 +15,19 @@ function emptyKeywordStats(): KeywordStatsRow {
   return { total: 0, avgVolume: 0, avgDifficulty: 0, avgOpportunity: 0 };
 }
 
-function tableQuery<T>(db: ReturnType<typeof getDb>, sql: string, fallback: T) {
+async function tableQuery<T>(db: ReturnType<typeof getDb>, sql: string, fallback: T) {
   if (!db) return fallback;
   try {
-    return db.prepare(sql).all() as T;
+    return await db.prepare(sql).all() as T;
   } catch {
     return fallback;
   }
 }
 
-function tableGet<T>(db: ReturnType<typeof getDb>, sql: string, fallback: T) {
+async function tableGet<T>(db: ReturnType<typeof getDb>, sql: string, fallback: T) {
   if (!db) return fallback;
   try {
-    return (db.prepare(sql).get() as T) ?? fallback;
+    return (await db.prepare(sql).get() as T) ?? fallback;
   } catch {
     return fallback;
   }
@@ -37,17 +37,17 @@ export async function GET() {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
   try {
-    const db = getDb();
+    const db = await getDb();
     if (!db) {
       return ok({
         audits: [],
         keywordStats: emptyKeywordStats(),
         recSummary: [],
-        products: getProducts().map((product) => ({ id: product.id, name: product.name, sku: product.sku ?? "" })),
+        products: (await getProducts()).map((product) => ({ id: product.id, name: product.name, sku: product.sku ?? "" })),
       });
     }
 
-    const audits = tableQuery(
+    const audits = await tableQuery(
       db,
       `
       SELECT id, audit_type, target_type, target_label, status, overall_score,
@@ -60,7 +60,7 @@ export async function GET() {
       []
     );
 
-    const keywordStats = tableGet<KeywordStatsRow>(
+    const keywordStats = await tableGet<KeywordStatsRow>(
       db,
       `
       SELECT COUNT(*) as total,
@@ -72,7 +72,7 @@ export async function GET() {
       emptyKeywordStats()
     );
 
-    const recSummary = tableQuery<Array<{ status: string; count: number }>>(
+    const recSummary = await tableQuery<Array<{ status: string; count: number }>>(
       db,
       `
       SELECT status, COUNT(*) as count
@@ -82,7 +82,7 @@ export async function GET() {
       []
     );
 
-    const products = getProducts().map((product) => ({
+    const products = (await getProducts()).map((product) => ({
       id: product.id,
       name: product.name,
       sku: product.sku ?? "",
@@ -100,7 +100,7 @@ export async function GET() {
       audits: [],
       keywordStats: emptyKeywordStats(),
       recSummary: [],
-      products: getProducts().map((product) => ({ id: product.id, name: product.name, sku: product.sku ?? "" })),
+      products: (await getProducts()).map((product) => ({ id: product.id, name: product.name, sku: product.sku ?? "" })),
     });
   }
 }

@@ -144,7 +144,7 @@ export async function GET(request: Request) {
       whereParams.push(searchLike, searchLike, searchLike, searchLike, searchLike, searchLike, searchLike);
     }
 
-    const summaryRow = query<SalesHistorySummaryRow>(
+    const summaryRow = (await query<SalesHistorySummaryRow>(
       `
         SELECT
           COUNT(DISTINCT o.order_id) AS total_orders,
@@ -155,7 +155,7 @@ export async function GET(request: Request) {
         ${baseWhere}
       `,
       whereParams
-    )[0] ?? {
+    ))[0] ?? {
       total_orders: 0,
       total_units: 0,
       total_revenue: 0,
@@ -163,7 +163,7 @@ export async function GET(request: Request) {
       active_marketplaces: 0,
     };
 
-    const topMarketplace = query<TopMarketplaceRow>(
+    const topMarketplace = (await query<TopMarketplaceRow>(
       `
         SELECT
           COALESCE(m.name, m.slug, 'Kanal') AS marketplace_name,
@@ -176,9 +176,9 @@ export async function GET(request: Request) {
         LIMIT 1
       `,
       whereParams
-    )[0] ?? null;
+    ))[0] ?? null;
 
-    const topProduct = query<TopProductRow>(
+    const topProduct = (await query<TopProductRow>(
       `
         SELECT
           COALESCE(oi.product_id, o.product_id) AS product_id,
@@ -192,16 +192,16 @@ export async function GET(request: Request) {
         LIMIT 1
       `,
       whereParams
-    )[0] ?? null;
+    ))[0] ?? null;
 
     const totalRows = toNumber(
-      query<SalesHistoryCountRow>(
+      (await query<SalesHistoryCountRow>(
         `
           SELECT COUNT(*) AS total_rows
           ${baseWhere}
         `,
         whereParams
-      )[0]?.total_rows
+      ))[0]?.total_rows
     );
     const totalPages = totalRows > 0 ? Math.ceil(totalRows / pageSize) : 0;
     const currentPage = exportAll ? 1 : totalPages > 0 ? Math.min(requestedPage, totalPages) : 1;
@@ -227,7 +227,7 @@ export async function GET(request: Request) {
         ${exportAll ? "" : `LIMIT ${pageSize} OFFSET ${offset}`}
       `;
 
-    const salesHistory = query<SalesHistoryRow>(salesHistoryQuery, whereParams).map((row) => ({
+    const salesHistory = (await query<SalesHistoryRow>(salesHistoryQuery, whereParams)).map((row) => ({
       ...row,
       quantity: toWholeNumber(row.quantity),
       unit_price: toNumber(row.unit_price),

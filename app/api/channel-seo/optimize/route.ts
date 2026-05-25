@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     const keywords = readStringArray(body.keywords);
     const forbiddenWords = readStringArray(body.forbiddenWords);
 
-    const detail = getChannelSeoProductDetail(productId);
+    const detail = await getChannelSeoProductDetail(productId);
     if (!detail) {
       return NextResponse.json(
         {
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existing = getChannelSeoContent(productId, channel);
+    const existing = await getChannelSeoContent(productId, channel);
     if (existing && existing.status === "optimized" && !overwriteExisting) {
       return NextResponse.json({
         ok: true,

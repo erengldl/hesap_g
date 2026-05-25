@@ -48,8 +48,8 @@ function readNumber(value: unknown) {
   return null;
 }
 
-function getDefaultMarketplaceShippingCompanyId(db: NonNullable<ReturnType<typeof getDb>>, marketplaceId: number) {
-  const row = db
+async function getDefaultMarketplaceShippingCompanyId(db: NonNullable<ReturnType<typeof getDb>>, marketplaceId: number) {
+  const row = await db
     .prepare(
       `
         SELECT shipping_company_id
@@ -78,7 +78,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ success: false, error: "Database connection unavailable" }, { status: 500 });
     }
 
-    const existingProduct = db
+    const existingProduct = await db
       .prepare("SELECT product_id FROM products WHERE product_id = ? LIMIT 1")
       .get(productId) as { product_id: number } | undefined;
     if (!existingProduct) {
@@ -105,26 +105,26 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         traffic_cpa
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    const transaction = db.transaction((records: ChannelPayload[]) => {
-      for (const record of records) {
+    await db.transaction(async () => {
+      for (const record of items) {
         const slug = normalizeChannelSlug(record.slug);
         if (!slug) {
           throw new Error(`GeÃƒÂ§ersiz satÃ„Â±Ã…Å¸ kanalÃ„Â±: ${String(record.slug)}`);
         }
 
         const marketplaceSlug = slug === "my_website" ? "own_website" : slug;
-        const marketplace = getMarketplaceBySlug(marketplaceSlug);
+        const marketplace = await getMarketplaceBySlug(marketplaceSlug);
         if (!marketplace) {
           throw new Error(`Marketplace bulunamadÃ„Â±: ${marketplaceSlug}`);
         }
 
         const isEnabled = Boolean(record.enabled);
         if (!isEnabled) {
-          deleteSetting.run(productId, marketplace.id);
+          await deleteSetting.run(productId, marketplace.id);
           continue;
         }
 
-        const existingSetting = getProductMarketplaceSetting(productId, marketplace.id);
+        const existingSetting = await getProductMarketplaceSetting(productId, marketplace.id);
         const salePrice = readNumber(record.salePrice ?? existingSetting?.sale_price);
         if (salePrice == null || salePrice <= 0) {
           throw new Error(`${marketplace.name} iÃƒÂ§in satÃ„Â±Ã…Å¸ fiyatÃ„Â± geÃƒÂ§erli olmalÃ„Â±dÃ„Â±r.`);
@@ -134,13 +134,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         const shippingCompanyId =
           slug === "my_website"
             ? null
-            : readNumber(record.shippingCompanyId ?? existingSetting?.shipping_company_id ?? getDefaultMarketplaceShippingCompanyId(db, marketplace.id));
+            : readNumber(record.shippingCompanyId ?? existingSetting?.shipping_company_id ?? await getDefaultMarketplaceShippingCompanyId(db, marketplace.id));
         const resolvedShippingCompanyId = shippingCompanyId != null && shippingCompanyId > 0
           ? shippingCompanyId
           : slug === "my_website"
             ? null
-            : getDefaultMarketplaceShippingCompanyId(db, marketplace.id);
-        const gatewayRule = slug === "my_website" ? getOwnWebsiteGatewayRule() : null;
+            : await getDefaultMarketplaceShippingCompanyId(db, marketplace.id);
+        const gatewayRule = slug === "my_website" ? await getOwnWebsiteGatewayRule() : null;
         const manualShippingCostInput = readNumber(
           record.manualShippingCost ?? existingSetting?.manual_shipping_cost
         );
@@ -157,8 +157,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         const shippingMode = slug === "my_website" ? existingSetting?.shipping_mode ?? "manual" : existingSetting?.shipping_mode ?? "marketplace_rate";
         const trafficCpa = existingSetting?.traffic_cpa ?? null;
 
-        deleteSetting.run(productId, marketplace.id);
-        insertSetting.run(
+        await deleteSetting.run(productId, marketplace.id);
+        await insertSetting.run(
           productId,
           marketplace.id,
           resolvedShippingCompanyId,
@@ -172,9 +172,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
     });
 
-    transaction(items);
-
-    const results = recalculateCostResultsForProductFromDatabase(productId);
+    const results = await recalculateCostResultsForProductFromDatabase(productId);
 
     return NextResponse.json({
       success: true,

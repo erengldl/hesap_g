@@ -25,7 +25,7 @@ function normalizeChannels(payload: unknown): CalculationInput["channels"] | nul
   return payload as CalculationInput["channels"];
 }
 
-function resolveSingleMarketplaceChannel(
+async function resolveSingleMarketplaceChannel(
   productId: number,
   product: CalculationInput["product"],
   body: Record<string, unknown>
@@ -35,12 +35,12 @@ function resolveSingleMarketplaceChannel(
     return null;
   }
 
-  const marketplace = getMarketplaceById(marketplaceId);
+  const marketplace = await getMarketplaceById(marketplaceId);
   if (!marketplace) {
     return null;
   }
 
-  const productSetting = getProductMarketplaceSetting(productId, marketplaceId);
+  const productSetting = await getProductMarketplaceSetting(productId, marketplaceId);
   const salePrice = Number(body.salePrice ?? body.sale_price ?? productSetting?.sale_price ?? product.sale_price ?? 0);
   const carrierName = typeof body.carrierName === "string" ? body.carrierName : typeof body.carrier_name === "string" ? body.carrier_name : undefined;
   const shipmentType = body.shipmentType === "fast" ? "fast" : "normal";
@@ -85,13 +85,13 @@ async function calculateWithBody(request: Request, body: Record<string, unknown>
     return NextResponse.json({ success: false, error: "Product id is required" }, { status: 400 });
   }
 
-  const product = getProducts().find((item) => item.id === productId);
+  const product = (await getProducts()).find((item) => item.id === productId);
   if (!product) {
     return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 });
   }
 
   if (body.persistDefaultsOnly === true) {
-    const persisted = persistNetCostDefaultsFromForm(productId, body);
+    const persisted = await persistNetCostDefaultsFromForm(productId, body);
     if (!persisted) {
       return NextResponse.json({ success: false, error: "Defaults could not be saved" }, { status: 500 });
     }
@@ -105,7 +105,7 @@ async function calculateWithBody(request: Request, body: Record<string, unknown>
 
   const channels = normalizeChannels(body.channels);
   if (channels) {
-    const calculation = calculateAllChannels({
+    const calculation = await calculateAllChannels({
       product,
       channels,
     });
@@ -114,8 +114,8 @@ async function calculateWithBody(request: Request, body: Record<string, unknown>
       return NextResponse.json({ success: false, error: "At least one active channel is required" }, { status: 400 });
     }
 
-    persistCostResults(productId, calculation.results);
-    persistNetCostDefaultsFromCalculation(productId, body, calculation.results);
+    await persistCostResults(productId, calculation.results);
+    await persistNetCostDefaultsFromCalculation(productId, body, calculation.results);
 
     return NextResponse.json({
       success: true,
@@ -123,10 +123,10 @@ async function calculateWithBody(request: Request, body: Record<string, unknown>
     });
   }
 
-  const singleChannel = resolveSingleMarketplaceChannel(productId, product, body);
+  const singleChannel = await resolveSingleMarketplaceChannel(productId, product, body);
   if (singleChannel) {
-    const marketplace = getMarketplaceById(Number(body.marketplaceId ?? body.marketplace_id));
-    const result = calculateChannelCost(marketplace?.name ?? "Kendi Websitem", {
+    const marketplace = await getMarketplaceById(Number(body.marketplaceId ?? body.marketplace_id));
+    const result = await calculateChannelCost(marketplace?.name ?? "Kendi Websitem", {
       product,
       salePrice: singleChannel.salePrice,
       carrierName: (singleChannel as CalculationInput["channels"]["trendyol"]).carrierName,
@@ -138,15 +138,15 @@ async function calculateWithBody(request: Request, body: Record<string, unknown>
       manualShippingCost: (singleChannel as CalculationInput["channels"]["my_website"]).shippingCost,
       paymentGatewayRate: (singleChannel as CalculationInput["channels"]["my_website"]).gatewayRate,
       paymentGatewayFixedFee: (singleChannel as CalculationInput["channels"]["my_website"]).gatewayFixedFee,
-      productSetting: getProductMarketplaceSetting(productId, Number(body.marketplaceId ?? body.marketplace_id)),
+      productSetting: await getProductMarketplaceSetting(productId, Number(body.marketplaceId ?? body.marketplace_id)),
     });
 
     if (!result) {
       return NextResponse.json({ success: false, error: "Calculation failed" }, { status: 500 });
     }
 
-    persistCostResults(productId, [result]);
-    persistNetCostDefaultsFromCalculation(productId, body, [result]);
+    await persistCostResults(productId, [result]);
+    await persistNetCostDefaultsFromCalculation(productId, body, [result]);
 
     return NextResponse.json({
       success: true,
@@ -163,7 +163,7 @@ async function calculateWithBody(request: Request, body: Record<string, unknown>
 export async function handleCostBootstrap(request: Request) {
   const url = new URL(request.url);
   const productId = Number(url.searchParams.get("productId") ?? url.searchParams.get("product_id") ?? 0);
-  const bootstrap = buildCostBootstrap(Number.isFinite(productId) && productId > 0 ? productId : undefined);
+  const bootstrap = await buildCostBootstrap(Number.isFinite(productId) && productId > 0 ? productId : undefined);
 
   return NextResponse.json({
     success: true,

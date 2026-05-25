@@ -38,7 +38,7 @@ function parseProductId(value: string | undefined | null) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
-function getExistingProductChannelState(productId: number) {
+async function getExistingProductChannelState(productId: number) {
   const db = getDb();
   if (!db) {
     return {
@@ -47,7 +47,7 @@ function getExistingProductChannelState(productId: number) {
     };
   }
 
-  const rows = db.prepare(`
+  const rows = await db.prepare(`
     SELECT
       m.slug,
       pms.sale_price
@@ -110,13 +110,13 @@ function parseProductPayload(
   };
 }
 
-function getExistingProduct(productId: number) {
+async function getExistingProduct(productId: number) {
   const db = getDb();
   if (!db) {
     return null;
   }
 
-  return db.prepare(`
+  return await db.prepare(`
     SELECT
       p.product_id,
       p.name,
@@ -162,7 +162,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json(buildDemoProductDetailResponse(productId));
     }
 
-    const product = db.prepare(`
+    const product = await db.prepare(`
       SELECT
         p.product_id,
         p.name,
@@ -176,6 +176,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         p.packaging_cost,
         p.desi,
         p.status,
+        c.name AS category_name,
+        c.path AS category_path_full,
         (
           SELECT COALESCE(SUM(id.stock_qty - COALESCE(id.reserved_qty, 0)), 0)
           FROM inventory_daily id
@@ -185,22 +187,18 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
               FROM inventory_daily id2
               WHERE id2.product_id = p.product_id
             )
-        ) AS stock_qty,
-        c.name AS category_name,
-        c.path AS category_path_full
+        ) AS stock_qty
       FROM products p
-      LEFT JOIN categories c ON p.category_id = c.category_id
+      LEFT JOIN categories c ON c.category_id = p.category_id
       WHERE p.product_id = ?
       LIMIT 1
-    `).get(productId) as
-      | (ExistingProductRow & { category_name: string | null; category_path_full: string | null })
-      | undefined;
+    `).get(productId) as (ExistingProductRow & { category_name: string | null; category_path_full: string | null }) | undefined;
 
     if (!product) {
       return NextResponse.json(buildDemoProductDetailResponse(productId));
     }
 
-    const channels = db.prepare(`
+    const channels = await db.prepare(`
       SELECT
         m.marketplace_id,
         m.name AS channel_name,
@@ -211,25 +209,25 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         pms.manual_shipping_cost,
         pms.shipping_mode
       FROM product_marketplace_settings pms
-      JOIN marketplaces m ON pms.marketplace_id = m.marketplace_id
+      JOIN marketplaces m ON m.marketplace_id = pms.marketplace_id
       WHERE pms.product_id = ?
-      ORDER BY m.marketplace_id ASC
+      ORDER BY CASE WHEN m.slug = 'own_website' THEN 0 ELSE 1 END, m.marketplace_id ASC
     `).all(productId) as Array<{
       marketplace_id: number;
       channel_name: string;
-        slug: string;
-        sale_price: number | null;
-        buybox_price: number | null;
-        shipping_company_id: number | null;
-        manual_shipping_cost: number | null;
-        shipping_mode: string | null;
+      slug: string;
+      sale_price: number | null;
+      buybox_price: number | null;
+      shipping_company_id: number | null;
+      manual_shipping_cost: number | null;
+      shipping_mode: string | null;
     }>;
 
-    const costResults = recalculateCostResultsForProductFromDatabase(productId);
-    const marginSnapshots = getProductMarginSnapshots(productId);
-    const salesTrend30 = getProductSalesTrend(productId, 30);
-    const salesTrend90 = getProductSalesTrend(productId, 90);
-    const orderHistory = getProductOrderHistory(productId, 24);
+    const costResults = await recalculateCostResultsForProductFromDatabase(productId);
+    const marginSnapshots = await getProductMarginSnapshots(productId);
+    const salesTrend30 = await getProductSalesTrend(productId, 30);
+    const salesTrend90 = await getProductSalesTrend(productId, 90);
+    const orderHistory = await getProductOrderHistory(productId, 24);
     const summary30 = summarizeProductTrend(salesTrend30);
     const summary90 = summarizeProductTrend(salesTrend90);
     const bestChannel = marginSnapshots[0] ?? null;
@@ -307,12 +305,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, error: "GeÃƒÂ§ersiz ÃƒÂ¼rÃƒÂ¼n kimliÃ„Å¸i." }, { status: 400 });
     }
 
-    const existing = getExistingProduct(productId);
+    const existing = await getExistingProduct(productId);
     if (!existing) {
       return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 });
     }
 
-    const channelState = getExistingProductChannelState(productId);
+    const channelState = await getExistingProductChannelState(productId);
     const body = (await request.json().catch(() => ({}))) as Partial<ProductUpsertInput>;
     const imageUrlProvided = Object.prototype.hasOwnProperty.call(body, "image_url");
     const previousImageUrl = existing.image_url?.trim() || null;
@@ -330,8 +328,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       }
     }
 
-    const updatedProductId = saveProductRecord(payload, productId);
-    const results = recalculateCostResultsForProductFromDatabase(updatedProductId);
+    const updatedProductId = await saveProductRecord(payload, productId);
+    const results = await recalculateCostResultsForProductFromDatabase(updatedProductId);
 
     return NextResponse.json({
       success: true,
@@ -354,12 +352,12 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       return NextResponse.json({ success: false, error: "GeÃƒÂ§ersiz ÃƒÂ¼rÃƒÂ¼n kimliÃ„Å¸i." }, { status: 400 });
     }
 
-    const existing = getExistingProduct(productId);
+    const existing = await getExistingProduct(productId);
     if (!existing) {
       return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 });
     }
 
-    deleteProductRecord(productId);
+    await deleteProductRecord(productId);
 
     return NextResponse.json({
       success: true,

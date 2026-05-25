@@ -1,7 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { Buffer } from "node:buffer";
-import { mkdir, unlink, writeFile } from "node:fs/promises";
-import { extname, join, posix } from "node:path";
+import { put, del } from "@vercel/blob";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
@@ -16,9 +14,12 @@ function resolveExtension(file: File) {
   const mimeExtension = MIME_TO_EXTENSION.get(file.type);
   if (mimeExtension) return mimeExtension;
 
-  const extension = extname(file.name).toLowerCase();
-  if (ALLOWED_EXTENSIONS.has(extension)) {
-    return extension === ".jpeg" ? ".jpg" : extension;
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  if (extension) {
+    const dotExt = "." + extension;
+    if (ALLOWED_EXTENSIONS.has(dotExt)) {
+      return dotExt === ".jpeg" ? ".jpg" : dotExt;
+    }
   }
 
   return null;
@@ -26,29 +27,24 @@ function resolveExtension(file: File) {
 
 export async function saveProductImageUpload(file: File) {
   if (file.size <= 0) {
-    throw new Error("Boş dosya yüklenemez.");
+    throw new Error("Bos dosya yuklenemez.");
   }
 
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error("Görsel boyutu 5 MB sınırını aşmamalı.");
+    throw new Error("Gorsel boyutu 5 MB sinirini asmamali.");
   }
 
   const extension = resolveExtension(file);
   if (!extension) {
-    throw new Error("Sadece JPG, PNG, WebP veya GIF yüklenebilir.");
+    throw new Error("Sadece JPG, PNG, WebP veya GIF yuklenebilir.");
   }
 
-  const uploadDirectory = join(process.cwd(), "public", "uploads", "products");
-  await mkdir(uploadDirectory, { recursive: true });
-
-  const fileName = `${Date.now()}-${randomUUID()}${extension}`;
-  const absolutePath = join(uploadDirectory, fileName);
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(absolutePath, buffer);
+  const fileName = `products/${Date.now()}-${randomUUID()}${extension}`;
+  const blob = await put(fileName, file, { access: "public" });
 
   return {
-    url: `/uploads/products/${fileName}`,
-    fileName,
+    url: blob.url,
+    fileName: blob.pathname,
   };
 }
 
@@ -58,28 +54,10 @@ export async function deleteProductImageUpload(imageUrl: string) {
     return false;
   }
 
-  let pathname: string;
   try {
-    pathname = new URL(trimmedUrl, "http://localhost").pathname;
+    await del(trimmedUrl);
+    return true;
   } catch {
     return false;
-  }
-
-  const normalizedPath = posix.normalize(pathname);
-  if (normalizedPath !== pathname || !normalizedPath.startsWith("/uploads/products/")) {
-    return false;
-  }
-
-  const absolutePath = join(process.cwd(), "public", ...normalizedPath.split("/").filter(Boolean));
-
-  try {
-    await unlink(absolutePath);
-    return true;
-  } catch (error) {
-    if (typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "ENOENT") {
-      return false;
-    }
-
-    throw error;
   }
 }

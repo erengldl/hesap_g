@@ -15,7 +15,7 @@ export async function GET() {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
   try {
-    const expenses = query<{
+    const expenses = await query<{
       expense_id: number;
       profile_id: number | null;
       name: string;
@@ -36,7 +36,7 @@ export async function GET() {
       expenses,
       count: expenses.length,
       active_count: activeExpenses.length,
-      total_active_monthly_amount: Number(getStoreExpenseMonthlyTotal(1).toFixed(2)),
+      total_active_monthly_amount: Number((await getStoreExpenseMonthlyTotal(1)).toFixed(2)),
     });
   } catch (error) {
     console.error("Store expenses GET error:", error);
@@ -63,12 +63,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "VeritabanÃ„Â± baÃ„Å¸lantÃ„Â±sÃ„Â± kullanÃ„Â±lamÃ„Â±yor." }, { status: 500 });
     }
 
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO store_expenses (profile_id, name, monthly_amount, note, status)
       VALUES (1, ?, ?, ?, ?)
     `).run(name, monthlyAmount, note || null, status);
 
-    recalculateAllCostResults();
+    await recalculateAllCostResults();
 
     return NextResponse.json({ success: true });
   } catch (error) {

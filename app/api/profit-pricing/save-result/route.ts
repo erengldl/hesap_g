@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const saved = saveProfitPricingRun({
+    const saved = await saveProfitPricingRun({
       input: body.input,
       note: body.note,
     });

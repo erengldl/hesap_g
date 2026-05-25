@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const applied = applyProfitPricingRun({
+    const applied = await applyProfitPricingRun({
       runId: body.runId,
       confirmed: true,
       price: body.price,

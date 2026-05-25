@@ -144,10 +144,10 @@ function safeNegative(value: number) {
   return -Math.abs(Number.isFinite(value) ? value : 1.5);
 }
 
-function resolveHistoricalSalesVolume(productId: number, marketplaceId?: number) {
+async function resolveHistoricalSalesVolume(productId: number, marketplaceId?: number) {
   const totalUnits30 =
-    getProductSalesVelocity(productId, 30, marketplaceId) * 30 ||
-    getProductSalesVelocity(productId, 30) * 30;
+    (await getProductSalesVelocity(productId, 30, marketplaceId)) * 30 ||
+    (await getProductSalesVelocity(productId, 30)) * 30;
   return Math.max(1, round2(totalUnits30));
 }
 
@@ -193,8 +193,8 @@ function resolveConfidenceScore(input: PriceOptimizationInput, defaultElasticity
   return "Low";
 }
 
-function getCurrentCostResult(productId: number, marketplaceId: number) {
-  return getOne<CostResultRow>(`
+async function getCurrentCostResult(productId: number, marketplaceId: number) {
+  return await getOne<CostResultRow>(`
     SELECT
       product_id,
       marketplace_id,
@@ -216,8 +216,8 @@ function getCurrentCostResult(productId: number, marketplaceId: number) {
   `, [productId, marketplaceId]);
 }
 
-function getCurrentCostResultByProduct(productId: number) {
-  return getOne<CostResultRow>(`
+async function getCurrentCostResultByProduct(productId: number) {
+  return await getOne<CostResultRow>(`
     SELECT
       product_id,
       marketplace_id,
@@ -254,14 +254,14 @@ function getCurrentPoint(price: number, unitCost: number, currentSalesVolume: nu
   };
 }
 
-function getPricePointEconomics(
+async function getPricePointEconomics(
   product: Product,
   marketplace: Marketplace,
   salePrice: number,
   currentCostRow: CostResultRow | null,
-  productSetting?: ReturnType<typeof getProductMarketplaceSetting>
+  productSetting?: Awaited<ReturnType<typeof getProductMarketplaceSetting>>
 ) {
-  const channelCost = calculateChannelCost(marketplace.name, {
+  const channelCost = await calculateChannelCost(marketplace.name, {
     product,
     salePrice,
     adCost: Number(currentCostRow?.unit_ad_cost ?? 0),
@@ -318,8 +318,8 @@ function buildScenarioRows(scenarioData: PriceOptimizationScenarioPoint[]) {
   });
 }
 
-export function listOptimizationMarketplaces() {
-  const marketplaces = getMarketplaces().filter((marketplace) =>
+export async function listOptimizationMarketplaces() {
+  const marketplaces = (await getMarketplaces()).filter((marketplace) =>
     DEFAULT_MARKETPLACE_SEQUENCE.includes((marketplace.slug ?? "") as (typeof DEFAULT_MARKETPLACE_SEQUENCE)[number])
   );
 
@@ -330,25 +330,25 @@ export function listOptimizationMarketplaces() {
   });
 }
 
-export function getOptimizationBootstrap(productId?: number, marketplaceId?: number) {
-  const products = getProducts();
-  const marketplaces = listOptimizationMarketplaces();
+export async function getOptimizationBootstrap(productId?: number, marketplaceId?: number) {
+  const products = await getProducts();
+  const marketplaces = await listOptimizationMarketplaces();
 
   if (products.length === 0 || marketplaces.length === 0) {
     return null;
   }
 
   const selectedProduct = products.find((product) => product.id === (productId ?? products[0].id)) ?? products[0];
-  const defaultCostRow = getCurrentCostResultByProduct(selectedProduct.id) ?? null;
+  const defaultCostRow = await getCurrentCostResultByProduct(selectedProduct.id) ?? null;
   const selectedMarketplace =
     marketplaces.find((marketplace) => marketplace.id === (marketplaceId ?? defaultCostRow?.marketplace_id ?? marketplaces[0].id)) ??
     marketplaces[0];
 
-  const selectedCostRow = getCurrentCostResult(selectedProduct.id, selectedMarketplace.id) ?? defaultCostRow;
+  const selectedCostRow = await getCurrentCostResult(selectedProduct.id, selectedMarketplace.id) ?? defaultCostRow;
   const currentPrice = Number(selectedCostRow?.list_price ?? selectedProduct.sale_price ?? 0);
   const currentUnitCost = Number(selectedCostRow?.total_unit_cost ?? Math.max(selectedProduct.cost + selectedProduct.packaging_cost, 0));
   const defaultElasticity = resolveDefaultElasticity(selectedProduct);
-  const currentSalesVolume = resolveHistoricalSalesVolume(selectedProduct.id, selectedMarketplace.id);
+  const currentSalesVolume = await resolveHistoricalSalesVolume(selectedProduct.id, selectedMarketplace.id);
   const stock = resolveHistoricalStock(currentSalesVolume);
   const minPrice = round2(Math.max(1, Math.min(currentPrice * 0.75, currentUnitCost * 1.05)));
   const maxPrice = round2(Math.max(minPrice + 20, currentPrice * 1.35, currentUnitCost * 1.8));
@@ -370,20 +370,20 @@ export function getOptimizationBootstrap(productId?: number, marketplaceId?: num
   };
 }
 
-export function buildSynchronizedOptimizationPreview(productId?: number, marketplaceId?: number) {
-  const initialBootstrap = getOptimizationBootstrap(productId, marketplaceId);
+export async function buildSynchronizedOptimizationPreview(productId?: number, marketplaceId?: number) {
+  const initialBootstrap = await getOptimizationBootstrap(productId, marketplaceId);
   if (!initialBootstrap) {
     return null;
   }
 
-  recalculateCostResultsForProduct(initialBootstrap.defaults.productId);
+  await recalculateCostResultsForProduct(initialBootstrap.defaults.productId);
 
-  const refreshedBootstrap = getOptimizationBootstrap(initialBootstrap.defaults.productId, initialBootstrap.defaults.marketplaceId);
+  const refreshedBootstrap = await getOptimizationBootstrap(initialBootstrap.defaults.productId, initialBootstrap.defaults.marketplaceId);
   if (!refreshedBootstrap) {
     return null;
   }
 
-  const result = runPriceOptimizationFromBootstrap(refreshedBootstrap.defaults, refreshedBootstrap);
+  const result = await runPriceOptimizationFromBootstrap(refreshedBootstrap.defaults, refreshedBootstrap);
   if (!result) {
     return null;
   }
@@ -394,20 +394,20 @@ export function buildSynchronizedOptimizationPreview(productId?: number, marketp
   };
 }
 
-export function buildSynchronizedOptimizationAnalysis(input: PriceOptimizationInput) {
-  const initialBootstrap = getOptimizationBootstrap(input.productId, input.marketplaceId);
+export async function buildSynchronizedOptimizationAnalysis(input: PriceOptimizationInput) {
+  const initialBootstrap = await getOptimizationBootstrap(input.productId, input.marketplaceId);
   if (!initialBootstrap) {
     return null;
   }
 
-  recalculateCostResultsForProduct(initialBootstrap.defaults.productId);
+  await recalculateCostResultsForProduct(initialBootstrap.defaults.productId);
 
-  const refreshedBootstrap = getOptimizationBootstrap(initialBootstrap.defaults.productId, initialBootstrap.defaults.marketplaceId);
+  const refreshedBootstrap = await getOptimizationBootstrap(initialBootstrap.defaults.productId, initialBootstrap.defaults.marketplaceId);
   if (!refreshedBootstrap) {
     return null;
   }
 
-  const result = runPriceOptimizationFromBootstrap(input, refreshedBootstrap);
+  const result = await runPriceOptimizationFromBootstrap(input, refreshedBootstrap);
   if (!result) {
     return null;
   }
@@ -418,23 +418,23 @@ export function buildSynchronizedOptimizationAnalysis(input: PriceOptimizationIn
   };
 }
 
-type OptimizationBootstrap = NonNullable<ReturnType<typeof getOptimizationBootstrap>>;
+type OptimizationBootstrap = NonNullable<Awaited<ReturnType<typeof getOptimizationBootstrap>>>;
 
-function runPriceOptimizationFromBootstrap(
+async function runPriceOptimizationFromBootstrap(
   input: PriceOptimizationInput,
   bootstrap: OptimizationBootstrap
-): PriceOptimizationResult | null {
+): Promise<PriceOptimizationResult | null> {
   const product = bootstrap.products.find((item) => item.id === input.productId) ?? null;
   const marketplace = bootstrap.marketplaces.find((item) => item.id === input.marketplaceId) ?? null;
   if (!product || !marketplace) {
     return null;
   }
 
-  const currentCostRow = getCurrentCostResult(product.id, marketplace.id);
-  const productSetting = getProductMarketplaceSetting(product.id, marketplace.id);
+  const currentCostRow = await getCurrentCostResult(product.id, marketplace.id);
+  const productSetting = await getProductMarketplaceSetting(product.id, marketplace.id);
   const currentPrice = Number(bootstrap.currentPrice ?? product.sale_price ?? 0);
-  const currentEconomics = getPricePointEconomics(product, marketplace, currentPrice, currentCostRow, productSetting);
-  const baseDemand = Math.max(1, resolveHistoricalSalesVolume(product.id, marketplace.id));
+  const currentEconomics = await getPricePointEconomics(product, marketplace, currentPrice, currentCostRow, productSetting);
+  const baseDemand = Math.max(1, await resolveHistoricalSalesVolume(product.id, marketplace.id));
   const stock = Math.max(0, Number(input.stock ?? 0) > 0 ? Number(input.stock) : resolveHistoricalStock(baseDemand));
   const minPrice = round2(Math.max(1, Number(input.minPrice ?? 0)));
   const maxPrice = round2(Math.max(minPrice + 1, Number(input.maxPrice ?? 0)));
@@ -453,11 +453,11 @@ function runPriceOptimizationFromBootstrap(
   // Q(P) = Q0 * (P / P0)^E
   // Grid search drives the candidate prices through the elasticity model.
   const priceGrid = linspace(minPrice, maxPrice, PRICE_GRID_POINT_COUNT);
-  const scenario_data = priceGrid.map((price) => {
+  const scenario_data = await Promise.all(priceGrid.map(async (price) => {
     const safeCurrentPrice = Math.max(0.01, currentPrice);
     const demandRaw = baseDemand * Math.pow(price / safeCurrentPrice, elasticityEstimate);
     const expectedDemand = round2(stock > 0 ? clampNumber(demandRaw, 0, stock) : 0);
-    const economics = getPricePointEconomics(product, marketplace, price, currentCostRow, productSetting);
+    const economics = await getPricePointEconomics(product, marketplace, price, currentCostRow, productSetting);
     const unitProfit = economics.unitProfitAfterVat;
     const totalProfit = round2(unitProfit * expectedDemand);
     const revenue = round2(price * expectedDemand);
@@ -473,7 +473,7 @@ function runPriceOptimizationFromBootstrap(
       commission_cost: economics.commissionCost,
       estimated_vat_payable: economics.estimatedVatPayable,
     };
-  });
+  }));
 
   const recommendedPoint = scenario_data.reduce((best, current) => {
     if (current.total_profit > best.total_profit) return current;
@@ -542,16 +542,16 @@ function runPriceOptimizationFromBootstrap(
   };
 }
 
-export function runPriceOptimization(input: PriceOptimizationInput): PriceOptimizationResult | null {
-  const bootstrap = getOptimizationBootstrap(input.productId, input.marketplaceId);
+export async function runPriceOptimization(input: PriceOptimizationInput): Promise<PriceOptimizationResult | null> {
+  const bootstrap = await getOptimizationBootstrap(input.productId, input.marketplaceId);
   if (!bootstrap) {
     return null;
   }
 
-  return runPriceOptimizationFromBootstrap(input, bootstrap);
+  return await runPriceOptimizationFromBootstrap(input, bootstrap);
 }
 
-export function savePriceOptimizationRun(result: PriceOptimizationResult) {
+export async function savePriceOptimizationRun(result: PriceOptimizationResult) {
   const db = getDb();
   if (!db) {
     return null;
@@ -560,7 +560,7 @@ export function savePriceOptimizationRun(result: PriceOptimizationResult) {
   const runId = result.run_id ?? randomUUID();
   const status: PriceOptimizationRunStatus = result.run_status ?? "DRAFT";
   const publishedAt = status === "PUBLISHED" ? new Date().toISOString() : null;
-  db.prepare(`
+  await db.prepare(`
     INSERT INTO price_optimization_runs (
       run_id,
       product_id,
@@ -603,8 +603,8 @@ export function savePriceOptimizationRun(result: PriceOptimizationResult) {
   return runId;
 }
 
-export function getPriceOptimizationRun(runId: string) {
-  return getOne<PriceOptimizationRunRecord>(`
+export async function getPriceOptimizationRun(runId: string) {
+  return await getOne<PriceOptimizationRunRecord>(`
     SELECT
       run_id,
       product_id,
@@ -630,14 +630,14 @@ export function getPriceOptimizationRun(runId: string) {
   `, [runId]);
 }
 
-export function markPriceOptimizationRunPublished(runId: string) {
+export async function markPriceOptimizationRunPublished(runId: string) {
   const db = getDb();
   if (!db) {
     return false;
   }
 
   const publishedAt = new Date().toISOString();
-  const result = db.prepare(`
+  const result = await db.prepare(`
     UPDATE price_optimization_runs
     SET status = 'PUBLISHED',
         published_at = COALESCE(published_at, ?)

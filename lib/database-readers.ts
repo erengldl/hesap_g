@@ -113,8 +113,8 @@ function toProduct(row: RawProductRow, productSettings: ProductMarketplaceSettin
   };
 }
 
-export function getProfitPricingProductOptions() {
-  const rows = query<ProfitPricingProductOptionRow>(`
+export async function getProfitPricingProductOptions() {
+  const rows = await query<ProfitPricingProductOptionRow>(`
     SELECT
       p.product_id AS id,
       p.name,
@@ -145,28 +145,28 @@ export function getProfitPricingProductOptions() {
   return Array.from(optionsByProduct.values());
 }
 
-export function getMarketplaces() {
-  return query<RawMarketplaceRow>("SELECT marketplace_id AS id, name, COALESCE(slug, '') AS slug FROM marketplaces");
+export async function getMarketplaces() {
+  return await query<RawMarketplaceRow>("SELECT marketplace_id AS id, name, COALESCE(slug, '') AS slug FROM marketplaces");
 }
 
-export function getCategories() {
-  return query('SELECT * FROM categories');
+export async function getCategories() {
+  return await query('SELECT * FROM categories');
 }
 
-export function getMarketplaceCategories() {
-  return query('SELECT category_id, parent_id, name, level, path FROM categories ORDER BY level, name');
+export async function getMarketplaceCategories() {
+  return await query('SELECT category_id, parent_id, name, level, path FROM categories ORDER BY level, name');
 }
 
-export function getShippingCompanies() {
-  return query('SELECT * FROM shipping_companies');
+export async function getShippingCompanies() {
+  return await query('SELECT * FROM shipping_companies');
 }
 
 /**
  * Returns the contracted shipping companies for a specific marketplace.
  * Joins marketplace_shipping_options with shipping_companies.
  */
-export function getCarriersByMarketplace(marketplaceName: string) {
-  return query<{ shipping_company_id: number; name: string }>(
+export async function getCarriersByMarketplace(marketplaceName: string) {
+  return await query<{ shipping_company_id: number; name: string }>(
     `SELECT sc.shipping_company_id, sc.name
      FROM marketplace_shipping_options mso
      JOIN shipping_companies sc ON sc.shipping_company_id = mso.shipping_company_id
@@ -177,18 +177,18 @@ export function getCarriersByMarketplace(marketplaceName: string) {
   );
 }
 
-export function getShippingRates() {
-  return query('SELECT * FROM shipping_rate_rules');
+export async function getShippingRates() {
+  return await query('SELECT * FROM shipping_rate_rules');
 }
 
 /**
  * Returns the cheapest carrier for a given marketplace and desi value.
  * Looks up the shipping_rate_rules table for exact desi match.
  */
-export function getCheapestCarrierForDesi(marketplaceName: string, desi: number) {
+export async function getCheapestCarrierForDesi(marketplaceName: string, desi: number) {
   const roundedDesi = Math.max(0, Math.ceil(desi));
   
-  const result = getOne<{ company_name: string; price: number }>(
+  const result = await getOne<{ company_name: string; price: number }>(
     `SELECT sc.name AS company_name, srr.price
      FROM shipping_rate_rules srr
      JOIN shipping_companies sc ON sc.shipping_company_id = srr.shipping_company_id
@@ -202,24 +202,24 @@ export function getCheapestCarrierForDesi(marketplaceName: string, desi: number)
   return result ?? null;
 }
 
-export function getCommissionRules() {
-  return query('SELECT * FROM commission_rules');
+export async function getCommissionRules() {
+  return await query('SELECT * FROM commission_rules');
 }
 
-export function getPlatformFeeRules() {
-  return query('SELECT * FROM platform_fee_rules');
+export async function getPlatformFeeRules() {
+  return await query('SELECT * FROM platform_fee_rules');
 }
 
-export function getPaymentGatewayRules() {
-  return query('SELECT * FROM payment_gateway_rules');
+export async function getPaymentGatewayRules() {
+  return await query('SELECT * FROM payment_gateway_rules');
 }
 
-export function getSellerProfiles() {
-  return query('SELECT * FROM seller_profiles');
+export async function getSellerProfiles() {
+  return await query('SELECT * FROM seller_profiles');
 }
 
-export function getProducts() {
-  const rows = query<RawProductRow>(`
+export async function getProducts() {
+  const rows = await query<RawProductRow>(`
     SELECT
       p.product_id AS id,
       p.name,
@@ -254,7 +254,7 @@ export function getProducts() {
     return [];
   }
 
-  const settingsRows = query<ProductMarketplaceSettingRow>(`
+  const settingsRows = await query<ProductMarketplaceSettingRow>(`
     SELECT
       ms.product_id,
       ms.sale_price,
@@ -276,8 +276,8 @@ export function getProducts() {
   return rows.map((row): Product => toProduct(row, settingsByProduct.get(row.id) ?? []));
 }
 
-export function getProductById(productId: number) {
-  return getOne<RawProductRow>(`
+export async function getProductById(productId: number) {
+  return await getOne<RawProductRow>(`
     SELECT
       p.product_id AS id,
       p.name,
@@ -310,13 +310,13 @@ export function getProductById(productId: number) {
   `, [productId]);
 }
 
-export function getProductSnapshot(productId: number) {
-  const row = getProductById(productId);
+export async function getProductSnapshot(productId: number) {
+  const row = await getProductById(productId);
   if (!row) {
     return null;
   }
 
-  const productSettings = query<ProductMarketplaceSettingRow>(`
+  const productSettings = await query<ProductMarketplaceSettingRow>(`
     SELECT
       ms.product_id,
       ms.sale_price,
@@ -332,13 +332,13 @@ export function getProductSnapshot(productId: number) {
   return toProduct(row, productSettings);
 }
 
-export function getDefaultProductId() {
-  const product = getOne<{ product_id: number }>('SELECT product_id FROM products ORDER BY product_id ASC LIMIT 1');
+export async function getDefaultProductId() {
+  const product = await getOne<{ product_id: number }>('SELECT product_id FROM products ORDER BY product_id ASC LIMIT 1');
   return product?.product_id ?? null;
 }
 
-export function getStoreExpenses(profileId = 1) {
-  return query<StoreExpenseRow>(`
+export async function getStoreExpenses(profileId = 1) {
+  return await query<StoreExpenseRow>(`
     SELECT
       expense_id,
       profile_id,
@@ -352,8 +352,8 @@ export function getStoreExpenses(profileId = 1) {
   `, [profileId]);
 }
 
-export function getStoreExpenseMonthlyTotal(profileId = 1) {
-  const row = getOne<{ total: number | null }>(`
+export async function getStoreExpenseMonthlyTotal(profileId = 1) {
+  const row = await getOne<{ total: number | null }>(`
     SELECT SUM(monthly_amount) AS total
     FROM store_expenses
     WHERE profile_id = ? AND COALESCE(status, 'active') = 'active'
@@ -361,8 +361,8 @@ export function getStoreExpenseMonthlyTotal(profileId = 1) {
   return Number(row?.total ?? 0);
 }
 
-export function getStoreExpenseById(expenseId: number) {
-  return getOne<StoreExpenseRow>(`
+export async function getStoreExpenseById(expenseId: number) {
+  return await getOne<StoreExpenseRow>(`
     SELECT
       expense_id,
       profile_id,
@@ -376,12 +376,12 @@ export function getStoreExpenseById(expenseId: number) {
   `, [expenseId]);
 }
 
-export function getSellerProfileById(profileId = 1) {
-  return getOne<Record<string, unknown>>('SELECT * FROM seller_profiles WHERE profile_id = ? LIMIT 1', [profileId]);
+export async function getSellerProfileById(profileId = 1) {
+  return await getOne<Record<string, unknown>>('SELECT * FROM seller_profiles WHERE profile_id = ? LIMIT 1', [profileId]);
 }
 
-export function getOwnWebsiteGatewayRule() {
-  return getOne<{
+export async function getOwnWebsiteGatewayRule() {
+  return await getOne<{
     id: number;
     seller_profile_id: number | null;
     marketplace_id: number;
@@ -407,11 +407,11 @@ export function getOwnWebsiteGatewayRule() {
   `);
 }
 
-export function getProductMarketplaceSettings(productId: number) {
-  return query('SELECT * FROM product_marketplace_settings WHERE product_id = ?', [productId]);
+export async function getProductMarketplaceSettings(productId: number) {
+  return await query('SELECT * FROM product_marketplace_settings WHERE product_id = ?', [productId]);
 }
 
-export function getDatabaseCounts() {
+export async function getDatabaseCounts() {
   const tables = [
     'categories',
     'marketplaces',
@@ -431,27 +431,27 @@ export function getDatabaseCounts() {
   const counts: Record<string, number | null> = {};
   
   for (const table of tables) {
-    const result = getOne<{ count: number }>(`SELECT COUNT(*) as count FROM ${table}`);
+    const result = await getOne<{ count: number }>(`SELECT COUNT(*) as count FROM ${table}`);
     counts[table] = result ? result.count : null;
   }
   
   return counts;
 }
 
-export function getCategoryByPath(path: string) {
-  return getOne('SELECT * FROM categories WHERE path = ?', [path]);
+export async function getCategoryByPath(path: string) {
+  return await getOne('SELECT * FROM categories WHERE path = ?', [path]);
 }
 
-export function getMarketplaceBySlug(slug: string) {
-  return getOne<Marketplace>('SELECT marketplace_id AS id, name, slug FROM marketplaces WHERE slug = ?', [slug]);
+export async function getMarketplaceBySlug(slug: string) {
+  return await getOne<Marketplace>('SELECT marketplace_id AS id, name, slug FROM marketplaces WHERE slug = ?', [slug]);
 }
 
-export function getMarketplaceById(marketplaceId: number) {
-  return getOne<Marketplace>('SELECT marketplace_id AS id, name, slug FROM marketplaces WHERE marketplace_id = ? LIMIT 1', [marketplaceId]);
+export async function getMarketplaceById(marketplaceId: number) {
+  return await getOne<Marketplace>('SELECT marketplace_id AS id, name, slug FROM marketplaces WHERE marketplace_id = ? LIMIT 1', [marketplaceId]);
 }
 
-export function getProductMarketplaceSetting(productId: number, marketplaceId: number) {
-  return getOne<{
+export async function getProductMarketplaceSetting(productId: number, marketplaceId: number) {
+  return await getOne<{
     setting_id: number;
     product_id: number;
     marketplace_id: number;
@@ -485,8 +485,8 @@ export function getProductMarketplaceSetting(productId: number, marketplaceId: n
   `, [productId, marketplaceId]);
 }
 
-export function getPlatformFeeRulesByMarketplaceId(marketplaceId: number) {
-  return query(`
+export async function getPlatformFeeRulesByMarketplaceId(marketplaceId: number) {
+  return await query(`
     SELECT *
     FROM platform_fee_rules
     WHERE marketplace_id = ? AND COALESCE(is_active, 1) = 1
@@ -494,8 +494,8 @@ export function getPlatformFeeRulesByMarketplaceId(marketplaceId: number) {
   `, [marketplaceId]);
 }
 
-export function getPaymentGatewayRuleById(ruleId: number) {
-  return getOne<{
+export async function getPaymentGatewayRuleById(ruleId: number) {
+  return await getOne<{
     id: number;
     seller_profile_id: number | null;
     marketplace_id: number;
@@ -513,11 +513,11 @@ export function getPaymentGatewayRuleById(ruleId: number) {
 
 // Tariff Readers
 
-export function getCommissionTariffsByMarketplace(marketplaceName: string) {
-  const m = getOne<{ marketplace_id: number }>('SELECT marketplace_id FROM marketplaces WHERE name = ?', [marketplaceName]);
+export async function getCommissionTariffsByMarketplace(marketplaceName: string) {
+  const m = await getOne<{ marketplace_id: number }>('SELECT marketplace_id FROM marketplaces WHERE name = ?', [marketplaceName]);
   if (!m) return [];
 
-  return query(`
+  return await query(`
     SELECT 
       cr.*, 
       c.name as category_name, 
@@ -530,8 +530,8 @@ export function getCommissionTariffsByMarketplace(marketplaceName: string) {
   `, [m.marketplace_id]);
 }
 
-export function getCommissionTariffSummaryByMarketplace(marketplaceName: string) {
-  const tariffs = getCommissionTariffsByMarketplace(marketplaceName) as Array<{
+export async function getCommissionTariffSummaryByMarketplace(marketplaceName: string) {
+  const tariffs = await getCommissionTariffsByMarketplace(marketplaceName) as Array<{
     category_name: string | null;
     category_path: string | null;
     raw_category_name?: string | null;
@@ -563,15 +563,15 @@ export function getCommissionTariffSummaryByMarketplace(marketplaceName: string)
   return Array.from(summary.values()).sort((left, right) => left.main_category_name.localeCompare(right.main_category_name, "tr"));
 }
 
-export function getCommissionForCategory(marketplaceName: string, categoryId: number) {
-  const m = getOne<{ marketplace_id: number }>('SELECT marketplace_id FROM marketplaces WHERE name = ?', [marketplaceName]);
+export async function getCommissionForCategory(marketplaceName: string, categoryId: number) {
+  const m = await getOne<{ marketplace_id: number }>('SELECT marketplace_id FROM marketplaces WHERE name = ?', [marketplaceName]);
   if (!m) return null;
 
-  const targetCategory = getOne<{ name: string, path: string }>('SELECT name, path FROM categories WHERE category_id = ?', [categoryId]);
+  const targetCategory = await getOne<{ name: string, path: string }>('SELECT name, path FROM categories WHERE category_id = ?', [categoryId]);
   const selectedCategoryPath = targetCategory?.path || targetCategory?.name || "Bilinmeyen Kategori";
 
   // 1. Direct match
-  let rule = getOne<any>(`
+  let rule = await getOne<any>(`
     SELECT cr.*, c.path as category_path, c.name as category_name
     FROM commission_rules cr
     JOIN categories c ON c.category_id = cr.category_id
@@ -592,11 +592,11 @@ export function getCommissionForCategory(marketplaceName: string, categoryId: nu
   // 2. Parent fallback
   let currentCategoryId = categoryId;
   while (true) {
-    const cat = getOne<{ parent_id: number }>('SELECT parent_id FROM categories WHERE category_id = ?', [currentCategoryId]);
+    const cat = await getOne<{ parent_id: number }>('SELECT parent_id FROM categories WHERE category_id = ?', [currentCategoryId]);
     if (!cat || !cat.parent_id) break;
 
     currentCategoryId = cat.parent_id;
-    rule = getOne<any>(`
+    rule = await getOne<any>(`
       SELECT cr.*, c.path as category_path, c.name as category_name
       FROM commission_rules cr
       JOIN categories c ON c.category_id = cr.category_id
@@ -616,7 +616,7 @@ export function getCommissionForCategory(marketplaceName: string, categoryId: nu
   }
 
   // 3. Global fallback
-  rule = getOne<any>(`
+  rule = await getOne<any>(`
     SELECT cr.*
     FROM commission_rules cr
     WHERE cr.marketplace_id = ?
@@ -637,18 +637,18 @@ export function getCommissionForCategory(marketplaceName: string, categoryId: nu
   return null;
 }
 
-export function getShippingTariffMatrix(marketplaceName: string) {
-  const m = getOne<{ marketplace_id: number }>('SELECT marketplace_id FROM marketplaces WHERE name = ?', [marketplaceName]);
+export async function getShippingTariffMatrix(marketplaceName: string) {
+  const m = await getOne<{ marketplace_id: number }>('SELECT marketplace_id FROM marketplaces WHERE name = ?', [marketplaceName]);
   if (!m) return null;
 
-  const companies = query<{ shipping_company_id: number, name: string }>(`
+  const companies = await query<{ shipping_company_id: number, name: string }>(`
     SELECT DISTINCT sc.shipping_company_id, sc.name
     FROM shipping_companies sc
     JOIN shipping_rate_rules srr ON srr.shipping_company_id = sc.shipping_company_id
     WHERE srr.marketplace_id = ?
   `, [m.marketplace_id]);
 
-  const rules = query<any>(`
+  const rules = await query<any>(`
     SELECT * FROM shipping_rate_rules 
     WHERE marketplace_id = ?
     ORDER BY desi_min ASC

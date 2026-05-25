@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
     const auth = getFirebaseAdminAuth();
     const decoded = await auth.verifyIdToken(idToken, true);
-    const user = upsertFirebaseUserFromClaims(
+    const user = await upsertFirebaseUserFromClaims(
       decoded,
       body.displayName ?? body.name ?? decoded.name ?? null
     );

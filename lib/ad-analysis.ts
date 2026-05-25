@@ -305,14 +305,14 @@ export function getCampaignPlatformConfig(platform: CampaignPlatformId) {
   return PLATFORM_CONFIG[platform];
 }
 
-function getBaselineTrafficCpa(productId: number, settingMap?: Map<number, ProductSettingRow>) {
-  const productSetting = settingMap?.get(productId) ?? (getProductMarketplaceSetting(productId, 3) as ProductSettingRow | null);
-  const gateway = getOwnWebsiteGatewayRule();
+async function getBaselineTrafficCpa(productId: number, settingMap?: Map<number, ProductSettingRow>) {
+  const productSetting = settingMap?.get(productId) ?? (await getProductMarketplaceSetting(productId, 3) as ProductSettingRow | null);
+  const gateway = await getOwnWebsiteGatewayRule();
   return round2(Number(productSetting?.traffic_cpa ?? gateway?.avg_ad_cost ?? 56.2));
 }
 
-function getOwnWebsiteCostResult(product: Product) {
-  const row = query<CostResultRow>(
+async function getOwnWebsiteCostResult(product: Product) {
+  const row = (await query<CostResultRow>(
     `
       SELECT
         product_id,
@@ -329,17 +329,17 @@ function getOwnWebsiteCostResult(product: Product) {
       LIMIT 1
     `,
     [product.id]
-  )[0];
+  ))[0];
 
   if (row) {
     return row;
   }
 
-  const productSetting = getProductMarketplaceSetting(product.id, 3) as ProductSettingRow | null;
-  const gateway = getOwnWebsiteGatewayRule();
-  const baselineCpa = getBaselineTrafficCpa(product.id);
+  const productSetting = await getProductMarketplaceSetting(product.id, 3) as ProductSettingRow | null;
+  const gateway = await getOwnWebsiteGatewayRule();
+  const baselineCpa = await getBaselineTrafficCpa(product.id);
 
-  const calculation = calculateChannelCost("Kendi Websitem", {
+  const calculation = await calculateChannelCost("Kendi Websitem", {
     product,
     salePrice: Number(productSetting?.sale_price ?? product.sale_price ?? 0),
     manualShippingCost: Number(productSetting?.manual_shipping_cost ?? gateway?.manual_shipping_cost ?? 95),
@@ -371,8 +371,8 @@ function getOwnWebsiteCostResult(product: Product) {
   };
 }
 
-function getProductSettingMap() {
-  const rows = query<ProductSettingRow>(
+async function getProductSettingMap() {
+  const rows = await query<ProductSettingRow>(
     `
       SELECT
         product_id,
@@ -390,8 +390,8 @@ function getProductSettingMap() {
   return new Map(rows.map((row) => [row.product_id, row]));
 }
 
-function getProductMap() {
-  return new Map(getProducts().map((product) => [product.id, product]));
+async function getProductMap() {
+  return new Map((await getProducts()).map((product) => [product.id, product]));
 }
 
 function buildMetricWindow(windowDays: number) {
@@ -528,7 +528,7 @@ function buildCampaignMetric(accumulator: CampaignAccumulator, windowStart: stri
   };
 }
 
-function persistCampaignMetrics(rows: CampaignProfitMetric[]) {
+async function persistCampaignMetrics(rows: CampaignProfitMetric[]) {
   const db = getDb();
   if (!db) return false;
 
@@ -567,10 +567,10 @@ function persistCampaignMetrics(rows: CampaignProfitMetric[]) {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  const trx = db.transaction(() => {
-    db.prepare("DELETE FROM campaign_profit_metrics").run();
+  await db.transaction(async () => {
+    await db.prepare("DELETE FROM campaign_profit_metrics").run();
     for (const row of rows) {
-      insert.run(
+      await insert.run(
         row.campaign_id,
       row.campaign_name,
       row.platform_slug,
@@ -604,22 +604,20 @@ function persistCampaignMetrics(rows: CampaignProfitMetric[]) {
       );
     }
   });
-
-  trx();
   return true;
 }
 
-function buildFallbackCostResult(product: Product) {
-  return getOwnWebsiteCostResult(product);
+async function buildFallbackCostResult(product: Product) {
+  return await getOwnWebsiteCostResult(product);
 }
 
-function collectCampaignRows(windowStart: string, windowEnd: string) {
-  const productMap = getProductMap();
-  const settingMap = getProductSettingMap();
+async function collectCampaignRows(windowStart: string, windowEnd: string) {
+  const productMap = await getProductMap();
+  const settingMap = await getProductSettingMap();
   const costMap = new Map<number, CostResultRow>();
   const uniqueOrderIds = new Set<number>();
 
-  const costRows = query<CostResultRow>(
+  const costRows = await query<CostResultRow>(
     `
       SELECT
         product_id,
@@ -640,7 +638,7 @@ function collectCampaignRows(windowStart: string, windowEnd: string) {
     costMap.set(row.product_id, row);
   }
 
-  const orderRows = query<CampaignOrderRow>(
+  const orderRows = await query<CampaignOrderRow>(
     `
       SELECT
         o.order_id,
@@ -715,8 +713,8 @@ function collectCampaignRows(windowStart: string, windowEnd: string) {
       cpaSamples: [],
     };
 
-    const baselineTrafficCpa = getBaselineTrafficCpa(product.id, settingMap);
-    const costResult = costMap.get(product.id) ?? (buildFallbackCostResult(product) as unknown as CostResultRow);
+    const baselineTrafficCpa = await getBaselineTrafficCpa(product.id, settingMap);
+    const costResult = costMap.get(product.id) ?? (await buildFallbackCostResult(product));
     const baseNetProfitPerUnit = round2(Number(costResult.net_profit ?? 0));
     const quantity = Math.max(1, roundWhole(Number(row.quantity ?? 1)));
     const lineTotal = round2(Number(row.line_total ?? 0));
@@ -740,7 +738,7 @@ function collectCampaignRows(windowStart: string, windowEnd: string) {
   const campaignRows = Array.from(accumulators.values()).map((accumulator) => buildCampaignMetric(accumulator, windowStartDate, windowEndDate));
   totalOrders = uniqueOrderIds.size;
 
-  const persisted = persistCampaignMetrics(campaignRows);
+  const persisted = await persistCampaignMetrics(campaignRows);
   const lastSyncedAt = campaignRows.length > 0 ? campaignRows[0].last_calculated_at : new Date().toISOString();
 
   return {
@@ -755,17 +753,17 @@ function collectCampaignRows(windowStart: string, windowEnd: string) {
   };
 }
 
-export function buildAdAnalysis(windowDays = 30): AdAnalysisResponse | null {
+export async function buildAdAnalysis(windowDays = 30): Promise<AdAnalysisResponse | null> {
   const db = getDb();
   if (!db) return null;
 
-  const productCountRow = db.prepare("SELECT COUNT(*) AS count FROM products").get() as { count: number };
+  const productCountRow = await db.prepare("SELECT COUNT(*) AS count FROM products").get() as { count: number };
   if ((productCountRow?.count ?? 0) === 0) {
     return null;
   }
 
   const metricWindow = buildMetricWindow(windowDays);
-  const { campaignRows, lastSyncedAt, windowStart, windowEnd, windowDays: resolvedWindowDays, totalOrders, totalUnits } = collectCampaignRows(metricWindow.start, metricWindow.end);
+  const { campaignRows, lastSyncedAt, windowStart, windowEnd, windowDays: resolvedWindowDays, totalOrders, totalUnits } = await collectCampaignRows(metricWindow.start, metricWindow.end);
   if (campaignRows.length === 0) {
     return null;
   }
@@ -849,6 +847,6 @@ export function buildAdAnalysis(windowDays = 30): AdAnalysisResponse | null {
   };
 }
 
-export function refreshCampaignProfitMetrics(windowDays = 30) {
-  return buildAdAnalysis(windowDays);
+export async function refreshCampaignProfitMetrics(windowDays = 30) {
+  return await buildAdAnalysis(windowDays);
 }

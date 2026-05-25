@@ -27,8 +27,8 @@ const SUPPORTED_MARKETPLACES: Array<{
   { marketplace_id: 2, marketplace_slug: "hepsiburada", marketplace_name: "Hepsiburada" },
 ];
 
-function buildLocalFallbackStatus(serviceError?: string) {
-  const rows = query<LocalMarketplaceStatusRow>(`
+async function buildLocalFallbackStatus(serviceError?: string) {
+  const rows = await query<LocalMarketplaceStatusRow>(`
     SELECT
       m.marketplace_id,
       m.slug AS marketplace_slug,
@@ -119,5 +119,5 @@ export async function GET() {
     serviceError = undefined;
   }
 
-  return buildLocalFallbackStatus(serviceError);
+  return await buildLocalFallbackStatus(serviceError);
 }
