@@ -60,7 +60,7 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
-    let authMode: "local" | "firebase" | "misconfigured" = "local";
+    let authMode: "firebase" | "misconfigured" = "misconfigured";
     try {
       const authConfig = await loadPublicAuthConfig();
       authMode = authConfig.authMode;
@@ -85,25 +85,6 @@ export default function RegisterPage() {
         router.refresh();
         return;
       }
-
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setError(data.error || "Kayıt başarısız.");
-        return;
-      }
-
-      if (data.user) {
-        setUser(data.user);
-      }
-
-      router.push("/dashboard");
-      router.refresh();
     } catch (error) {
       if (authMode === "firebase") {
         await signOutFirebaseClient().catch(() => {});

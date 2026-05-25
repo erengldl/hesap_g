@@ -1,4 +1,4 @@
-export type ClientAuthMode = "local" | "firebase" | "misconfigured";
+export type ClientAuthMode = "firebase" | "misconfigured";
 
 export type PublicAuthConfig = {
   authMode: ClientAuthMode;
@@ -6,8 +6,8 @@ export type PublicAuthConfig = {
 };
 
 const FALLBACK_AUTH_CONFIG: PublicAuthConfig = {
-  authMode: "local",
-  error: null,
+  authMode: "misconfigured",
+  error: "Kimlik dogrulama yapilandirmasi alinamadi.",
 };
 
 let authConfigPromise: Promise<PublicAuthConfig> | null = null;
@@ -32,7 +32,7 @@ export async function loadPublicAuthConfig(): Promise<PublicAuthConfig> {
       const data = (await response.json().catch(() => null)) as Partial<PublicAuthConfig> | null;
       const authMode = data?.authMode;
 
-      if (authMode === "firebase" || authMode === "misconfigured" || authMode === "local") {
+      if (authMode === "firebase" || authMode === "misconfigured") {
         return {
           authMode,
           error: typeof data?.error === "string" ? data.error : null,

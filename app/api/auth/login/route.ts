@@ -2,9 +2,18 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { verifyPassword, signToken, AuthUser } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { resolveServerAuthMode } from "@/lib/firebase/auth-mode";
 
 export async function POST(request: Request) {
   try {
+    const authConfig = resolveServerAuthMode();
+    if (authConfig.authMode !== "firebase") {
+      return NextResponse.json(
+        { success: false, error: authConfig.error || "Yerel giris devre disi." },
+        { status: 403 }
+      );
+    }
+
     const rateLimitResult = checkRateLimit(request, {
       limit: 5,
       windowSeconds: 60,
