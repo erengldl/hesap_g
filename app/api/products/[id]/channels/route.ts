@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 
 import { recalculateCostResultsForProductFromDatabase } from "@/lib/cost-engine";
 import { getDb } from "@/lib/db";
@@ -63,11 +64,13 @@ function getDefaultMarketplaceShippingCompanyId(db: NonNullable<ReturnType<typeo
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const { id } = await params;
     const productId = parseProductId(id);
     if (!productId) {
-      return NextResponse.json({ success: false, error: "Geçersiz ürün kimliği." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "GeÃƒÂ§ersiz ÃƒÂ¼rÃƒÂ¼n kimliÃ„Å¸i." }, { status: 400 });
     }
 
     const db = getDb();
@@ -106,13 +109,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       for (const record of records) {
         const slug = normalizeChannelSlug(record.slug);
         if (!slug) {
-          throw new Error(`Geçersiz satış kanalı: ${String(record.slug)}`);
+          throw new Error(`GeÃƒÂ§ersiz satÃ„Â±Ã…Å¸ kanalÃ„Â±: ${String(record.slug)}`);
         }
 
         const marketplaceSlug = slug === "my_website" ? "own_website" : slug;
         const marketplace = getMarketplaceBySlug(marketplaceSlug);
         if (!marketplace) {
-          throw new Error(`Marketplace bulunamadı: ${marketplaceSlug}`);
+          throw new Error(`Marketplace bulunamadÃ„Â±: ${marketplaceSlug}`);
         }
 
         const isEnabled = Boolean(record.enabled);
@@ -124,7 +127,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         const existingSetting = getProductMarketplaceSetting(productId, marketplace.id);
         const salePrice = readNumber(record.salePrice ?? existingSetting?.sale_price);
         if (salePrice == null || salePrice <= 0) {
-          throw new Error(`${marketplace.name} için satış fiyatı geçerli olmalıdır.`);
+          throw new Error(`${marketplace.name} iÃƒÂ§in satÃ„Â±Ã…Å¸ fiyatÃ„Â± geÃƒÂ§erli olmalÃ„Â±dÃ„Â±r.`);
         }
         const buyboxPrice = readNumber(record.buyboxPrice ?? existingSetting?.buybox_price);
 

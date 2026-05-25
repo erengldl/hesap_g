@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 
 import { listChannelSeoCategories, listChannelSeoProducts } from "@/lib/channel-seo/repository";
 import { isSalesChannel } from "@/lib/channel-seo/channel-rules";
@@ -24,6 +25,8 @@ function readPageParam(value: string | null, fallback: number) {
 }
 
 export async function GET(request: NextRequest) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const searchParams = request.nextUrl.searchParams;
     const channelInput = readTextParam(searchParams.get("channel")) ?? "my_website";
@@ -31,7 +34,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Satış kanalı geçerli olmalıdır.",
+          error: "SatÃ„Â±Ã…Å¸ kanalÃ„Â± geÃƒÂ§erli olmalÃ„Â±dÃ„Â±r.",
         },
         { status: 400 }
       );
@@ -42,7 +45,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Durum filtresi geçerli olmalıdır.",
+          error: "Durum filtresi geÃƒÂ§erli olmalÃ„Â±dÃ„Â±r.",
         },
         { status: 400 }
       );
@@ -77,7 +80,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Ürünler alınamadı.",
+        error: "ÃƒÅ“rÃƒÂ¼nler alÃ„Â±namadÃ„Â±.",
       },
       { status: 500 }
     );

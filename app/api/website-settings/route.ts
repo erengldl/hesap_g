@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getOwnWebsiteGatewayRule } from "@/lib/database-readers";
 import { recalculateAllCostResults } from "@/lib/portfolio-analytics";
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ type WebsiteSettingsPayload = {
 
 function getDefaultSettings() {
   return {
-    gateway_name: "Kullanıcı Tanımlı Ödeme Altyapısı",
+    gateway_name: "KullanÃ„Â±cÃ„Â± TanÃ„Â±mlÃ„Â± Ãƒâ€“deme AltyapÃ„Â±sÃ„Â±",
     commission_rate: 3.49,
     fixed_fee: 0.25,
     manual_shipping_cost: 95,
@@ -53,6 +54,8 @@ function getSettings() {
 }
 
 export async function GET() {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     return NextResponse.json({
       success: true,
@@ -60,11 +63,13 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Website settings GET error:", error);
-    return NextResponse.json({ success: false, error: "Web sitesi ayarları yüklenemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Web sitesi ayarlarÃ„Â± yÃƒÂ¼klenemedi." }, { status: 500 });
   }
 }
 
 export async function PUT(request: Request) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const body = (await request.json()) as Partial<WebsiteSettingsPayload>;
     const db = getDb();
@@ -73,7 +78,7 @@ export async function PUT(request: Request) {
     }
 
     const payload = {
-      gateway_name: String(body.gateway_name ?? "Kullanıcı Tanımlı Ödeme Altyapısı"),
+      gateway_name: String(body.gateway_name ?? "KullanÃ„Â±cÃ„Â± TanÃ„Â±mlÃ„Â± Ãƒâ€“deme AltyapÃ„Â±sÃ„Â±"),
       commission_rate: Number(body.commission_rate ?? 3.49),
       fixed_fee: Number(body.fixed_fee ?? 0.25),
       manual_shipping_cost: Number(body.manual_shipping_cost ?? 95),
@@ -141,6 +146,6 @@ export async function PUT(request: Request) {
     });
   } catch (error) {
     console.error("Website settings PUT error:", error);
-    return NextResponse.json({ success: false, error: "Web sitesi ayarları kaydedilemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Web sitesi ayarlarÃ„Â± kaydedilemedi." }, { status: 500 });
   }
 }

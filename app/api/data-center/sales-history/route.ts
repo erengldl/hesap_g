@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -70,14 +71,20 @@ function addDays(dateKey: string, days: number) {
 }
 
 export async function GET(request: Request) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const url = new URL(request.url);
     const viewParam = url.searchParams.get("view") ?? "sales";
+    const exportParam = url.searchParams.get("export");
+    const searchParam = (url.searchParams.get("search") ?? "").trim();
     const fromParam = url.searchParams.get("from");
     const toParam = url.searchParams.get("to");
     const daysParam = Number.parseInt(url.searchParams.get("days") ?? "90", 10);
     const pageParam = Number.parseInt(url.searchParams.get("page") ?? "1", 10);
-    const pageSize = 40;
+    const pageSizeParam = Number.parseInt(url.searchParams.get("page_size") ?? "40", 10);
+    const exportAll = exportParam === "all";
+    const pageSize = exportAll ? 5000 : Number.isFinite(pageSizeParam) && pageSizeParam > 0 ? Math.min(pageSizeParam, 5000) : 40;
     const requestedPage = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
     const isReturnView = viewParam === "returns";
 
@@ -121,6 +128,22 @@ export async function GET(request: Request) {
       whereParams = [`-${rangeDays - 1} days`];
     }
 
+    if (searchParam.length > 0) {
+      const searchLike = `%${searchParam.replace(/\s+/g, "%")}%`;
+      baseWhere += `
+        AND (
+          COALESCE(p.name, '') LIKE ?
+          OR COALESCE(p.sku, '') LIKE ?
+          OR COALESCE(oi.merchant_sku, '') LIKE ?
+          OR CAST(o.order_id AS TEXT) LIKE ?
+          OR COALESCE(o.external_order_number, '') LIKE ?
+          OR COALESCE(o.external_package_number, '') LIKE ?
+          OR COALESCE(m.name, m.slug, '') LIKE ?
+        )
+      `;
+      whereParams.push(searchLike, searchLike, searchLike, searchLike, searchLike, searchLike, searchLike);
+    }
+
     const summaryRow = query<SalesHistorySummaryRow>(
       `
         SELECT
@@ -159,7 +182,7 @@ export async function GET(request: Request) {
       `
         SELECT
           COALESCE(oi.product_id, o.product_id) AS product_id,
-          COALESCE(p.name, oi.merchant_sku, 'Ürün') AS product_name,
+          COALESCE(p.name, oi.merchant_sku, 'ÃƒÅ“rÃƒÂ¼n') AS product_name,
           COALESCE(p.sku, oi.merchant_sku) AS product_sku,
           COALESCE(SUM(oi.quantity), 0) AS units,
           COALESCE(SUM(oi.line_total), 0) AS revenue
@@ -181,11 +204,10 @@ export async function GET(request: Request) {
       )[0]?.total_rows
     );
     const totalPages = totalRows > 0 ? Math.ceil(totalRows / pageSize) : 0;
-    const currentPage = totalPages > 0 ? Math.min(requestedPage, totalPages) : 1;
+    const currentPage = exportAll ? 1 : totalPages > 0 ? Math.min(requestedPage, totalPages) : 1;
     const offset = (currentPage - 1) * pageSize;
 
-    const salesHistory = query<SalesHistoryRow>(
-      `
+    const salesHistoryQuery = `
         SELECT
           o.order_id,
           o.order_date,
@@ -195,17 +217,17 @@ export async function GET(request: Request) {
           COALESCE(m.name, m.slug, 'Kanal') AS marketplace_name,
           COALESCE(m.slug, 'market') AS marketplace_slug,
           COALESCE(oi.product_id, o.product_id) AS product_id,
-          COALESCE(p.name, oi.merchant_sku, 'Ürün') AS product_name,
+          COALESCE(p.name, oi.merchant_sku, 'ÃƒÅ“rÃƒÂ¼n') AS product_name,
           COALESCE(p.sku, oi.merchant_sku) AS product_sku,
           oi.quantity,
           oi.unit_price,
           oi.line_total
         ${baseWhere}
         ORDER BY o.order_date DESC, o.order_id DESC, oi.order_item_id DESC
-        LIMIT ${pageSize} OFFSET ${offset}
-      `,
-      whereParams
-    ).map((row) => ({
+        ${exportAll ? "" : `LIMIT ${pageSize} OFFSET ${offset}`}
+      `;
+
+    const salesHistory = query<SalesHistoryRow>(salesHistoryQuery, whereParams).map((row) => ({
       ...row,
       quantity: toWholeNumber(row.quantity),
       unit_price: toNumber(row.unit_price),
@@ -227,8 +249,9 @@ export async function GET(request: Request) {
         page: currentPage,
         page_size: pageSize,
         total_rows: totalRows,
-        total_pages: totalPages,
+        total_pages: exportAll ? 1 : totalPages,
       },
+      search: searchParam,
       summary: {
         total_orders: toWholeNumber(totalOrders),
         total_units: toWholeNumber(summaryRow.total_units),
@@ -253,7 +276,7 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: "Satış geçmişi yüklenemedi.",
+        error: "SatÃ„Â±Ã…Å¸ geÃƒÂ§miÃ…Å¸i yÃƒÂ¼klenemedi.",
       },
       { status: 500 }
     );

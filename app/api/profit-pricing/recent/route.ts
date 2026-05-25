@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 
 import { listProfitPricingRuns } from "@/lib/profit-pricing/server";
 
@@ -15,6 +16,8 @@ function parseLimit(value: string | null) {
 }
 
 export async function GET(request: Request) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const url = new URL(request.url);
     const productId = parseProductId(url.searchParams.get("productId"));
@@ -29,7 +32,7 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Son kayıtlar alınamadı.",
+        error: "Son kayÃ„Â±tlar alÃ„Â±namadÃ„Â±.",
       },
       { status: 500 }
     );

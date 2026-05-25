@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 
 import { evaluateReturnRiskModel } from "@/lib/return-risk/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const data = evaluateReturnRiskModel();
 

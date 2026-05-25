@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getOne, getDb } from "@/lib/db";
 import { recalculateCostResultsForProfile } from "@/lib/portfolio-analytics";
 import { getStoreExpenseMonthlyTotal } from "@/lib/database-readers";
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ type SellerProfilePayload = {
 function getDefaultProfile() {
   return {
     profile_id: 1,
-    company_type: "Şahıs Şirketi",
+    company_type: "Ã…ÂahÃ„Â±s Ã…Âirketi",
     tax_bracket: 20,
     expected_monthly_order_count: 500,
   };
@@ -48,6 +49,8 @@ function getProfileWithUnitCost() {
 }
 
 export async function GET() {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     return NextResponse.json({
       success: true,
@@ -55,11 +58,13 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Seller profile GET error:", error);
-    return NextResponse.json({ success: false, error: "Satıcı profili yüklenemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "SatÃ„Â±cÃ„Â± profili yÃƒÂ¼klenemedi." }, { status: 500 });
   }
 }
 
 export async function PUT(request: Request) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const body = (await request.json()) as Partial<SellerProfilePayload>;
     const db = getDb();
@@ -68,7 +73,7 @@ export async function PUT(request: Request) {
     }
 
     const payload = {
-      company_type: String(body.company_type ?? "Şahıs Şirketi"),
+      company_type: String(body.company_type ?? "Ã…ÂahÃ„Â±s Ã…Âirketi"),
       tax_bracket: Number(body.tax_bracket ?? 20),
       expected_monthly_order_count: Number(body.expected_monthly_order_count ?? 1),
     };
@@ -98,6 +103,6 @@ export async function PUT(request: Request) {
     });
   } catch (error) {
     console.error("Seller profile PUT error:", error);
-    return NextResponse.json({ success: false, error: "Satıcı profili kaydedilemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "SatÃ„Â±cÃ„Â± profili kaydedilemedi." }, { status: 500 });
   }
 }

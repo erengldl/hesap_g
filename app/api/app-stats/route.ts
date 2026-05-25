@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDatabaseCounts, getStoreExpenseMonthlyTotal } from '@/lib/database-readers';
 import { query } from '@/lib/db';
 import { getCachedValue } from '@/lib/server-cache';
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,8 @@ type StockAlertCountRow = {
 };
 
 export async function GET() {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const payload = getCachedValue('app-stats:default', 15_000, () => {
       const counts = getDatabaseCounts();

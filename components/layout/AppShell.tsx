@@ -20,6 +20,11 @@ const MobileNavigation = dynamic(() => import("./MobileNavigation"), {
   ssr: false,
 });
 
+const OnboardingWizard = dynamic(() => import("../onboarding/OnboardingWizard").then((module) => module.OnboardingWizard), {
+  loading: () => null,
+  ssr: false,
+});
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -51,6 +56,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     setCommandPaletteOpen(false);
     setMobileNavigationOpen(true);
   }, []);
+  const openCommandPalette = useCallback(() => {
+    setMobileNavigationOpen(false);
+    setCommandPaletteOpen(true);
+  }, []);
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed((current) => !current);
   }, []);
@@ -75,6 +84,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <div className="relative pl-0 md:pl-[var(--sidebar-width)]">
                   <Topbar
                     onOpenMobileNavigation={openMobileNavigation}
+                    onOpenCommandPalette={openCommandPalette}
                   />
                   <main className="min-h-screen pt-[76px] animate-[fadeInUp_0.4s_ease-out]">
                     <ErrorBoundary>
@@ -86,6 +96,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   open={mobileNavigationOpen}
                   onOpenChange={setMobileNavigationOpen}
                 />
+                <OnboardingWizard />
                 <CommandPalette
                   open={commandPaletteOpen}
                   onOpenChange={setCommandPaletteOpen}

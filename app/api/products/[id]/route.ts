@@ -6,6 +6,7 @@ import { buildDemoProductDetailResponse } from "@/lib/demo-product-detail";
 import { deleteProductImageUpload } from "@/lib/product-image-upload";
 import type { ProductUpsertInput } from "@/lib/types";
 import { deleteProductRecord, saveProductRecord } from "../service";
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -146,12 +147,14 @@ function getExistingProduct(productId: number) {
 }
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   let productId: number | null = null;
   try {
     const { id } = await params;
     productId = parseProductId(id);
     if (!productId) {
-      return NextResponse.json({ success: false, error: "Geçersiz ürün kimliği." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "GeÃƒÂ§ersiz ÃƒÂ¼rÃƒÂ¼n kimliÃ„Å¸i." }, { status: 400 });
     }
 
     const db = getDb();
@@ -295,11 +298,13 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const { id } = await params;
     const productId = parseProductId(id);
     if (!productId) {
-      return NextResponse.json({ success: false, error: "Geçersiz ürün kimliği." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "GeÃƒÂ§ersiz ÃƒÂ¼rÃƒÂ¼n kimliÃ„Å¸i." }, { status: 400 });
     }
 
     const existing = getExistingProduct(productId);
@@ -335,16 +340,18 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     });
   } catch (error) {
     console.error("Product update error:", error);
-    return NextResponse.json({ success: false, error: "Ürün güncellenemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "ÃƒÅ“rÃƒÂ¼n gÃƒÂ¼ncellenemedi." }, { status: 500 });
   }
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const { id } = await params;
     const productId = parseProductId(id);
     if (!productId) {
-      return NextResponse.json({ success: false, error: "Geçersiz ürün kimliği." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "GeÃƒÂ§ersiz ÃƒÂ¼rÃƒÂ¼n kimliÃ„Å¸i." }, { status: 400 });
     }
 
     const existing = getExistingProduct(productId);
@@ -360,6 +367,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     });
   } catch (error) {
     console.error("Product delete error:", error);
-    return NextResponse.json({ success: false, error: "Ürün silinemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "ÃƒÅ“rÃƒÂ¼n silinemedi." }, { status: 500 });
   }
 }

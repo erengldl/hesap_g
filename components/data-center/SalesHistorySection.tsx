@@ -2,26 +2,14 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { CircleAlert, DollarSign, Download, Package, RefreshCcw, Search, ShoppingCart, TrendingUp } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { CircleAlert, DollarSign, Download, FileSpreadsheet, Loader2, Package, RefreshCcw, Search, ShoppingCart, TrendingUp } from "lucide-react";
 import { EmptyState, ErrorStateCard, GlassCard, KpiCard, SkeletonCard, SkeletonTable } from "@/components/ui-custom/GlassComponents";
+import { exportSalesToExcel, type SalesRow } from "@/lib/excel";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/formatters";
 
-type SalesHistoryRow = {
-  order_id: number;
-  order_date: string;
-  status: string | null;
-  external_order_number: string | null;
-  external_package_number: string | null;
-  marketplace_name: string | null;
-  marketplace_slug: string | null;
-  product_id: number | null;
-  product_name: string | null;
-  product_sku: string | null;
-  quantity: number;
-  unit_price: number;
-  line_total: number;
-};
+type SalesHistoryRow = SalesRow;
 
 type SalesHistorySummary = {
   total_orders: number;
@@ -43,6 +31,7 @@ type SalesHistorySummary = {
 type SalesHistoryResponse = {
   success: boolean;
   view?: string;
+  search?: string;
   range_days: number;
   applied_range?: {
     from: string;
@@ -113,6 +102,10 @@ function statusCopy(status?: string | null) {
 }
 
 export default function SalesHistorySection() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const commandSearch = (searchParams.get("search") ?? "").trim();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<SalesHistorySummary | null>(null);
@@ -124,11 +117,23 @@ export default function SalesHistorySection() {
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [appliedRange, setAppliedRange] = useState<{ from: string; to: string; days: number } | null>(null);
+  const [exportingExcel, setExportingExcel] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
-  const buildQuery = useCallback((view: HistoryViewMode, mode: HistoryRangeMode, pageNumber: number, from?: string, to?: string) => {
+  const buildQuery = useCallback((
+    view: HistoryViewMode,
+    mode: HistoryRangeMode,
+    pageNumber: number,
+    from?: string,
+    to?: string,
+    searchTerm?: string,
+  ) => {
     const params = new URLSearchParams();
     params.set("view", view);
     params.set("page", String(pageNumber));
+    if (searchTerm) {
+      params.set("search", searchTerm);
+    }
 
     if (mode === "custom" && from && to) {
       params.set("from", from);
@@ -136,16 +141,24 @@ export default function SalesHistorySection() {
       return params.toString();
     }
 
-    params.set("days", mode === "30" ? "30" : "90");
+    params.set("days", searchTerm ? "3650" : mode === "30" ? "30" : "90");
     return params.toString();
   }, []);
 
-  const loadSalesHistory = useCallback(async (view: HistoryViewMode, mode: HistoryRangeMode, pageNumber: number, from?: string, to?: string) => {
+  const loadSalesHistory = useCallback(async (
+    view: HistoryViewMode,
+    mode: HistoryRangeMode,
+    pageNumber: number,
+    from?: string,
+    to?: string,
+    searchTerm?: string,
+  ) => {
     setLoading(true);
     setError(null);
+    setExportError(null);
 
     try {
-      const queryString = buildQuery(view, mode, pageNumber, from, to);
+      const queryString = buildQuery(view, mode, pageNumber, from, to, searchTerm);
       const response = await fetch(`/api/data-center/sales-history?${queryString}`, { cache: "no-store" });
       const json = (await response.json()) as Partial<SalesHistoryResponse> & { error?: string };
 
@@ -178,10 +191,36 @@ export default function SalesHistorySection() {
   }, [buildQuery]);
 
   useEffect(() => {
-    void loadSalesHistory("sales", "90", 1);
-  }, [loadSalesHistory]);
+    void loadSalesHistory("sales", "90", 1, undefined, undefined, commandSearch);
+  }, [commandSearch, loadSalesHistory]);
 
   const isReturnsView = viewMode === "returns";
+
+  async function downloadExcel() {
+    if (rows.length === 0 || exportingExcel) return;
+
+    setExportingExcel(true);
+    setExportError(null);
+
+    try {
+      const params = new URLSearchParams(buildQuery(viewMode, rangeMode, 1, customFrom, customTo, commandSearch));
+      params.set("export", "all");
+      params.set("page_size", "5000");
+
+      const response = await fetch(`/api/data-center/sales-history?${params.toString()}`, { cache: "no-store" });
+      const json = (await response.json().catch(() => null)) as (Partial<SalesHistoryResponse> & { error?: string }) | null;
+
+      if (!response.ok || !json?.success || !Array.isArray(json.sales_history)) {
+        throw new Error(json?.error ?? "Satış verileri Excel için alınamadı.");
+      }
+
+      exportSalesToExcel(json.sales_history as SalesHistoryRow[]);
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : "Satış verileri Excel olarak dışa aktarılamadı.");
+    } finally {
+      setExportingExcel(false);
+    }
+  }
 
   const currentRangeLabel = (() => {
     if (rangeMode === "custom" && appliedRange?.from && appliedRange?.to) {
@@ -194,6 +233,12 @@ export default function SalesHistorySection() {
 
     return rangeMode === "30" ? "Son 30 gün" : "Son 90 gün";
   })();
+
+  function clearCommandSearch() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("search");
+    router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname, { scroll: false });
+  }
 
   function downloadCsv() {
     if (rows.length === 0) return;
@@ -259,19 +304,19 @@ export default function SalesHistorySection() {
     setCustomFrom(from);
     setCustomTo(to);
     setPage(1);
-    void loadSalesHistory(viewMode, "custom", 1, from, to);
+    void loadSalesHistory(viewMode, "custom", 1, from, to, commandSearch);
   }
 
   function setQuickRange(nextMode: Exclude<HistoryRangeMode, "custom">) {
     setRangeMode(nextMode);
     setPage(1);
-    void loadSalesHistory(viewMode, nextMode, 1);
+    void loadSalesHistory(viewMode, nextMode, 1, undefined, undefined, commandSearch);
   }
 
   function setView(nextView: HistoryViewMode) {
     setViewMode(nextView);
     setPage(1);
-    void loadSalesHistory(nextView, rangeMode, 1, customFrom, customTo);
+    void loadSalesHistory(nextView, rangeMode, 1, customFrom, customTo, commandSearch);
   }
 
   function openCustomRange() {
@@ -313,7 +358,7 @@ export default function SalesHistorySection() {
           </div>
           <button
             type="button"
-            onClick={() => void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo)}
+            onClick={() => void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo, commandSearch)}
             className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface-container px-4 py-2 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-surface-container"
           >
             <RefreshCcw className="h-4 w-4" />
@@ -327,7 +372,7 @@ export default function SalesHistorySection() {
           action={
             <button
               type="button"
-              onClick={() => void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo)}
+              onClick={() => void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo, commandSearch)}
               className="inline-flex items-center gap-2 rounded-md border border-danger/30 bg-danger/10 px-4 py-2 text-sm font-semibold text-danger transition-colors duration-200 hover:bg-danger/15"
             >
               <RefreshCcw className="h-4 w-4" />
@@ -366,7 +411,7 @@ export default function SalesHistorySection() {
     }
 
     setPage(nextPage);
-    void loadSalesHistory(viewMode, rangeMode, nextPage, customFrom, customTo);
+    void loadSalesHistory(viewMode, rangeMode, nextPage, customFrom, customTo, commandSearch);
   }
 
   return (
@@ -441,8 +486,17 @@ export default function SalesHistorySection() {
           </button>
           <button
             type="button"
+            onClick={() => void downloadExcel()}
+            disabled={rows.length === 0 || exportingExcel}
+            className="inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-2 text-xs font-semibold text-success transition-colors duration-200 hover:bg-success/15 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {exportingExcel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5" />}
+            Excel dışa aktar
+          </button>
+          <button
+            type="button"
             onClick={downloadCsv}
-            disabled={rows.length === 0}
+            disabled={rows.length === 0 || exportingExcel}
             className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-container px-3 py-2 text-xs font-semibold text-muted transition-colors duration-200 hover:bg-surface-container hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Download className="h-3.5 w-3.5" />
@@ -450,7 +504,7 @@ export default function SalesHistorySection() {
           </button>
           <button
             type="button"
-            onClick={() => void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo)}
+            onClick={() => void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo, commandSearch)}
             className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-container px-3 py-2 text-xs font-semibold text-muted transition-colors duration-200 hover:bg-surface-container hover:text-foreground"
           >
             <RefreshCcw className="h-3.5 w-3.5" />
@@ -458,6 +512,27 @@ export default function SalesHistorySection() {
           </button>
         </div>
       </div>
+
+      {exportError ? (
+        <div className="flex gap-3 rounded-2xl border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
+          <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>{exportError}</p>
+        </div>
+      ) : null}
+
+      {commandSearch ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
+          <Search className="h-4 w-4 shrink-0" />
+          <span>Komut araması filtresi: &quot;{commandSearch}&quot;</span>
+          <button
+            type="button"
+            onClick={clearCommandSearch}
+            className="rounded-full border border-primary/20 bg-background/60 px-3 py-1 text-[11px] font-semibold text-foreground transition-colors duration-200 hover:bg-background"
+          >
+            Temizle
+          </button>
+        </div>
+      ) : null}
 
       {rangeMode === "custom" && (
         <GlassCard className="border-border bg-surface-container">
@@ -498,7 +573,7 @@ export default function SalesHistorySection() {
                 onClick={() => {
                   setRangeMode("90");
                   setPage(1);
-                  void loadSalesHistory(viewMode, "90", 1);
+                  void loadSalesHistory(viewMode, "90", 1, undefined, undefined, commandSearch);
                 }}
                 className="rounded-xl border border-border bg-surface-container px-4 py-2.5 text-sm font-semibold text-muted transition-colors duration-200 hover:bg-surface-container hover:text-foreground"
               >
@@ -635,7 +710,7 @@ export default function SalesHistorySection() {
                         <td className="px-5 py-4">
                           <div className="space-y-1">
                             {row.product_id ? (
-                              <Link href={`/products/${row.product_id}`} className="block text-sm font-semibold text-foreground transition-colors duration-200 hover:text-primary">
+                              <Link href={`/urun/${row.product_id}`} className="block text-sm font-semibold text-foreground transition-colors duration-200 hover:text-primary">
                                 {row.product_name ?? "Ürün"}
                               </Link>
                             ) : (

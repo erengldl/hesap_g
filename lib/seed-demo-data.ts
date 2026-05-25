@@ -2,6 +2,7 @@ import { getDb } from "./db";
 import { DEMO_PRODUCT_SEEDS, deriveDemoSalePrice } from "./demo-product-seeds";
 import { generateDemoSalesHistory } from "./demo-sales-history";
 import { saveProductRecord } from "@/app/api/products/service";
+import { SEED_DEMO_WARNING_MESSAGE, type SeedDemoResponse } from "./seed-demo-contract";
 
 type Database = NonNullable<ReturnType<typeof getDb>>;
 
@@ -51,7 +52,7 @@ function getOrCreateGatewayId(db: Database, marketplaceId: number) {
  * Removes all existing products and related data from the database,
  * then re-seeds with the current DEMO_PRODUCT_SEEDS.
  */
-export async function ensureDemoData() {
+export async function ensureDemoData(): Promise<SeedDemoResponse> {
   const db = getDb();
 
   if (!db) {
@@ -61,6 +62,7 @@ export async function ensureDemoData() {
       productsSkipped: 0,
       settingsInserted: 0,
       message: "Database bağlantısı kurulamadı. Demo veriler UI tarafında gösterilecek.",
+      warning: SEED_DEMO_WARNING_MESSAGE,
     };
   }
 
@@ -132,6 +134,7 @@ export async function ensureDemoData() {
       orderItemsInserted: salesSummary.orderItemsInserted,
       inventoryRowsInserted: salesSummary.inventoryRowsInserted,
       message: `Eski ürünler silindi, ${productsInserted} yeni demo ürün ve son 90 güne ait ${salesSummary.ordersInserted} demo sipariş eklendi.`,
+      warning: SEED_DEMO_WARNING_MESSAGE,
     };
   } catch (error) {
     console.error("Seed error:", error);
@@ -142,6 +145,7 @@ export async function ensureDemoData() {
       productsSkipped: 0,
       settingsInserted: 0,
       message: "Veritabanı hatası: " + message,
+      warning: SEED_DEMO_WARNING_MESSAGE,
     };
   }
 }

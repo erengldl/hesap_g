@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 
 import { getChannelSeoProductDetail } from "@/lib/channel-seo/repository";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ productId: string }> }) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const { productId } = await params;
     const normalizedProductId = typeof productId === "string" ? productId.trim() : "";
@@ -12,7 +15,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json(
         {
           ok: false,
-          error: "productId boş olamaz.",
+          error: "productId boÃ…Å¸ olamaz.",
         },
         { status: 400 }
       );
@@ -23,7 +26,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json(
         {
           ok: false,
-          error: "Ürün bulunamadı.",
+          error: "ÃƒÅ“rÃƒÂ¼n bulunamadÃ„Â±.",
         },
         { status: 404 }
       );
@@ -38,7 +41,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json(
       {
         ok: false,
-        error: "Ürün detayı alınamadı.",
+        error: "ÃƒÅ“rÃƒÂ¼n detayÃ„Â± alÃ„Â±namadÃ„Â±.",
       },
       { status: 500 }
     );

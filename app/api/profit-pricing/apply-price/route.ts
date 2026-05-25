@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 
 import { applyProfitPricingRun } from "@/lib/profit-pricing/server";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const body = (await request.json().catch(() => ({}))) as {
       runId?: string;
@@ -16,7 +19,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Uygulanacak analiz kaydı bulunamadı.",
+          error: "Uygulanacak analiz kaydÃ„Â± bulunamadÃ„Â±.",
         },
         { status: 400 }
       );
@@ -26,7 +29,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Ürün fiyatı kullanıcı onayı olmadan değiştirilemez.",
+          error: "ÃƒÅ“rÃƒÂ¼n fiyatÃ„Â± kullanÃ„Â±cÃ„Â± onayÃ„Â± olmadan deÃ„Å¸iÃ…Å¸tirilemez.",
         },
         { status: 409 }
       );
@@ -43,14 +46,14 @@ export async function POST(request: Request) {
       data: applied.result,
       oldPrice: applied.oldPrice,
       newPrice: applied.newPrice,
-      message: "Ürün fiyatı güncellendi.",
+      message: "ÃƒÅ“rÃƒÂ¼n fiyatÃ„Â± gÃƒÂ¼ncellendi.",
     });
   } catch (error) {
     console.error("Profit pricing apply price POST error:", error);
     return NextResponse.json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : "Ürün fiyatı güncellenemedi.",
+        error: error instanceof Error ? error.message : "ÃƒÅ“rÃƒÂ¼n fiyatÃ„Â± gÃƒÂ¼ncellenemedi.",
       },
       { status: 500 }
     );

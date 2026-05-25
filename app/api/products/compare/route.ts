@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { recalculateCostResultsForProductFromDatabase } from '@/lib/cost-engine';
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const ids = request.nextUrl.searchParams.getAll("id").map(Number).filter((n) => Number.isFinite(n));
     if (ids.length < 2 || ids.length > 4) {

@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import { getStoreExpenseById } from "@/lib/database-readers";
 import { recalculateAllCostResults } from "@/lib/portfolio-analytics";
 import type { StoreExpenseUpsertInput } from "@/lib/types";
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +17,12 @@ function normalizeStatus(status: string | undefined | null) {
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   const { id } = await params;
   const expenseId = parseExpenseId(id);
   if (!expenseId) {
-    return NextResponse.json({ success: false, error: "Geçersiz gider kimliği." }, { status: 400 });
+    return NextResponse.json({ success: false, error: "GeÃƒÂ§ersiz gider kimliÃ„Å¸i." }, { status: 400 });
   }
 
   try {
@@ -54,15 +57,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ success: true, expenseId });
   } catch (error) {
     console.error("Store expenses PUT error:", error);
-    return NextResponse.json({ success: false, error: "Gider güncellenemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Gider gÃƒÂ¼ncellenemedi." }, { status: 500 });
   }
 }
 
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   const { id } = await params;
   const expenseId = parseExpenseId(id);
   if (!expenseId) {
-    return NextResponse.json({ success: false, error: "Geçersiz gider kimliği." }, { status: 400 });
+    return NextResponse.json({ success: false, error: "GeÃƒÂ§ersiz gider kimliÃ„Å¸i." }, { status: 400 });
   }
 
   try {

@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { PageHeader, KpiCard, GlassCard, MobileCardList, WarningBadge, SkeletonCard, EmptyState } from "@/components/ui-custom/GlassComponents";
+import { PageHeader, KpiCard, GlassCard, MobileCardList, WarningBadge, SkeletonCard, EmptyState, EyebrowBadge } from "@/components/ui-custom/GlassComponents";
+import { SeedDemoButton } from "@/components/demo/SeedDemoButton";
 import {
   TrendingUp, Wallet, BarChart3, ShoppingCart, Target, Zap, Info,
   Package, AlertTriangle, DollarSign, Activity, ChevronRight, Megaphone, Database, Sparkles,
+  CircleCheckBig, FlaskConical, TriangleAlert,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -13,12 +15,22 @@ import type { ChannelCostResult, Product } from "@/lib/types";
 import type { AggregateDashboard } from "@/lib/portfolio-analytics";
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie,
-  AreaChart, Area,
+  AreaChart, Area, BarChart as RechartsBarChart, Bar,
 } from "recharts";
+
+type DashboardDataMode = "demo" | "live" | "partial";
+
+type DashboardDataQuality = {
+  score: number;
+  warnings: string[];
+  lastSyncAt: string | null;
+};
 
 type DashboardPayload = {
   success: boolean;
   aggregate: AggregateDashboard;
+  dataMode: DashboardDataMode;
+  dataQuality: DashboardDataQuality;
   adAnalysis?: {
     totalSpend: number;
     totalNetProfit: number;
@@ -39,6 +51,90 @@ type DashboardPayload = {
   costBreakdown?: { label: string; value: number }[];
   methodology?: string;
 };
+
+function getDataModeMeta(mode: DashboardDataMode) {
+  if (mode === "demo") {
+    return {
+      label: "DEMO MOD",
+      icon: FlaskConical,
+      className: "gap-1.5 border-fuchsia-500/20 bg-fuchsia-500/10 text-fuchsia-300",
+      description: "Sentetik urun ve siparis akisi gosteriliyor.",
+    };
+  }
+
+  if (mode === "live") {
+    return {
+      label: "CANLI VERI",
+      icon: CircleCheckBig,
+      className: "gap-1.5 border-success/20 bg-success/10 text-success",
+      description: "Canli urun ve siparis verisi kullaniliyor.",
+    };
+  }
+
+  return {
+    label: "KISMI VERI",
+    icon: TriangleAlert,
+    className: "gap-1.5 border-warning/20 bg-warning/10 text-warning",
+    description: "Demo ve canli veri birlikte gorunuyor.",
+  };
+}
+
+function getDataQualityMeta(score: number) {
+  if (score >= 80) {
+    return {
+      label: "Guclu",
+      barColor: "var(--success)",
+      accentClassName: "border-success/20 bg-success/10 text-success",
+      icon: CircleCheckBig,
+    };
+  }
+
+  if (score >= 50) {
+    return {
+      label: "Izlenmeli",
+      barColor: "var(--warning)",
+      accentClassName: "border-warning/20 bg-warning/10 text-warning",
+      icon: TriangleAlert,
+    };
+  }
+
+  return {
+    label: "Riskli",
+    barColor: "var(--danger)",
+    accentClassName: "border-danger/20 bg-danger/10 text-danger",
+    icon: AlertTriangle,
+  };
+}
+
+function formatSyncLabel(value: string | null) {
+  if (!value) {
+    return "Henuz senkronize edilmedi";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Henuz senkronize edilmedi";
+  }
+
+  return new Intl.DateTimeFormat("tr-TR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function getMarginConfidenceMeta(confidence: "exact" | "estimated") {
+  if (confidence === "exact") {
+    return {
+      label: "NET",
+      className: "border-success/20 bg-success/10 text-success",
+    };
+  }
+
+  return {
+    label: "TAHMINI",
+    className: "border-warning/20 bg-warning/10 text-warning",
+  };
+}
 
 export default function DashboardPage() {
   const [isClient, setIsClient] = useState(false);
@@ -80,8 +176,22 @@ export default function DashboardPage() {
   const results = payload?.results ?? [];
   const bestChannel = payload?.bestChannel;
   const bestChannelName = bestChannel?.channel_name ?? "Kanal";
-  const methodology = payload?.methodology ?? agg?.methodology ?? "";
+  const baseMethodology = payload?.methodology ?? agg?.methodology ?? "";
+  const hasEstimatedTopProductMargin = agg?.topProducts.some((product) => product.marginConfidence === "estimated") ?? false;
+  const methodologyFootnote = [
+    baseMethodology || "Analiz, gercek zamanli pazar verileri, komisyon oranlari ve lojistik maliyetleri kullanilarak yapilmistir.",
+    hasEstimatedTopProductMargin
+      ? "TAHMINI etiketi tasiyan lider urun marjlari, cost_results kaydi olmadigi icin yalnizca gercek siparis cirosu ile urun ve paketleme maliyeti uzerinden hesaplanir."
+      : "Lider urun marjlari, gercek siparis cirosu ile eslesen cost_results kayitlari uzerinden hesaplanir.",
+    "Genel ortalama marj ve toplam kar KPI'lari mevcut urun ayarlarindan turetilen tahmini degerlerdir.",
+  ].join(" ");
+  const methodology = methodologyFootnote;
   const adSummary = payload?.adAnalysis ?? null;
+  const dataMode = payload?.dataMode ?? "partial";
+  const dataQuality = payload?.dataQuality ?? { score: 0, warnings: [], lastSyncAt: null };
+  const dataModeMeta = getDataModeMeta(dataMode);
+  const dataQualityMeta = getDataQualityMeta(dataQuality.score);
+  const dataQualityBarData = [{ label: "Skor", score: Math.max(0, Math.min(100, dataQuality.score)) }];
   const rankedResults = [...results].sort((a, b) => b.net_profit - a.net_profit);
   const maxChannelProfit = Math.max(...rankedResults.map((result) => result.net_profit), 1);
   const chartPalette = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)"];
@@ -126,12 +236,15 @@ export default function DashboardPage() {
           title="Henüz özet oluşturulmadı"
           description="Özetin görünmesi için önce ürün ve sipariş verisi ekleyin."
           action={(
-            <Link
-              href="/veri-merkezi"
-              className="btn-primary py-3 px-6 text-sm"
-            >
-              Ürün Merkezini Aç
-            </Link>
+            <div className="flex flex-wrap justify-center gap-2">
+              <SeedDemoButton className="py-3 px-6" />
+              <Link
+                href="/veri-merkezi"
+                className="btn-primary py-3 px-6 text-sm"
+              >
+                Ürün Merkezini Aç
+              </Link>
+            </div>
           )}
         />
       </div>
@@ -143,6 +256,10 @@ export default function DashboardPage() {
   return (
     <div className="page-shell">
       <PageHeader eyebrow="Genel Bakış" title="Özet" description="Tüm ürünler, kanallar ve siparişler üzerinden kısa finansal özet.">
+        <EyebrowBadge className={cn("gap-1.5", dataModeMeta.className)}>
+          <dataModeMeta.icon className="h-3.5 w-3.5" />
+          {dataModeMeta.label}
+        </EyebrowBadge>
         <div className="flex items-center gap-1.5 rounded-md border border-border bg-surface-container px-2 py-0.5 text-[10px] font-medium text-muted">
           <Zap className="h-3 w-3 text-primary" />
           Canlı Analiz
@@ -322,9 +439,22 @@ export default function DashboardPage() {
                     <td className="py-2.5 text-right text-sm font-medium text-foreground">{formatNumber(p.orders)}</td>
                     <td className="py-2.5 text-right text-sm font-bold text-primary">{formatCurrency(p.revenue)}</td>
                     <td className="py-2.5 text-right">
-                      <span className="inline-flex rounded-md border border-border bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
-                        %{p.margin}
-                      </span>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className={cn(
+                          "inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold",
+                          p.marginConfidence === "exact"
+                            ? "border-border bg-primary-soft text-primary"
+                            : "border-warning/20 bg-warning/10 text-warning"
+                        )}>
+                          %{p.margin}
+                        </span>
+                        <span className={cn(
+                          "inline-flex rounded-md border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
+                          getMarginConfidenceMeta(p.marginConfidence).className
+                        )}>
+                          {getMarginConfidenceMeta(p.marginConfidence).label}
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -358,7 +488,20 @@ export default function DashboardPage() {
                   </div>
                   <div className="rounded-md border border-border bg-surface-soft p-2 text-right">
                     <p className="mb-1 text-[9px] uppercase tracking-wide text-muted/60">Marj</p>
-                    <p className="text-sm font-bold text-primary">%{p.margin}</p>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <p className={cn(
+                        "text-sm font-bold",
+                        p.marginConfidence === "exact" ? "text-primary" : "text-warning"
+                      )}>
+                        %{p.margin}
+                      </p>
+                      <span className={cn(
+                        "inline-flex rounded-md border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
+                        getMarginConfidenceMeta(p.marginConfidence).className
+                      )}>
+                        {getMarginConfidenceMeta(p.marginConfidence).label}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </GlassCard>
@@ -573,6 +716,101 @@ export default function DashboardPage() {
         <p className="text-xs leading-snug text-muted/60">
           {methodology || "Analiz, gerçek zamanlı pazar verileri, komisyon oranları ve lojistik maliyetleri kullanılarak yapılmıştır. Tüm veriler tahmini olup kesin finansal sonuç garanti etmez."}
         </p>
+      </GlassCard>
+
+      <GlassCard className="mt-4">
+        <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div className="space-y-1">
+            <h3 className="panel-title">Veri Kalitesi</h3>
+            <p className="text-xs font-medium text-muted/60">
+              Jüri için veri modunu, güven skorunu ve kritik eksikleri tek yerde özetler.
+            </p>
+          </div>
+          <EyebrowBadge className={cn("gap-1.5", dataQualityMeta.accentClassName)}>
+            <dataQualityMeta.icon className="h-3.5 w-3.5" />
+            {dataQuality.score}/100 · {dataQualityMeta.label}
+          </EyebrowBadge>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.35fr_0.65fr]">
+          <div className="rounded-lg border border-border/70 bg-surface-container p-4">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">Kalite skoru</span>
+              <span className="text-sm font-semibold text-foreground">{dataQuality.score}</span>
+            </div>
+            <div className="h-16">
+              {chartsReady && isClient ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBarChart data={dataQualityBarData} layout="vertical" margin={{ top: 8, right: 4, left: 4, bottom: 8 }}>
+                    <XAxis type="number" domain={[0, 100]} hide />
+                    <YAxis type="category" dataKey="label" hide />
+                    <Bar
+                      dataKey="score"
+                      radius={[999, 999, 999, 999]}
+                      fill={dataQualityMeta.barColor}
+                      background={{ fill: "var(--surface-soft)" }}
+                      isAnimationActive={true}
+                      animationDuration={450}
+                    />
+                  </RechartsBarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center">
+                  <div className="h-3 w-full overflow-hidden rounded-full bg-surface-soft">
+                    <div
+                      className="h-full rounded-full transition-[width] duration-300"
+                      style={{ width: `${dataQuality.score}%`, backgroundColor: dataQualityMeta.barColor }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="mt-2 flex justify-between text-[10px] font-medium uppercase tracking-wide text-muted/60">
+              <span>0</span>
+              <span>50</span>
+              <span>100</span>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border/70 bg-surface-container p-4">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">Veri modu</span>
+            <div className="mt-2 flex items-center gap-2">
+              <dataModeMeta.icon className={cn("h-4 w-4", dataMode === "live" ? "text-success" : dataMode === "demo" ? "text-fuchsia-300" : "text-warning")} />
+              <p className="text-sm font-semibold text-foreground">{dataModeMeta.label}</p>
+            </div>
+            <p className="mt-2 text-xs leading-6 text-muted/60">{dataModeMeta.description}</p>
+
+            <div className="mt-4 border-t border-border/60 pt-4">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">Son senkronizasyon</span>
+              <p className="mt-2 text-sm font-semibold text-foreground">{formatSyncLabel(dataQuality.lastSyncAt)}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-lg border border-border/70 bg-surface-container p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">Uyarılar</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted/60">
+              {dataQuality.warnings.length} kayıt
+            </span>
+          </div>
+
+          {dataQuality.warnings.length > 0 ? (
+            <div className="space-y-2">
+              {dataQuality.warnings.map((warning) => (
+                <div key={warning} className="flex items-start gap-2 rounded-lg border border-warning/20 bg-warning/10 px-3 py-2.5 text-sm text-warning">
+                  <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span className="leading-6">{warning}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 rounded-lg border border-success/20 bg-success/10 px-3 py-2.5 text-sm text-success">
+              <CircleCheckBig className="h-4 w-4 shrink-0" />
+              <span>Uyarı yok. Veri seti tutarlı görünüyor.</span>
+            </div>
+          )}
+        </div>
       </GlassCard>
     </div>
   );

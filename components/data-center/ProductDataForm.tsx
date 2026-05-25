@@ -1,7 +1,12 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, Check, Image as ImageIcon, Info, Loader2, Package, ShoppingBag, Trash2, Upload, X } from "lucide-react";
+
+import { FormField, FormTextarea } from "@/components/ui-custom/FormComponents";
+import { parseLocaleNumberValue, productSchema, type ProductSchemaInput } from "@/lib/validation-schemas";
 import { cn } from "@/lib/utils";
 import CategorySelector from "./CategorySelector";
 import type { Product, ProductUpsertInput } from "@/lib/types";
@@ -15,23 +20,7 @@ interface ProductDataFormProps {
   onImagePersisted?: (productId: number, imageUrl: string) => Promise<void> | void;
 }
 
-type FormState = {
-  name: string;
-  sku: string;
-  barcode: string;
-  image_url: string;
-  category_id: number | null;
-  category_path: string;
-  description: string;
-  cost: string;
-  packaging_cost: string;
-  desi: string;
-  sale_price: string;
-  active_channels: string[];
-  status: "active" | "passive" | "draft";
-};
-
-const DEFAULT_FORM_STATE: FormState = {
+const DEFAULT_FORM_STATE: ProductSchemaInput = {
   name: "",
   sku: "",
   barcode: "",
@@ -40,14 +29,14 @@ const DEFAULT_FORM_STATE: FormState = {
   category_path: "",
   description: "",
   cost: "",
-  packaging_cost: "",
-  desi: "",
+  packaging_cost: "0",
+  desi: "0",
   sale_price: "",
   active_channels: [],
   status: "active",
 };
 
-function getFormState(product?: Product | null): FormState {
+function getFormState(product?: Product | null): ProductSchemaInput {
   if (!product) return DEFAULT_FORM_STATE;
 
   return {
@@ -59,11 +48,11 @@ function getFormState(product?: Product | null): FormState {
     category_path: product.category_path ?? product.category_name ?? "",
     description: product.description ?? "",
     cost: String(product.cost ?? ""),
-    packaging_cost: String(product.packaging_cost ?? ""),
-    desi: String(product.desi ?? ""),
+    packaging_cost: String(product.packaging_cost ?? 0),
+    desi: String(product.desi ?? 0),
     sale_price: String(product.sale_price ?? ""),
     active_channels: product.active_channels ?? [],
-    status: (product.status === "passive" || product.status === "draft" ? product.status : "active"),
+    status: product.status === "passive" || product.status === "draft" ? product.status : "active",
   };
 }
 
@@ -131,14 +120,44 @@ export default function ProductDataForm({
   onSubmit,
   onImagePersisted,
 }: ProductDataFormProps) {
-  const [formData, setFormData] = useState<FormState>(getFormState(product));
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const {
+    control,
+    register,
+    reset,
+    handleSubmit,
+    setValue,
+    getValues,
+    formState: { errors },
+  } = useForm<ProductSchemaInput>({
+    resolver: zodResolver(productSchema),
+    mode: "onChange",
+    defaultValues: getFormState(product),
+  });
+
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isDeletingImage, setIsDeletingImage] = useState(false);
   const [imageUploadError, setImageUploadError] = useState("");
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(product?.image_url ?? null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewUrlRef = useRef<string | null>(null);
+
+  const productName = useWatch({ control, name: "name" }) ?? "";
+  const categoryPath = useWatch({ control, name: "category_path" }) ?? "";
+  const activeChannels = useWatch({ control, name: "active_channels" }) ?? [];
+  const selectedStatus = useWatch({ control, name: "status" }) ?? "active";
+  const imageUrlValue = useWatch({ control, name: "image_url" }) ?? "";
+
+  const channels = [
+    { id: "trendyol", label: "Trendyol" },
+    { id: "hepsiburada", label: "Hepsiburada" },
+    { id: "my_website", label: "Kendi Websitem" },
+  ] as const;
+
+  const statuses = [
+    { id: "active", label: "Aktif" },
+    { id: "passive", label: "Pasif" },
+    { id: "draft", label: "Taslak" },
+  ] as const;
 
   const updateImagePreviewUrl = (nextUrl: string | null) => {
     const previousUrl = previewUrlRef.current;
@@ -151,9 +170,16 @@ export default function ProductDataForm({
   };
 
   useEffect(() => {
+    register("category_id");
+    register("category_path");
+    register("active_channels");
+    register("status");
+    register("image_url");
+  }, [register]);
+
+  useEffect(() => {
     if (isOpen) {
-      setFormData(getFormState(product));
-      setErrors({});
+      reset(getFormState(product));
       setIsUploadingImage(false);
       setIsDeletingImage(false);
       setImageUploadError("");
@@ -162,7 +188,7 @@ export default function ProductDataForm({
         fileInputRef.current.value = "";
       }
     }
-  }, [isOpen, product]);
+  }, [isOpen, product, reset]);
 
   useEffect(() => {
     return () => {
@@ -173,32 +199,13 @@ export default function ProductDataForm({
     };
   }, []);
 
-  const channels = [
-    { id: "trendyol", label: "Trendyol" },
-    { id: "hepsiburada", label: "Hepsiburada" },
-    { id: "my_website", label: "Kendi Websitem" },
-  ];
+  const handleToggleChannel = (channelId: (typeof channels)[number]["id"]) => {
+    const currentChannels = getValues("active_channels") ?? [];
+    const nextChannels = currentChannels.includes(channelId)
+      ? currentChannels.filter((id) => id !== channelId)
+      : [...currentChannels, channelId];
 
-  const validate = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.name.trim()) newErrors.name = "Ürün adı boş olamaz.";
-    if (!formData.category_path) newErrors.category = "Kategori seçilmeden ürün eklenemez.";
-    if (!formData.cost || Number(formData.cost) <= 0) newErrors.cost = "Ürün maliyeti 0’dan büyük olmalı.";
-    if (!formData.sale_price || Number(formData.sale_price) <= 0) newErrors.sale_price = "Satış fiyatı 0’dan büyük olmalı.";
-    if (formData.desi && Number(formData.desi) < 0) newErrors.desi = "Desi 0’dan küçük olamaz.";
-    if (formData.active_channels.length === 0) newErrors.channels = "En az bir satış kanalı seçilmeli.";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleToggleChannel = (channelId: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      active_channels: prev.active_channels.includes(channelId)
-        ? prev.active_channels.filter((id) => id !== channelId)
-        : [...prev.active_channels, channelId],
-    }));
+    setValue("active_channels", nextChannels, { shouldDirty: true, shouldValidate: true });
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -241,11 +248,8 @@ export default function ProductDataForm({
         throw new Error(data?.error || "Görsel yüklenemedi.");
       }
 
-      updateImagePreviewUrl(data.url ?? null);
-      setFormData((prev) => ({
-        ...prev,
-        image_url: data.url ?? "",
-      }));
+      updateImagePreviewUrl(data.url);
+      setValue("image_url", data.url, { shouldDirty: true, shouldValidate: true });
 
       if (product?.id) {
         const persistResponse = await fetch(`/api/products/${product.id}`, {
@@ -282,7 +286,7 @@ export default function ProductDataForm({
       return;
     }
 
-    const currentImageUrl = formData.image_url.trim() || imagePreviewUrl || "";
+    const currentImageUrl = (getValues("image_url") ?? "").trim() || imagePreviewUrl || "";
     if (!currentImageUrl) {
       return;
     }
@@ -309,7 +313,7 @@ export default function ProductDataForm({
         }
       }
 
-      setFormData((prev) => ({ ...prev, image_url: "" }));
+      setValue("image_url", "", { shouldDirty: true, shouldValidate: true });
       updateImagePreviewUrl(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -332,7 +336,7 @@ export default function ProductDataForm({
         throw new Error(data?.error || "Görsel silinemedi.");
       }
 
-      setFormData((prev) => ({ ...prev, image_url: "" }));
+      setValue("image_url", "", { shouldDirty: true, shouldValidate: true });
       updateImagePreviewUrl(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -346,8 +350,7 @@ export default function ProductDataForm({
   };
 
   const resetAndClose = () => {
-    setFormData(DEFAULT_FORM_STATE);
-    setErrors({});
+    reset(DEFAULT_FORM_STATE);
     setIsUploadingImage(false);
     setIsDeletingImage(false);
     setImageUploadError("");
@@ -358,39 +361,42 @@ export default function ProductDataForm({
     onClose();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onValidSubmit = async (values: ProductSchemaInput) => {
     if (isUploadingImage || isDeletingImage) {
-      setImageUploadError("Görsel işlemi sürerken ürünü kaydedemezsin.");
+      setImageUploadError("Görsel işlemi sürerken ürünü kaydedemezsiniz.");
       return;
     }
-    if (!validate()) return;
 
     await onSubmit({
-      name: formData.name.trim(),
-      sku: formData.sku.trim() || undefined,
-      image_url: formData.image_url.trim() || undefined,
-      category_id: formData.category_id,
-      category_path: formData.category_path,
-      cost: Number(formData.cost),
-      packaging_cost: Number(formData.packaging_cost || "0"),
-      desi: Number(formData.desi || "0"),
-      sale_price: Number(formData.sale_price),
-    active_channels: formData.active_channels,
-    status: formData.status,
-    barcode: formData.barcode.trim() || undefined,
-    description: formData.description.trim() || undefined,
-  });
+      name: values.name.trim(),
+      sku: values.sku?.trim() || undefined,
+      barcode: values.barcode?.trim() || undefined,
+      image_url: values.image_url?.trim() || undefined,
+      category_id: values.category_id,
+      category_path: values.category_path,
+      description: values.description?.trim() || undefined,
+      cost: parseLocaleNumberValue(values.cost),
+      packaging_cost: parseLocaleNumberValue(values.packaging_cost),
+      desi: parseLocaleNumberValue(values.desi),
+      sale_price: parseLocaleNumberValue(values.sale_price),
+      active_channels: values.active_channels,
+      status: values.status as ProductUpsertInput["status"],
+    });
 
     resetAndClose();
+  };
+
+  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void handleSubmit(onValidSubmit)(event);
   };
 
   return (
     <>
       <div
         className={cn(
-          "fixed inset-0 bg-panel/60 backdrop-blur-sm z-[60] transition-opacity duration-300",
-          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          "fixed inset-0 z-[60] bg-panel/60 backdrop-blur-sm transition-opacity duration-300",
+          isOpen ? "opacity-100" : "pointer-events-none opacity-0"
         )}
         onClick={resetAndClose}
       />
@@ -404,8 +410,8 @@ export default function ProductDataForm({
         <div className="flex-none border-b border-border/80 bg-panel/95 px-5 py-5 backdrop-blur-xl sm:px-8">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                <Package className="w-6 h-6" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Package className="h-6 w-6" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-foreground">{product ? "Ürünü Düzenle" : "Yeni Ürün"}</h2>
@@ -413,55 +419,46 @@ export default function ProductDataForm({
               </div>
             </div>
             <button
+              type="button"
               onClick={resetAndClose}
-              className="p-2 hover:bg-surface-container rounded-xl text-muted hover:text-foreground transition-colors duration-200"
+              className="rounded-xl p-2 text-muted transition-colors duration-200 hover:bg-surface-container hover:text-foreground"
             >
-              <X className="w-5 h-5" />
+              <X className="h-5 w-5" />
             </button>
           </div>
         </div>
 
-        <form id="product-data-form" onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          <div className="flex-1 space-y-8 overflow-y-auto px-5 py-6 custom-scrollbar sm:px-8">
+        <form id="product-data-form" onSubmit={handleFormSubmit} className="flex min-h-0 flex-1 flex-col" noValidate>
+          <div className="custom-scrollbar flex-1 space-y-8 overflow-y-auto px-5 py-6 sm:px-8">
             <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Ürün Adı</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Örn: Siyah Erkek Kol Saati"
-                  className={cn("form-input", errors.name && "border-danger/50")}
-                />
-                {errors.name && <p className="text-[10px] text-danger flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.name}</p>}
-              </div>
+              <FormField
+                id="product_name"
+                label="Ürün Adı"
+                placeholder="Örn: Siyah Erkek Kol Saati"
+                error={errors.name?.message}
+                {...register("name")}
+              />
 
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Kod</label>
-                  <input
-                    type="text"
-                    value={formData.sku}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                    placeholder="WTCH-001"
-                    className="form-input"
-                  />
-                </div>
+                <FormField
+                  id="product_sku"
+                  label="Kod"
+                  placeholder="WTCH-001"
+                  error={errors.sku?.message}
+                  {...register("sku")}
+                />
+
+                <FormField
+                  id="product_barcode"
+                  label="Barkod"
+                  placeholder="869100000001"
+                  error={errors.barcode?.message}
+                  {...register("barcode")}
+                />
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Barcode</label>
-                  <input
-                    type="text"
-                    value={formData.barcode}
-                    onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                    placeholder="869100000001"
-                    className="form-input"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Ürün Görseli</label>
-                  <div className="min-w-0 rounded-xl border border-border bg-surface-container p-4 space-y-4">
+                  <label className="form-label">Ürün Görseli</label>
+                  <div className="min-w-0 space-y-4 rounded-xl border border-border bg-surface-container p-4">
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -478,7 +475,7 @@ export default function ProductDataForm({
                               className="h-full w-full bg-cover bg-center"
                               style={{ backgroundImage: `url(${imagePreviewUrl})` }}
                               role="img"
-                              aria-label={formData.name || "Ürün görseli"}
+                              aria-label={productName || "Ürün görseli"}
                             />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-500/20 via-surface-container/60 to-cyan-500/20 text-[10px] font-extrabold uppercase tracking-[0.2em] text-foreground/70">
@@ -489,16 +486,18 @@ export default function ProductDataForm({
 
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 text-foreground">
-                            <ImageIcon className="w-4 h-4 text-primary" />
+                            <ImageIcon className="h-4 w-4 text-primary" />
                             <span className="text-sm font-semibold">Bilgisayardan görsel yükle</span>
                           </div>
-                          <p className="text-xs text-muted">JPG, PNG, WebP veya GIF. Görsel istemci tarafında kare kırpılır. En fazla 5 MB.</p>
-                          {imageUploadError && (
-                            <p className="text-[10px] text-danger flex items-center gap-1">
-                              <AlertCircle className="w-3 h-3" />
+                          <p className="text-xs text-muted">
+                            JPG, PNG, WebP veya GIF. Görsel istemci tarafında kare kırpılır. En fazla 5 MB.
+                          </p>
+                          {imageUploadError ? (
+                            <p className="flex items-center gap-1 text-[10px] text-danger">
+                              <AlertCircle className="h-3 w-3" />
                               {imageUploadError}
                             </p>
-                          )}
+                          ) : null}
                         </div>
                       </div>
 
@@ -508,24 +507,24 @@ export default function ProductDataForm({
                         disabled={isUploadingImage || isDeletingImage}
                         className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-xs font-bold text-primary transition-colors duration-200 hover:bg-primary/15 disabled:opacity-60 sm:ml-auto sm:w-auto"
                       >
-                        {isUploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                        {isUploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                         {isUploadingImage ? "Görsel yükleniyor..." : "Dosya Seç"}
                       </button>
                     </div>
 
                     <div className="flex items-center justify-between gap-3">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
                         URL gerekmez. Dosya seçildiğinde kare kırpılır ve otomatik olarak depolamaya kaydedilir.
                       </p>
 
-                      {(imagePreviewUrl || formData.image_url) && (
+                      {(imagePreviewUrl || imageUrlValue) && (
                         <button
                           type="button"
                           onClick={handleRemoveImage}
                           disabled={isUploadingImage || isDeletingImage}
                           className="action-inline-button-danger disabled:opacity-60"
                         >
-                          {isDeletingImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                          {isDeletingImage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                           {isDeletingImage ? "Siliniyor..." : "Görseli Kaldır"}
                         </button>
                       )}
@@ -533,118 +532,122 @@ export default function ProductDataForm({
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Ürün Açıklaması</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Ürün hakkında kısa açıklama"
-                    rows={4}
-                    className="form-input min-h-[104px] resize-none"
-                  />
-                </div>
+                <FormTextarea
+                  id="product_description"
+                  label="Ürün Açıklaması"
+                  rows={4}
+                  placeholder="Ürün hakkında kısa açıklama"
+                  error={errors.description?.message}
+                  textareaClassName="min-h-[104px] resize-none"
+                  {...register("description")}
+                />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Kategori</label>
+                <label className="form-label">Kategori</label>
                 <CategorySelector
-                  onSelect={(cat) => setFormData((prev) => ({ ...prev, category_id: cat.id, category_path: cat.path }))}
-                  initialValue={formData.category_path}
+                  onSelect={(category) => {
+                    setValue("category_id", category.id, { shouldDirty: true });
+                    setValue("category_path", category.path, { shouldDirty: true, shouldValidate: true });
+                  }}
+                  initialValue={categoryPath}
                 />
-                {errors.category && <p className="text-[10px] text-danger flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.category}</p>}
+                {errors.category_path?.message ? (
+                  <p className="flex items-center gap-1 text-[10px] text-danger">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.category_path.message}
+                  </p>
+                ) : null}
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Üretim / Alış Maliyeti (TL)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.cost}
-                  onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                  placeholder="0.00"
-                  className={cn("form-input", errors.cost && "border-danger/50")}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Paketleme Maliyeti (TL)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.packaging_cost}
-                  onChange={(e) => setFormData({ ...formData, packaging_cost: e.target.value })}
-                  placeholder="0.00"
-                  className="form-input"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Desi</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={formData.desi}
-                  onChange={(e) => setFormData({ ...formData, desi: e.target.value })}
-                  placeholder="0.0"
-                  className="form-input"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Satış Fiyatı (TL)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.sale_price}
-                  onChange={(e) => setFormData({ ...formData, sale_price: e.target.value })}
-                  placeholder="0.00"
-                  className={cn("form-input border-primary/20", errors.sale_price && "border-danger/50")}
-                />
-              </div>
+              <FormField
+                id="product_cost"
+                type="number"
+                step="0.01"
+                label="Üretim / Alış Maliyeti (TL)"
+                placeholder="0.00"
+                error={errors.cost?.message}
+                {...register("cost")}
+              />
+              <FormField
+                id="product_packaging_cost"
+                type="number"
+                step="0.01"
+                label="Paketleme Maliyeti (TL)"
+                placeholder="0.00"
+                error={errors.packaging_cost?.message}
+                {...register("packaging_cost")}
+              />
+              <FormField
+                id="product_desi"
+                type="number"
+                step="0.1"
+                label="Desi"
+                placeholder="0.0"
+                error={errors.desi?.message}
+                {...register("desi")}
+              />
+              <FormField
+                id="product_sale_price"
+                type="number"
+                step="0.01"
+                label="Satış Fiyatı (TL)"
+                placeholder="0.00"
+                error={errors.sale_price?.message}
+                inputClassName="border-primary/20"
+                {...register("sale_price")}
+              />
             </div>
 
             <div className="space-y-4">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Aktif Satış Kanalları</label>
+              <label className="form-label">Aktif Satış Kanalları</label>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                {channels.map((channel) => (
-                  <button
-                    key={channel.id}
-                    type="button"
-                    onClick={() => handleToggleChannel(channel.id)}
-                    className={cn(
-                      "flex items-center justify-between p-4 rounded-xl border transition-colors duration-200 text-left group",
-                      formData.active_channels.includes(channel.id)
-                        ? "bg-primary/10 border-primary/30 text-primary"
-                        : "bg-surface-container border-border/80 text-muted hover:border-border"
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <ShoppingBag className={cn("w-4 h-4", formData.active_channels.includes(channel.id) ? "text-primary" : "text-muted")} />
-                      <span className="text-sm font-medium">{channel.label}</span>
-                    </div>
-                    {formData.active_channels.includes(channel.id) && <Check className="w-4 h-4 text-primary" />}
-                  </button>
-                ))}
+                {channels.map((channel) => {
+                  const isSelected = activeChannels.includes(channel.id);
+                  return (
+                    <button
+                      key={channel.id}
+                      type="button"
+                      onClick={() => handleToggleChannel(channel.id)}
+                      className={cn(
+                        "group flex items-center justify-between rounded-xl border p-4 text-left transition-colors duration-200",
+                        isSelected
+                          ? "border-primary/30 bg-primary/10 text-primary"
+                          : "border-border/80 bg-surface-container text-muted hover:border-border"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <ShoppingBag className={cn("h-4 w-4", isSelected ? "text-primary" : "text-muted")} />
+                        <span className="text-sm font-medium">{channel.label}</span>
+                      </div>
+                      {isSelected ? <Check className="h-4 w-4 text-primary" /> : null}
+                    </button>
+                  );
+                })}
               </div>
-              {errors.channels && <p className="text-[10px] text-danger flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.channels}</p>}
+              {errors.active_channels?.message ? (
+                <p className="flex items-center gap-1 text-[10px] text-danger">
+                  <AlertCircle className="h-3 w-3" />
+                  {errors.active_channels.message}
+                </p>
+              ) : null}
             </div>
 
             <div className="space-y-4">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Ürün Durumu</label>
+              <label className="form-label">Ürün Durumu</label>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                {[
-                  { id: "active", label: "Aktif" },
-                  { id: "passive", label: "Pasif" },
-                  { id: "draft", label: "Taslak" },
-                ].map((item) => (
+                {statuses.map((item) => (
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => setFormData({ ...formData, status: item.id as FormState["status"] })}
+                    onClick={() => setValue("status", item.id, { shouldDirty: true, shouldValidate: true })}
                     className={cn(
-                      "flex-1 py-2 px-3 rounded-xl border text-[10px] font-bold uppercase transition-colors duration-200",
-                      formData.status === item.id
-                        ? "bg-surface-container border-border-strong text-foreground"
-                        : "bg-transparent border-border/80 text-muted hover:text-muted"
+                      "flex-1 rounded-xl border px-3 py-2 text-[10px] font-bold uppercase transition-colors duration-200",
+                      selectedStatus === item.id
+                        ? "border-border-strong bg-surface-container text-foreground"
+                        : "border-border/80 bg-transparent text-muted hover:text-muted"
                     )}
                   >
                     {item.label}
@@ -653,20 +656,17 @@ export default function ProductDataForm({
               </div>
             </div>
 
-            <div className="rounded-xl border border-info/20 bg-info/5 p-4 flex gap-3">
-              <Info className="w-5 h-5 text-info shrink-0" />
-              <p className="text-[10px] text-info/70 leading-relaxed">
+            <div className="flex gap-3 rounded-xl border border-info/20 bg-info/5 p-4">
+              <Info className="h-5 w-5 shrink-0 text-info" />
+              <p className="text-[10px] leading-relaxed text-info/70">
                 Ürün kaydedildiğinde maliyet motoru tüm satış kanalları için yeniden hesaplanır.
               </p>
             </div>
           </div>
+
           <div className="flex-none border-t border-border/80 bg-panel/95 px-5 py-4 backdrop-blur-xl sm:px-8">
             <div className="flex flex-col-reverse gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={resetAndClose}
-                className="btn-secondary w-full flex-1 py-3 text-sm font-bold"
-              >
+              <button type="button" onClick={resetAndClose} className="btn-secondary w-full flex-1 py-3 text-sm font-bold">
                 Vazgeç
               </button>
               <button
@@ -681,24 +681,6 @@ export default function ProductDataForm({
           </div>
         </form>
       </div>
-
-      <style jsx>{`
-        .form-input {
-          width: 100%;
-          background: var(--surface-container);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: var(--radius);
-          padding: 10px 14px;
-          color: white;
-          font-size: 14px;
-          transition: all 0.2s;
-        }
-        .form-input:focus {
-          outline: none;
-          border-color: color-mix(in_srgb,var(--success) 30%, transparent);
-          background: var(--surface-strong);
-        }
-      `}</style>
     </>
   );
 }

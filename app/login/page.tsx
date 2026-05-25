@@ -5,12 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { LineChart, Eye, EyeOff, Loader2, LogIn } from "lucide-react";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/layout/AuthContext";
+import { FormField } from "@/components/ui-custom/FormComponents";
 import { EyebrowBadge } from "@/components/ui-custom/GlassComponents";
 import { getFirebaseAuth, isFirebaseClientConfigured, signOutFirebaseClient } from "@/lib/firebase/client";
 import { getFirebaseErrorMessage } from "@/lib/firebase/errors";
+import { loginSchema, type LoginSchemaInput } from "@/lib/validation-schemas";
 
 async function exchangeFirebaseSession(idToken: string, displayName: string | null) {
   const res = await fetch("/api/auth/session", {
@@ -33,26 +37,31 @@ export default function LoginPage() {
   const redirectPath = searchParams.get("redirect") || "/dashboard";
   const { setUser } = useAuth();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [serverError, setServerError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginSchemaInput>({
+    resolver: zodResolver(loginSchema),
+    mode: "onChange",
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-    if (!email || !password) {
-      setError("E-posta ve şifre gerekli.");
-      return;
-    }
-
+  const onSubmit = async (values: LoginSchemaInput) => {
+    setServerError("");
     setLoading(true);
+
     try {
       if (isFirebaseClientConfigured()) {
         const auth = await getFirebaseAuth();
-        const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
+        const credential = await signInWithEmailAndPassword(auth, values.email.trim(), values.password);
         const idToken = await credential.user.getIdToken(true);
         const sessionUser = await exchangeFirebaseSession(idToken, credential.user.displayName || null);
 
@@ -68,13 +77,13 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: values.email.trim(), password: values.password }),
       });
 
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        setError(data.error || "Giriş başarısız.");
+        setServerError(data.error || "Giriş başarısız.");
         return;
       }
 
@@ -88,7 +97,8 @@ export default function LoginPage() {
       if (isFirebaseClientConfigured()) {
         await signOutFirebaseClient().catch(() => {});
       }
-      setError(getFirebaseErrorMessage(error, "Sunucu hatası. Lütfen tekrar deneyin."));
+
+      setServerError(getFirebaseErrorMessage(error, "Sunucu hatası. Lütfen tekrar deneyin."));
     } finally {
       setLoading(false);
     }
@@ -156,9 +166,7 @@ export default function LoginPage() {
             </div>
 
             <div className="mb-8">
-              <EyebrowBadge>
-                Güvenli erişim
-              </EyebrowBadge>
+              <EyebrowBadge>Güvenli erişim</EyebrowBadge>
               <h2 className="mt-5 font-heading text-[2rem] font-semibold tracking-[-0.06em] text-foreground">
                 Hoş geldiniz
               </h2>
@@ -167,50 +175,52 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {error && (
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
+              {serverError ? (
                 <div className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
-                  {error}
+                  {serverError}
                 </div>
-              )}
+              ) : null}
 
-              <div>
-                <label htmlFor="email" className="form-label">E-posta</label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@hesapg.com"
-                  className="form-input"
-                  autoComplete="email"
-                  autoFocus
-                  disabled={loading}
-                />
-              </div>
+              <FormField
+                id="email"
+                type="email"
+                label="E-posta"
+                placeholder="admin@hesapg.com"
+                autoComplete="email"
+                autoFocus
+                disabled={loading}
+                error={errors.email?.message}
+                {...register("email")}
+              />
 
-              <div>
-                <label htmlFor="password" className="form-label">Şifre</label>
+              <div className="space-y-2">
+                <label htmlFor="password" className="form-label">
+                  Şifre
+                </label>
                 <div className="relative">
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="form-input pr-12"
+                    className={cn("form-input pr-12", errors.password && "border-danger/50")}
                     autoComplete="current-password"
                     disabled={loading}
+                    aria-invalid={Boolean(errors.password)}
+                    {...register("password")}
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={() => setShowPassword((current) => !current)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-muted transition-colors duration-200 hover:text-foreground"
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {errors.password?.message ? (
+                  <p className="mt-1.5 text-[10px] text-danger">{errors.password.message}</p>
+                ) : null}
               </div>
 
               <button

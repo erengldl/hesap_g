@@ -1,32 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, Coins, Edit2, Plus, RefreshCcw, Trash2, X } from "lucide-react";
+
+import { FormField, FormSelect, FormTextarea } from "@/components/ui-custom/FormComponents";
 import { EmptyState, ErrorStateCard, GlassCard, SkeletonCard, SkeletonTable } from "@/components/ui-custom/GlassComponents";
 import { formatCurrency } from "@/lib/formatters";
+import { parseLocaleNumberValue, storeExpenseSchema, type StoreExpenseSchemaInput } from "@/lib/validation-schemas";
 import { cn } from "@/lib/utils";
 import type { StoreExpense, StoreExpenseUpsertInput } from "@/lib/types";
-
-type ExpenseFormState = {
-  name: string;
-  monthly_amount: string;
-  note: string;
-  status: "active" | "passive" | "draft";
-};
 
 type MessageState = {
   text: string;
   tone: "success" | "error" | "info";
 } | null;
 
-const DEFAULT_FORM: ExpenseFormState = {
+const DEFAULT_FORM: StoreExpenseSchemaInput = {
   name: "",
   monthly_amount: "",
   note: "",
   status: "active",
 };
 
-function normalizeStatus(status?: string | null): ExpenseFormState["status"] {
+function normalizeStatus(status?: string | null): StoreExpenseSchemaInput["status"] {
   return status === "passive" || status === "draft" ? status : "active";
 }
 
@@ -37,12 +35,22 @@ export function StoreExpensesSection() {
   const [saving, setSaving] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<StoreExpense | null>(null);
-  const [form, setForm] = useState<ExpenseFormState>(DEFAULT_FORM);
   const [message, setMessage] = useState<MessageState>(null);
   const [summary, setSummary] = useState({
     count: 0,
     activeCount: 0,
     totalActiveMonthlyAmount: 0,
+  });
+
+  const {
+    register,
+    reset,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<StoreExpenseSchemaInput>({
+    resolver: zodResolver(storeExpenseSchema),
+    mode: "onChange",
+    defaultValues: DEFAULT_FORM,
   });
 
   const refreshExpenses = useCallback(async () => {
@@ -84,7 +92,7 @@ export function StoreExpensesSection() {
   const openEditor = (expense?: StoreExpense) => {
     if (expense) {
       setEditingExpense(expense);
-      setForm({
+      reset({
         name: expense.name,
         monthly_amount: String(expense.monthly_amount ?? 0),
         note: expense.note ?? "",
@@ -92,32 +100,27 @@ export function StoreExpensesSection() {
       });
     } else {
       setEditingExpense(null);
-      setForm(DEFAULT_FORM);
+      reset(DEFAULT_FORM);
     }
+
     setEditorOpen(true);
   };
 
   const closeEditor = () => {
     setEditorOpen(false);
     setEditingExpense(null);
-    setForm(DEFAULT_FORM);
+    reset(DEFAULT_FORM);
   };
 
-  const handleSave = async (event: FormEvent) => {
-    event.preventDefault();
-    const name = form.name.trim();
-    if (!name) {
-      setMessage({ text: "Gider adı boş olamaz.", tone: "error" });
-      return;
-    }
-
+  const onSave = async (values: StoreExpenseSchemaInput) => {
     setSaving(true);
+
     try {
       const payload: StoreExpenseUpsertInput = {
-        name,
-        monthly_amount: Number(form.monthly_amount || 0),
-        note: form.note.trim() || undefined,
-        status: form.status,
+        name: values.name.trim(),
+        monthly_amount: Number(parseLocaleNumberValue(values.monthly_amount)),
+        note: values.note?.trim() || undefined,
+        status: values.status as StoreExpenseUpsertInput["status"],
       };
 
       const response = await fetch(
@@ -267,16 +270,14 @@ export function StoreExpensesSection() {
             {loading ? (
               <SkeletonCard variant="text-line" height={24} className="mt-2 w-24" />
             ) : (
-              <p className="text-2xl font-extrabold text-primary">
-                {formatCurrency(summary.totalActiveMonthlyAmount)}
-              </p>
+              <p className="text-2xl font-extrabold text-primary">{formatCurrency(summary.totalActiveMonthlyAmount)}</p>
             )}
           </div>
         </div>
 
-        {message && (
+        {message ? (
           <div className={cn("mb-6 rounded-2xl border px-4 py-3 text-sm", messageClassName)}>{message.text}</div>
-        )}
+        ) : null}
 
         {expenses.length === 0 ? (
           <EmptyState
@@ -394,9 +395,7 @@ export function StoreExpensesSection() {
                   <Coins className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold text-foreground">
-                    {editingExpense ? "Gideri Düzenle" : "Yeni Gider Ekle"}
-                  </h4>
+                  <h4 className="text-xl font-bold text-foreground">{editingExpense ? "Gideri Düzenle" : "Yeni Gider Ekle"}</h4>
                   <p className="text-xs text-muted">Aylık sabit gider kaydı oluştur veya güncelle.</p>
                 </div>
               </div>
@@ -411,56 +410,40 @@ export function StoreExpensesSection() {
             </button>
           </div>
 
-          <form className="space-y-6" onSubmit={(event) => void handleSave(event)}>
-            <div className="space-y-2">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Gider Adı</label>
-              <input
-                type="text"
-                value={form.name}
-                onChange={(event) => setForm({ ...form, name: event.target.value })}
-                placeholder="Örn: Depo Kirası"
-                className="w-full rounded-xl border border-border bg-surface-container px-4 py-3 text-sm text-foreground outline-none transition-colors duration-200 focus:border-primary/40"
-              />
-            </div>
+          <form className="space-y-6" onSubmit={handleSubmit(onSave)} noValidate>
+            <FormField
+              id="expense_name"
+              label="Gider Adı"
+              placeholder="Örn: Depo Kirası"
+              error={errors.name?.message}
+              {...register("name")}
+            />
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Aylık Tutar (TL)</label>
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                value={form.monthly_amount}
-                onChange={(event) => setForm({ ...form, monthly_amount: event.target.value })}
-                placeholder="0.00"
-                className="w-full rounded-xl border border-border bg-surface-container px-4 py-3 text-sm text-foreground outline-none transition-colors duration-200 focus:border-primary/40"
-              />
-            </div>
+            <FormField
+              id="monthly_amount"
+              type="number"
+              min={0}
+              step="0.01"
+              label="Aylık Tutar (TL)"
+              placeholder="0.00"
+              error={errors.monthly_amount?.message}
+              {...register("monthly_amount")}
+            />
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Açıklama / Not</label>
-              <textarea
-                value={form.note}
-                onChange={(event) => setForm({ ...form, note: event.target.value })}
-                rows={4}
-                placeholder="Kısa açıklama veya muhasebe notu..."
-                className="w-full rounded-xl border border-border bg-surface-container px-4 py-3 text-sm text-foreground outline-none transition-colors duration-200 focus:border-primary/40"
-              />
-            </div>
+            <FormTextarea
+              id="expense_note"
+              label="Açıklama / Not"
+              rows={4}
+              placeholder="Kısa açıklama veya muhasebe notu..."
+              error={errors.note?.message}
+              {...register("note")}
+            />
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Durum</label>
-              <select
-                value={form.status}
-                onChange={(event) =>
-                  setForm({ ...form, status: event.target.value as ExpenseFormState["status"] })
-                }
-                className="w-full rounded-xl border border-border bg-surface-container px-4 py-3 text-sm text-foreground outline-none transition-colors duration-200 focus:border-primary/40"
-              >
-                <option value="active">Aktif</option>
-                <option value="passive">Pasif</option>
-                <option value="draft">Taslak</option>
-              </select>
-            </div>
+            <FormSelect id="expense_status" label="Durum" error={errors.status?.message} {...register("status")}>
+              <option value="active">Aktif</option>
+              <option value="passive">Pasif</option>
+              <option value="draft">Taslak</option>
+            </FormSelect>
 
             <div className="rounded-2xl border border-info/10 bg-info/5 px-4 py-3">
               <p className="text-xs leading-relaxed text-info/90">

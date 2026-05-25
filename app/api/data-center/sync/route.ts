@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getProducts } from "@/lib/database-readers";
 import { recalculateAllCostResults } from "@/lib/portfolio-analytics";
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function POST() {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const db = getDb();
     if (!db) {
@@ -19,8 +22,8 @@ export async function POST() {
     const syncedAt = new Date().toISOString();
     const note =
       productCount > 0
-        ? `${productCount} ürün veri merkezine yüklendi.`
-        : "Veri merkezinde yüklenecek gerçek ürün bulunamadı.";
+        ? `${productCount} ÃƒÂ¼rÃƒÂ¼n veri merkezine yÃƒÂ¼klendi.`
+        : "Veri merkezinde yÃƒÂ¼klenecek gerÃƒÂ§ek ÃƒÂ¼rÃƒÂ¼n bulunamadÃ„Â±.";
 
     db.prepare(
       `
@@ -44,6 +47,6 @@ export async function POST() {
     });
   } catch (error) {
     console.error("Data center sync error:", error);
-    return NextResponse.json({ success: false, error: "Tüm ürünler veri merkezine yüklenemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "TÃƒÂ¼m ÃƒÂ¼rÃƒÂ¼nler veri merkezine yÃƒÂ¼klenemedi." }, { status: 500 });
   }
 }

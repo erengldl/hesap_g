@@ -2,10 +2,14 @@ import { NextResponse } from 'next/server';
 import { ensureDemoData } from '@/lib/seed-demo-data';
 import { recalculateAllCostResults } from '@/lib/portfolio-analytics';
 import { refreshCampaignProfitMetrics } from '@/lib/ad-analysis';
+import { SEED_DEMO_WARNING_MESSAGE } from '@/lib/seed-demo-contract';
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = 'force-dynamic';
 
 export async function POST() {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const result = await ensureDemoData();
     recalculateAllCostResults();
@@ -17,7 +21,9 @@ export async function POST() {
       success: false,
       productsInserted: 0,
       productsSkipped: 0,
-      message: "Beklenmeyen bir hata oluştu."
+      settingsInserted: 0,
+      message: "Beklenmeyen bir hata oluÃ…Å¸tu.",
+      warning: SEED_DEMO_WARNING_MESSAGE,
     }, { status: 500 });
   }
 }

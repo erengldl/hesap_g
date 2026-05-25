@@ -2,10 +2,13 @@ import { NextResponse } from 'next/server';
 import { getDatabaseCounts, getStoreExpenseMonthlyTotal } from '@/lib/database-readers';
 import { query } from '@/lib/db';
 import { getCachedValue } from '@/lib/server-cache';
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const payload = getCachedValue('data-center-status:default', 15_000, () => {
       const counts = getDatabaseCounts();
@@ -86,7 +89,7 @@ export async function GET() {
     console.error('API Error:', error);
     return NextResponse.json({ 
       success: false, 
-      error: 'Veritabanı sayıları alınamadı.',
+      error: 'VeritabanÃ„Â± sayÃ„Â±larÃ„Â± alÃ„Â±namadÃ„Â±.',
       counts: {} 
     }, { status: 500 });
   }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 
 import { predictReturnRiskFromDataCenter } from "@/lib/return-risk/server";
 import { validateReturnRiskPredictionInput } from "@/lib/return-risk/validation";
@@ -8,6 +9,8 @@ import type { SalesChannel } from "@/lib/profit-pricing/types";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const body = (await request.json().catch(() => ({}))) as Partial<ReturnRiskPredictionInput>;
     const validation = validateReturnRiskPredictionInput(body);

@@ -1,6 +1,8 @@
+import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getProducts } from "@/lib/database-readers";
 import { ok, serverError } from "@/lib/api-helpers";
+import { requireAuth } from "@/lib/api-auth";
 
 type KeywordStatsRow = {
   total: number;
@@ -32,6 +34,8 @@ function tableGet<T>(db: ReturnType<typeof getDb>, sql: string, fallback: T) {
 }
 
 export async function GET() {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const db = getDb();
     if (!db) {

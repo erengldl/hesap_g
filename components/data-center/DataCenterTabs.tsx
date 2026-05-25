@@ -1,14 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BadgePercent, CircleCheckBig, CircleX, CloudDownload, Database, DollarSign, Plus, RotateCw, TriangleAlert } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { BadgePercent, CircleCheckBig, CircleX, CloudDownload, Database, DollarSign, FileSpreadsheet, Plus, RotateCw, TriangleAlert, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  COMMAND_ACTION_EVENT,
+  type CommandActionEventDetail,
+  type CommandActionKey,
+  popQueuedCommandAction,
+} from "@/lib/command-actions";
+import { exportProductsToExcel } from "@/lib/excel";
 import { formatCurrency } from "@/lib/formatters";
+import { SeedDemoButton } from "@/components/demo/SeedDemoButton";
 import type { Product, ProductUpsertInput } from "@/lib/types";
 import { DEMO_PRODUCTS } from "@/lib/demo-data";
+import type { SeedDemoResponse } from "@/lib/seed-demo-contract";
 import { EmptyState, ErrorStateCard, KpiCard, SkeletonCard, SkeletonTable } from "@/components/ui-custom/GlassComponents";
 
 import ProductDataTable from "./ProductDataTable";
+import { ProductExcelImportModal } from "./ProductExcelImportModal";
 import ProductDataForm from "./ProductDataForm";
 import SalesHistorySection from "./SalesHistorySection";
 import { SellerProfileForm } from "./SellerProfileForm";
@@ -33,6 +44,8 @@ type AppStats = {
   last_bulk_sync_message?: string | null;
 };
 
+type DataCenterTab = "products" | "sales" | "settings";
+
 function formatRelativeTime(value?: string | null) {
   if (!value) return "Henüz işlem yapılmadı";
   const date = new Date(value);
@@ -52,7 +65,10 @@ function formatRelativeTime(value?: string | null) {
 
 export function DataCenterTabs() {
   const useDemoData = process.env.NODE_ENV !== "production";
-  const [activeTab, setActiveTab] = useState<"products" | "sales" | "settings">("products");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<DataCenterTab>("products");
   const [isProductFormOpen, setIsProductFormOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [stats, setStats] = useState<AppStats | null>(null);
@@ -61,9 +77,11 @@ export function DataCenterTabs() {
   const [submitting, setSubmitting] = useState(false);
   const [bulkSyncing, setBulkSyncing] = useState(false);
   const [catalogImporting, setCatalogImporting] = useState(false);
+  const [demoSeeding, setDemoSeeding] = useState(false);
   const [message, setMessage] = useState<ToastMessage | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [isExcelImportOpen, setIsExcelImportOpen] = useState(false);
 
   const refreshData = useCallback(async () => {
     setLoading(true);
@@ -103,10 +121,39 @@ export function DataCenterTabs() {
     void refreshData();
   }, [refreshData]);
 
-  const showMessage = (nextMessage: ToastMessage) => {
+  const updateTabUrl = useCallback((nextTab: DataCenterTab) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (nextTab === "products") {
+      params.delete("tab");
+    } else {
+      params.set("tab", nextTab);
+    }
+
+    if (nextTab !== "sales") {
+      params.delete("search");
+    }
+
+    const queryString = params.toString();
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  const activateTab = useCallback((nextTab: DataCenterTab) => {
+    setActiveTab(nextTab);
+    updateTabUrl(nextTab);
+  }, [updateTabUrl]);
+
+  useEffect(() => {
+    const nextTabParam = searchParams.get("tab");
+    const nextTab: DataCenterTab =
+      nextTabParam === "sales" || nextTabParam === "settings" ? nextTabParam : "products";
+    setActiveTab((current) => (current === nextTab ? current : nextTab));
+  }, [searchParams]);
+
+  const showMessage = useCallback((nextMessage: ToastMessage) => {
     setMessage(nextMessage);
     window.setTimeout(() => setMessage(null), 4500);
-  };
+  }, []);
 
   const productById = useMemo(() => {
     const map = new Map<number, Product>();
@@ -115,6 +162,27 @@ export function DataCenterTabs() {
     }
     return map;
   }, [products]);
+
+  const handleProductExcelExport = () => {
+    const exportProducts =
+      selectedIds.length > 0
+        ? products.filter((product) => selectedIds.includes(product.id))
+        : products;
+
+    if (exportProducts.length === 0) {
+      showMessage({ text: "Dışa aktarılacak ürün bulunamadı.", type: "warning" });
+      return;
+    }
+
+    exportProductsToExcel(exportProducts);
+    showMessage({
+      text:
+        selectedIds.length > 0
+          ? `${selectedIds.length} seçili ürün Excel olarak indirildi.`
+          : `${exportProducts.length} ürün Excel olarak indirildi.`,
+      type: "success",
+    });
+  };
 
   const handleSubmitProduct = async (payload: ProductUpsertInput) => {
     setSubmitting(true);
@@ -328,11 +396,91 @@ export function DataCenterTabs() {
     }
   };
 
+  const handleSeedDemoSuccess = useCallback(async (result: SeedDemoResponse) => {
+    await refreshData();
+    showMessage({
+      text: `${result.message} ${result.warning}`,
+      type: "warning",
+    });
+  }, [refreshData]);
+
+  const handleSeedDemoAction = useCallback(async () => {
+    if (!useDemoData || demoSeeding) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Demo veriler yüklenecek. Mevcut veriler silinecek. Devam edilsin mi?"
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setDemoSeeding(true);
+    try {
+      const response = await fetch("/api/seed-demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = (await response.json().catch(() => null)) as SeedDemoResponse | null;
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.message || "Demo verileri yüklenemedi.");
+      }
+
+      await handleSeedDemoSuccess(data);
+    } catch (error) {
+      showMessage({
+        text: error instanceof Error ? error.message : "Demo verileri yüklenemedi.",
+        type: "error",
+      });
+    } finally {
+      setDemoSeeding(false);
+    }
+  }, [demoSeeding, handleSeedDemoSuccess, useDemoData]);
+
+  const runCommandAction = useCallback(async (action: CommandActionKey) => {
+    activateTab("products");
+
+    switch (action) {
+      case "open-product-form":
+        setEditingProduct(null);
+        setIsProductFormOpen(true);
+        return;
+      case "open-excel-import":
+        setIsExcelImportOpen(true);
+        return;
+      case "seed-demo-data":
+        await handleSeedDemoAction();
+        return;
+      default:
+        return;
+    }
+  }, [activateTab, handleSeedDemoAction]);
+
+  useEffect(() => {
+    const queuedAction = popQueuedCommandAction();
+    if (queuedAction) {
+      void runCommandAction(queuedAction);
+    }
+
+    const handleCommandAction = (event: Event) => {
+      const action = (event as CustomEvent<CommandActionEventDetail>).detail?.action;
+      if (!action) {
+        return;
+      }
+
+      void runCommandAction(action);
+    };
+
+    window.addEventListener(COMMAND_ACTION_EVENT, handleCommandAction);
+    return () => window.removeEventListener(COMMAND_ACTION_EVENT, handleCommandAction);
+  }, [runCommandAction]);
+
   return (
     <div className="w-full space-y-6">
       <div className="custom-scrollbar flex w-full gap-1 overflow-x-auto rounded-lg border border-border/70 bg-surface-container/55 p-1.5 shadow-[var(--shadow-card)]">
         <button
-          onClick={() => setActiveTab("products")}
+          onClick={() => activateTab("products")}
           className={cn(
             "whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-semibold transition-colors duration-200",
             activeTab === "products" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:bg-surface-soft hover:text-foreground"
@@ -341,7 +489,7 @@ export function DataCenterTabs() {
           Ürünler
         </button>
         <button
-          onClick={() => setActiveTab("sales")}
+          onClick={() => activateTab("sales")}
           className={cn(
             "whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-semibold transition-colors duration-200",
             activeTab === "sales" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:bg-surface-soft hover:text-foreground"
@@ -350,7 +498,7 @@ export function DataCenterTabs() {
           Satış Geçmişi
         </button>
         <button
-          onClick={() => setActiveTab("settings")}
+          onClick={() => activateTab("settings")}
           className={cn(
             "whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-semibold transition-colors duration-200",
             activeTab === "settings" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:bg-surface-soft hover:text-foreground"
@@ -436,6 +584,30 @@ export function DataCenterTabs() {
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                <SeedDemoButton
+                  confirmMessage="Demo veriler yüklenecek. Mevcut veriler silinecek. Devam edilsin mi?"
+                  onSeeded={handleSeedDemoSuccess}
+                  onError={(text) => showMessage({ text, type: "error" })}
+                  className="px-3.5 py-2.5"
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsExcelImportOpen(true)}
+                  disabled={submitting || bulkSyncing || loading}
+                  className="flex items-center gap-2 rounded-md border border-border/70 bg-surface-container/70 px-3.5 py-2.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-primary/25 hover:bg-card disabled:opacity-60"
+                >
+                  <Upload className="h-4 w-4" />
+                  Excel İçe Aktar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleProductExcelExport}
+                  disabled={products.length === 0 || submitting || bulkSyncing || loading}
+                  className="flex items-center gap-2 rounded-md border border-success/20 bg-success/10 px-3.5 py-2.5 text-sm font-semibold text-success transition-colors duration-200 hover:bg-success/15 disabled:opacity-60"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Excel Dışa Aktar
+                </button>
                 <button
                   type="button"
                   onClick={handleCatalogImport}
@@ -471,6 +643,14 @@ export function DataCenterTabs() {
             {selectedIds.length > 0 && (
               <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-surface-container/60 px-3 py-2.5">
                 <span className="text-xs font-semibold text-muted">{selectedIds.length} ürün seçili</span>
+                <button
+                  type="button"
+                  onClick={handleProductExcelExport}
+                  disabled={submitting}
+                  className="rounded-md border border-success/20 bg-success/10 px-3 py-1.5 text-xs font-semibold text-success transition-colors duration-200 hover:bg-success/15 disabled:opacity-60"
+                >
+                  Excel'e Aktar
+                </button>
                 <button
                   type="button"
                   onClick={() => handleBulkStatusChange("active")}
@@ -523,6 +703,18 @@ export function DataCenterTabs() {
               className="mx-auto max-w-md"
               action={
                 <div className="flex flex-wrap justify-center gap-2">
+                  <SeedDemoButton
+                    onSeeded={handleSeedDemoSuccess}
+                    onError={(text) => showMessage({ text, type: "error" })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsExcelImportOpen(true)}
+                    className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-container px-4 py-2.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-border-strong hover:bg-surface-container"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Excel İçe Aktar
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -571,7 +763,11 @@ export function DataCenterTabs() {
         </div>
       )}
 
-      {activeTab === "sales" && <SalesHistorySection />}
+      {activeTab === "sales" && (
+        <SalesHistorySection
+          key={`sales-${searchParams.get("search") ?? "default"}`}
+        />
+      )}
 
       {activeTab === "settings" && (
         <div className="space-y-6">
@@ -582,6 +778,15 @@ export function DataCenterTabs() {
           </div>
         </div>
       )}
+
+      <ProductExcelImportModal
+        open={isExcelImportOpen}
+        onClose={() => setIsExcelImportOpen(false)}
+        onImported={async () => {
+          await refreshData();
+        }}
+        onNotify={showMessage}
+      />
 
       <ProductDataForm
         isOpen={isProductFormOpen}

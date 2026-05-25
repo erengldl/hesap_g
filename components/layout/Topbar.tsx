@@ -12,6 +12,7 @@ import {
   ChevronDown,
   Link2,
   LineChart,
+  Search,
 } from "lucide-react";
 import { formatCurrency, formatNumber, formatPercent } from "@/lib/formatters";
 import { NotificationBadge } from "@/components/ui-custom/GlassComponents";
@@ -22,6 +23,7 @@ import { navigationItems } from "./navigation";
 
 interface TopbarProps {
   onOpenMobileNavigation: () => void;
+  onOpenCommandPalette: () => void;
 }
 
 type TopbarMeta = {
@@ -149,7 +151,7 @@ function getTopbarMeta(pathname: string): TopbarMeta {
   };
 }
 
-export default function Topbar({ onOpenMobileNavigation }: TopbarProps) {
+export default function Topbar({ onOpenMobileNavigation, onOpenCommandPalette }: TopbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { stats } = useDashboardStats();
@@ -221,6 +223,31 @@ export default function Topbar({ onOpenMobileNavigation }: TopbarProps) {
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={onOpenCommandPalette}
+            aria-label="Komut aramasını aç"
+            className="hidden items-center gap-3 rounded-xl border border-border/80 bg-surface-container/80 px-3 py-2 text-left text-muted transition-colors duration-200 hover:border-primary/25 hover:bg-surface-container hover:text-foreground md:flex"
+          >
+            <Search className="h-4 w-4" />
+            <div className="hidden min-w-0 lg:block">
+              <p className="text-sm font-semibold text-foreground">Ara</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted/60">Sayfa, ürün, sipariş</p>
+            </div>
+            <span className="rounded-md border border-border/80 bg-background/70 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+              Ctrl+K
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenCommandPalette}
+            aria-label="Komut aramasını aç"
+            className="flex h-10 w-10 items-center justify-center rounded-md border border-border/80 bg-surface-container/80 text-muted transition-colors duration-200 hover:border-primary/25 hover:bg-surface-container hover:text-foreground md:hidden"
+          >
+            <Search className="h-4 w-4" />
+          </button>
+
           <div className="hidden items-center xl:flex">
             {stats ? (
               <>

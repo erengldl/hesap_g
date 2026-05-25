@@ -124,7 +124,7 @@ function ChannelCard(props: {
     <div
       onClick={() => props.onSelect(profile.channel)}
       className={cn(
-        "h-full cursor-pointer rounded-2xl border bg-panel/72 p-3 text-left transition-all duration-200",
+        "h-full cursor-pointer rounded-2xl border bg-panel/72 p-3 text-left transition-colors duration-200",
         active
           ? "border-primary/35 shadow-[var(--shadow-primary)]"
           : "border-border/70 hover:border-border-strong"
@@ -242,7 +242,7 @@ export default function ProfitPricingControlPanel(props: {
             type="button"
             onClick={props.onOptimize}
             disabled={props.busy || props.channelProfiles.length === 0}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-primary)] transition-transform duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-primary w-full px-5 py-3 text-sm"
           >
             <Sparkles className="h-4 w-4" />
             Fiyatları Optimize Et

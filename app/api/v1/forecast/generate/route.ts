@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { buildDemandForecastBootstrap, generateDemandForecast } from "@/lib/demand-forecast";
 import { getMarketplaces, getProducts } from "@/lib/database-readers";
 import type { ForecastHorizon } from "@/lib/demand-forecast-types";
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -68,7 +69,7 @@ function buildSafeBootstrap(input: {
     }));
     const fallbackProduct = products[0] ?? {
       id: 0,
-      name: "Demo ürün",
+      name: "Demo ÃƒÂ¼rÃƒÂ¼n",
       sku: "",
       barcode: "",
       image_url: "",
@@ -138,23 +139,25 @@ function buildSafeBootstrap(input: {
           modelName: "FallbackBaseline",
           forecastStartDate: new Date().toISOString().slice(0, 10),
           forecastEndDate: new Date().toISOString().slice(0, 10),
-          stockWarning: "Veri bulunamadı.",
+          stockWarning: "Veri bulunamadÃ„Â±.",
           dataSource: "synthetic",
         },
         chartData: [],
         tableRows: [],
-        methodology: "Veri bulunamadığı için yedek tahmin üretildi.",
-        warnings: ["Tahmin verisi üretilemedi, yedek görünüm gösteriliyor."],
+        methodology: "Veri bulunamadÃ„Â±Ã„Å¸Ã„Â± iÃƒÂ§in yedek tahmin ÃƒÂ¼retildi.",
+        warnings: ["Tahmin verisi ÃƒÂ¼retilemedi, yedek gÃƒÂ¶rÃƒÂ¼nÃƒÂ¼m gÃƒÂ¶steriliyor."],
         generatedAt: new Date().toISOString(),
       },
       historyDepthDays: 0,
-      warnings: ["Tahmin verisi üretilemedi, yedek görünüm gösteriliyor."],
-      methodology: "Veri bulunamadığı için yedek tahmin üretildi.",
+      warnings: ["Tahmin verisi ÃƒÂ¼retilemedi, yedek gÃƒÂ¶rÃƒÂ¼nÃƒÂ¼m gÃƒÂ¶steriliyor."],
+      methodology: "Veri bulunamadÃ„Â±Ã„Å¸Ã„Â± iÃƒÂ§in yedek tahmin ÃƒÂ¼retildi.",
     };
   }
 }
 
 export async function GET(request: Request) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const url = new URL(request.url);
     const bootstrap = buildSafeBootstrap({
@@ -171,6 +174,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const input = {

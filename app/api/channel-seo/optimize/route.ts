@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 
 import { isSalesChannel } from "@/lib/channel-seo/channel-rules";
 import { buildChannelSeoQualityWarnings } from "@/lib/channel-seo/mapper";
@@ -55,13 +56,15 @@ function buildOptimizationPayload(input: {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     if (!body) {
       return NextResponse.json(
         {
           ok: false,
-          error: "İstek gövdesi okunamadı.",
+          error: "Ã„Â°stek gÃƒÂ¶vdesi okunamadÃ„Â±.",
         },
         { status: 400 }
       );
@@ -72,7 +75,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "productId boş olamaz.",
+          error: "productId boÃ…Å¸ olamaz.",
         },
         { status: 400 }
       );
@@ -83,7 +86,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Satış kanalı geçerli olmalıdır.",
+          error: "SatÃ„Â±Ã…Å¸ kanalÃ„Â± geÃƒÂ§erli olmalÃ„Â±dÃ„Â±r.",
         },
         { status: 400 }
       );
@@ -96,7 +99,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Ton geçerli olmalıdır.",
+          error: "Ton geÃƒÂ§erli olmalÃ„Â±dÃ„Â±r.",
         },
         { status: 400 }
       );
@@ -110,7 +113,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Ürün bulunamadı.",
+          error: "ÃƒÅ“rÃƒÂ¼n bulunamadÃ„Â±.",
         },
         { status: 404 }
       );
@@ -228,7 +231,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error: "SEO içeriği üretilemedi.",
+        error: "SEO iÃƒÂ§eriÃ„Å¸i ÃƒÂ¼retilemedi.",
       },
       { status: 500 }
     );

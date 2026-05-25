@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from "@/lib/api-auth";
 
 type CategoryRow = {
   category_id: number;
@@ -9,6 +10,8 @@ type CategoryRow = {
 };
 
 export async function GET() {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const { getMarketplaceCategories } = require('@/lib/database-readers');
     const rawCategories = getMarketplaceCategories() as CategoryRow[];
@@ -44,7 +47,7 @@ export async function GET() {
         if (parent) {
           parent.children.push(node);
         } else {
-          // Orphan — treat as root
+          // Orphan Ã¢â‚¬â€ treat as root
           tree.push(node);
         }
       }
@@ -77,6 +80,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Category API error:', error);
-    return NextResponse.json({ success: false, error: 'Kategoriler yüklenemedi.', categories: [] });
+    return NextResponse.json({ success: false, error: 'Kategoriler yÃƒÂ¼klenemedi.', categories: [] });
   }
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 
 import type { ProfitPricingInput } from "@/lib/profit-pricing/types";
 import { saveProfitPricingRun } from "@/lib/profit-pricing/server";
@@ -6,6 +7,8 @@ import { saveProfitPricingRun } from "@/lib/profit-pricing/server";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const body = (await request.json().catch(() => ({}))) as {
       input?: Partial<ProfitPricingInput>;
@@ -16,7 +19,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Kaydedilecek analiz girdisi bulunamadı.",
+          error: "Kaydedilecek analiz girdisi bulunamadÃ„Â±.",
         },
         { status: 400 }
       );
@@ -31,14 +34,14 @@ export async function POST(request: Request) {
       ok: true,
       data: saved.result,
       runId: saved.runId,
-      message: "Sonuç kaydedildi. Bu analiz ürün geçmişine eklendi.",
+      message: "SonuÃƒÂ§ kaydedildi. Bu analiz ÃƒÂ¼rÃƒÂ¼n geÃƒÂ§miÃ…Å¸ine eklendi.",
     });
   } catch (error) {
     console.error("Profit pricing save result POST error:", error);
     return NextResponse.json(
       {
         ok: false,
-        error: "Sonuç kaydedilemedi. Tekrar deneyebilirsin.",
+        error: "SonuÃƒÂ§ kaydedilemedi. Tekrar deneyebilirsin.",
       },
       { status: 500 }
     );

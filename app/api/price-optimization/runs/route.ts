@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import type { PriceOptimizationRunListResponse, PriceOptimizationRunSummary } from "@/lib/price-optimization-types";
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,8 @@ function clampLimit(value: number) {
 }
 
 export async function GET(request: Request) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const url = new URL(request.url);
     const limit = clampLimit(parseNumeric(url.searchParams.get("limit"), 8));
@@ -57,7 +60,7 @@ export async function GET(request: Request) {
         r.run_id,
         r.product_id,
         r.marketplace_id,
-        COALESCE(p.name, 'Bilinmeyen Ürün') AS product_name,
+        COALESCE(p.name, 'Bilinmeyen ÃƒÅ“rÃƒÂ¼n') AS product_name,
         COALESCE(m.name, 'Bilinmeyen Kanal') AS marketplace_name,
         UPPER(COALESCE(r.status, 'DRAFT')) AS status,
         r.current_price,
@@ -108,7 +111,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Price optimization runs GET error:", error);
     return NextResponse.json(
-      { success: false, runs: [], error: "Fiyat optimizasyon geçmişi yüklenemedi." } satisfies PriceOptimizationRunListResponse,
+      { success: false, runs: [], error: "Fiyat optimizasyon geÃƒÂ§miÃ…Å¸i yÃƒÂ¼klenemedi." } satisfies PriceOptimizationRunListResponse,
       { status: 500 }
     );
   }

@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 
 import { runChannelSeoBulkOptimization } from "@/lib/channel-seo/batch-optimizer";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   try {
     const body = await request.json().catch(() => null);
     if (!body) {
       return NextResponse.json(
         {
           ok: false,
-          error: "İstek gövdesi okunamadı.",
+          error: "Ã„Â°stek gÃƒÂ¶vdesi okunamadÃ„Â±.",
         },
         { status: 400 }
       );
@@ -24,13 +27,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Channel SEO bulk optimize error:", error);
-    const message = error instanceof Error ? error.message : "Toplu optimizasyon başlatılamadı.";
+    const message = error instanceof Error ? error.message : "Toplu optimizasyon baÃ…Å¸latÃ„Â±lamadÃ„Â±.";
     return NextResponse.json(
       {
         ok: false,
         error: message,
       },
-      { status: message.includes("geçersiz") || message.includes("seçilmelidir") ? 400 : 500 }
+      { status: message.includes("geÃƒÂ§ersiz") || message.includes("seÃƒÂ§ilmelidir") ? 400 : 500 }
     );
   }
 }

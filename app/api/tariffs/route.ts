@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { 
+import { requireAuth } from "@/lib/api-auth";
+import {
   getCommissionTariffsByMarketplace, 
   getCommissionForCategory, 
   getCommissionTariffSummaryByMarketplace,
@@ -9,6 +10,8 @@ import {
 } from '@/lib/database-readers';
 
 export async function GET(request: Request) {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type');
   const marketplace = searchParams.get('marketplace');
@@ -65,7 +68,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, matrix });
     }
 
-    return NextResponse.json({ success: false, error: 'Geçersiz tür.' }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'GeÃƒÂ§ersiz tÃƒÂ¼r.' }, { status: 400 });
   } catch (error) {
     console.error('Tariffs API error:', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });

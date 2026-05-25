@@ -3,6 +3,7 @@ import { getCommissionForCategory, getDefaultProductId, getOwnWebsiteGatewayRule
 import { buildDemandForecast as buildDemandForecastEngine } from "./demand-forecast";
 import { recalculateAllCostResultsFromDatabase, recalculateCostResultsForProfileFromDatabase, recalculateCostResultsForProductFromDatabase } from "./cost-engine";
 import { getProductSalesVelocity } from "./product-history";
+import { calculateVatEstimate } from "./tax-calculator";
 import type { AdMetrics, ChannelCostResult, Product } from "./types";
 
 type ProductRow = {
@@ -366,7 +367,7 @@ function getCommissionCost(marketplaceName: string, categoryId: number | null, s
 }
 
 export function calculateChannelCosts(context: ProductContext) {
-    const unitFixedCost = getSellerFixedCostPerUnit(context.product.id, context.product.profile_id ?? 1, context.sellerProfile);
+  const unitFixedCost = getSellerFixedCostPerUnit(context.product.id, context.product.profile_id ?? 1, context.sellerProfile);
   const results: Array<ChannelCostResult & {
     marketplace_id: number;
     marketplace_slug: string;
@@ -426,6 +427,12 @@ export function calculateChannelCosts(context: ProductContext) {
 
     const netProfit = round2(salePrice - unitCost);
     const profitMarginPercent = salePrice > 0 ? round2((netProfit / salePrice) * 100) : 0;
+    const vatEstimate = calculateVatEstimate({
+      salePrice,
+      productCost: Number(context.product.cost ?? 0),
+      packagingCost: Number(context.product.packaging_cost ?? 0),
+      categoryId: context.product.category_id,
+    });
     const channelName =
       marketplace.name === "Trendyol"
         ? shippingMode === "fast"
@@ -437,6 +444,7 @@ export function calculateChannelCosts(context: ProductContext) {
 
     const warningParts: string[] = [];
     if (commission.warning) warningParts.push(commission.warning);
+    if (vatEstimate.warning) warningParts.push(vatEstimate.warning);
     if (!shippingCompanyName && !isOwnWebsite) {
       warningParts.push("Kargo şirketi bulunamadı, varsayılan manuel kargo kullanıldı.");
     }
@@ -457,9 +465,9 @@ export function calculateChannelCosts(context: ProductContext) {
       total_unit_cost: round2(unitCost),
       net_profit: netProfit,
       profit_margin_percent: profitMarginPercent,
-      output_vat: 0,
-      input_vat: 0,
-      estimated_vat_payable: 0,
+      output_vat: vatEstimate.outputVat,
+      input_vat: vatEstimate.inputVat,
+      estimated_vat_payable: vatEstimate.estimatedVatPayable,
       is_fallback: warningParts.length > 0,
       marketplace_id: setting.marketplace_id,
       marketplace_slug: marketplaceSlug,
@@ -653,10 +661,10 @@ type ProductProfitRow = {
   total_revenue: number;
   total_orders: number;
   total_quantity: number;
-  avg_margin: number;
   cost: number;
   packaging_cost: number;
-  sale_price: number;
+  total_cost_exact: number;
+  missing_cost_lines: number;
 };
 
 type DailySalesRow = {
@@ -680,7 +688,7 @@ export type AggregateDashboard = {
   avgMargin: number;
   totalProfit: number;
   channelBreakdown: Array<{ name: string; slug: string; revenue: number; orders: number; pct: number }>;
-  topProducts: Array<{ id: number; name: string; sku: string; revenue: number; orders: number; qty: number; margin: number }>;
+  topProducts: Array<{ id: number; name: string; sku: string; revenue: number; orders: number; qty: number; margin: number; marginConfidence: "exact" | "estimated" }>;
   salesTrend: Array<{ date: string; revenue: number; orders: number }>;
   stockAlerts: Array<{ id: number; name: string; sku: string; stock: number; channel: string }>;
   methodology: string;
@@ -736,15 +744,14 @@ export function buildAggregateDashboard(): AggregateDashboard | null {
       SUM(oi.quantity) as total_quantity,
       COALESCE(MAX(p.cost), 0) as cost,
       COALESCE(MAX(p.packaging_cost), 0) as packaging_cost,
-      COALESCE(MAX(pms.sale_price), 0) as sale_price
+      COALESCE(SUM(CASE WHEN cr.total_unit_cost IS NOT NULL THEN oi.quantity * cr.total_unit_cost ELSE 0 END), 0) as total_cost_exact,
+      COALESCE(SUM(CASE WHEN cr.total_unit_cost IS NULL THEN 1 ELSE 0 END), 0) as missing_cost_lines
     FROM orders o
     JOIN order_items oi ON o.order_id = oi.order_id
-    JOIN products p ON o.product_id = p.product_id
-    LEFT JOIN (
-      SELECT product_id, COALESCE(MAX(sale_price), 0) AS sale_price
-      FROM product_marketplace_settings
-      GROUP BY product_id
-    ) pms ON p.product_id = pms.product_id
+    JOIN products p ON COALESCE(oi.product_id, o.product_id) = p.product_id
+    LEFT JOIN cost_results cr
+      ON cr.product_id = p.product_id
+      AND cr.marketplace_id = o.marketplace_id
     WHERE o.status = 'completed'
     GROUP BY p.product_id
     ORDER BY total_revenue DESC
@@ -752,15 +759,25 @@ export function buildAggregateDashboard(): AggregateDashboard | null {
   `).all() as ProductProfitRow[];
 
   const topProducts = topProductRows.map((row) => {
-    const margin = row.sale_price > 0 ? ((row.sale_price - row.cost - row.packaging_cost) / row.sale_price) * 100 : 0;
+    const revenue = Number(row.total_revenue ?? 0);
+    const quantity = Number(row.total_quantity ?? 0);
+    const exactCost = Number(row.total_cost_exact ?? 0);
+    const fallbackUnitCost = Number(row.cost ?? 0) + Number(row.packaging_cost ?? 0);
+    const fallbackTotalCost = fallbackUnitCost * quantity;
+    const hasExactMargin = Number(row.missing_cost_lines ?? 0) === 0 && quantity > 0;
+    const marginConfidence: "exact" | "estimated" = hasExactMargin ? "exact" : "estimated";
+    const marginBaseCost = hasExactMargin ? exactCost : fallbackTotalCost;
+    const margin = revenue > 0 ? ((revenue - marginBaseCost) / revenue) * 100 : 0;
+
     return {
       id: row.product_id,
       name: row.product_name,
       sku: row.sku ?? "",
-      revenue: row.total_revenue,
-      orders: row.total_orders,
-      qty: row.total_quantity,
+      revenue,
+      orders: Number(row.total_orders ?? 0),
+      qty: quantity,
       margin: Math.round(margin * 10) / 10,
+      marginConfidence,
     };
   });
 
@@ -828,7 +845,7 @@ export function buildAggregateDashboard(): AggregateDashboard | null {
     topProducts,
     salesTrend,
     stockAlerts,
-    methodology: "orders ve order_items tablolarından hesaplanan 30 günlük canlı özet. Demo veride son 90 günlük sentetik akış kullanılır.",
+    methodology: "Ciro ve sipariş hacmi orders ile order_items tablolarından alınır. Lider ürün marjları, eşleşen cost_results kaydı varsa gerçek sipariş cirosu üzerinden hesaplanır; cost_results olmayan ürünlerde yalnızca ürün ve paketleme maliyetiyle tahmini marj gösterilir. Genel ortalama marj ile toplam kâr alanları mevcut ürün ayarlarından türetilen tahmini değerlerdir. Demo modda son 90 günlük sentetik akış kullanılır.",
   };
 }
 
