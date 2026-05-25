@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "@/styles/globals.css";
 import AppShell from "@/components/layout/AppShell";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "Hesap G | E-Ticaret Finansal Kontrol Merkezi",
@@ -21,6 +22,7 @@ export default function RootLayout({
             {children}
           </AppShell>
         </ThemeProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
