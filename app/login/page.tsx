@@ -242,10 +242,12 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="mt-8 flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-surface-container/55 px-4 py-3 text-xs text-muted/60">
-              <span>Demo erişim</span>
-              <span className="font-semibold text-foreground">admin@hesapg.com / admin123</span>
-            </div>
+            {process.env.NODE_ENV !== "production" ? (
+              <div className="mt-8 flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-surface-container/55 px-4 py-3 text-xs text-muted/60">
+                <span>Demo erisim</span>
+                <span className="font-semibold text-foreground">admin@hesapg.com / admin123</span>
+              </div>
+            ) : null}
 
             <p className="mt-6 text-center text-xs text-muted">
               Hesabınız yok mu?{" "}

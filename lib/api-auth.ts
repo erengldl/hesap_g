@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { verifyToken } from "./auth";
+import { getAuthenticatedUserFromCookieHeader } from "./request-auth";
 
 export type ApiContext = {
   userId: number;
@@ -10,15 +10,36 @@ export type ApiContext = {
   plan: string;
 };
 
-export async function requireAuth(): Promise<ApiContext | NextResponse> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("hg_token")?.value;
+function hasAuthCookie(cookieHeader: string) {
+  return /(?:^|;\s*)(hg_session|hg_token)=/.test(cookieHeader);
+}
 
-  if (!token) {
+async function resolveCookieHeader(request?: Request) {
+  if (request) {
+    return request.headers.get("cookie") || "";
+  }
+
+  try {
+    const cookieStore = await cookies();
+    const firebaseSession = cookieStore.get("hg_session")?.value;
+    const token = cookieStore.get("hg_token")?.value;
+
+    return [firebaseSession ? `hg_session=${firebaseSession}` : null, token ? `hg_token=${token}` : null]
+      .filter((value): value is string => Boolean(value))
+      .join("; ");
+  } catch {
+    return "";
+  }
+}
+
+export async function requireAuth(request?: Request): Promise<ApiContext | NextResponse> {
+  const cookieHeader = await resolveCookieHeader(request);
+
+  if (!hasAuthCookie(cookieHeader)) {
     return NextResponse.json({ success: false, error: "Oturum gerekli." }, { status: 401 });
   }
 
-  const user = await verifyToken(token);
+  const user = await getAuthenticatedUserFromCookieHeader(cookieHeader);
   if (!user) {
     return NextResponse.json({ success: false, error: "Oturum suresi dolmus." }, { status: 401 });
   }

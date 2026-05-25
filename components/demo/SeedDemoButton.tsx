@@ -21,12 +21,20 @@ type SeedDemoActionOptions = {
   onSeeded?: (result: SeedDemoResponse) => Promise<void> | void;
 };
 
+const DEMO_SEED_ENABLED = process.env.NODE_ENV !== "production";
+const DEMO_SEED_DISABLED_MESSAGE = "Demo verileri production ortaminda kapali.";
+
 export async function triggerSeedDemo({
   confirmMessage,
   onError,
   onStart,
   onSeeded,
 }: SeedDemoActionOptions) {
+  if (!DEMO_SEED_ENABLED) {
+    onError?.(DEMO_SEED_DISABLED_MESSAGE);
+    return;
+  }
+
   onStart?.();
 
   if (confirmMessage && !window.confirm(confirmMessage)) {
@@ -69,6 +77,10 @@ export function SeedDemoButton({
   onSeeded,
 }: SeedDemoButtonProps) {
   const [loading, setLoading] = useState(false);
+
+  if (!DEMO_SEED_ENABLED) {
+    return null;
+  }
 
   const handleClick = async () => {
     if (loading) return;

@@ -324,27 +324,6 @@ export function DataCenterTabs() {
       ? "Veri merkezi yeniden hesaplama"
       : stats?.last_bulk_sync_scope ?? "Ä°ÅŸlem yok";
 
-  if (loading && products.length === 0) {
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <SkeletonCard key={index} variant="card" height={104} delayIndex={index} />
-          ))}
-        </div>
-
-        <div className="space-y-4 rounded-lg border border-border/70 bg-panel/70 p-4 shadow-[var(--shadow-card)] sm:p-5">
-          <div className="space-y-2">
-            <SkeletonCard variant="text-line" height={12} className="w-32" />
-            <SkeletonCard variant="text-line" height={24} className="w-56" />
-            <SkeletonCard variant="text-line" height={14} className="w-full max-w-2xl" />
-          </div>
-          <SkeletonTable rows={5} />
-        </div>
-      </div>
-    );
-  }
-
   const handleBulkUpload = async () => {
     setBulkSyncing(true);
     try {
@@ -458,6 +437,27 @@ export function DataCenterTabs() {
     window.addEventListener(COMMAND_ACTION_EVENT, handleCommandAction);
     return () => window.removeEventListener(COMMAND_ACTION_EVENT, handleCommandAction);
   }, [runCommandAction]);
+
+  if (loading && products.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <SkeletonCard key={index} variant="card" height={104} delayIndex={index} />
+          ))}
+        </div>
+
+        <div className="space-y-4 rounded-lg border border-border/70 bg-panel/70 p-4 shadow-[var(--shadow-card)] sm:p-5">
+          <div className="space-y-2">
+            <SkeletonCard variant="text-line" height={12} className="w-32" />
+            <SkeletonCard variant="text-line" height={24} className="w-56" />
+            <SkeletonCard variant="text-line" height={14} className="w-full max-w-2xl" />
+          </div>
+          <SkeletonTable rows={5} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full space-y-6">

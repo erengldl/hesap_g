@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { applyProfitPricingRun } = vi.hoisted(() => ({
+const { applyProfitPricingRun, requireAuthMock } = vi.hoisted(() => ({
   applyProfitPricingRun: vi.fn(),
+  requireAuthMock: vi.fn(),
 }));
 
 vi.mock("@/lib/profit-pricing/server", () => ({
   applyProfitPricingRun,
+}));
+
+vi.mock("@/lib/api-auth", () => ({
+  requireAuth: requireAuthMock,
 }));
 
 import { POST } from "@/app/api/profit-pricing/apply-price/route";
@@ -13,6 +18,12 @@ import { POST } from "@/app/api/profit-pricing/apply-price/route";
 describe("profit pricing apply-price route", () => {
   beforeEach(() => {
     applyProfitPricingRun.mockReset();
+    requireAuthMock.mockResolvedValue({
+      userId: 1,
+      email: "demo@example.com",
+      name: "Demo User",
+      plan: "Pro",
+    });
   });
 
   it("rejects missing run ids", async () => {
@@ -38,7 +49,7 @@ describe("profit pricing apply-price route", () => {
     const data = await response.json();
 
     expect(response.status).toBe(409);
-    expect(data.error).toContain("kullanıcı onayı");
+    expect(data.error).toContain("kullanici onayi");
     expect(applyProfitPricingRun).not.toHaveBeenCalled();
   });
 

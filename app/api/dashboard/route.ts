@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { buildAdAnalysis, buildAdAnalysisSummary } from "@/lib/ad-analysis";
+import { requireAuth } from "@/lib/api-auth";
 import { getDb } from "@/lib/db";
 import { getProducts } from "@/lib/database-readers";
 import { buildAggregateDashboard, buildDashboardSnapshot } from "@/lib/portfolio-analytics";
@@ -185,7 +186,10 @@ function buildFallbackAggregate() {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const session = await requireAuth(request);
+  if (session instanceof NextResponse) return session;
+
   try {
     const [aggregate, snapshot, adAnalysis, dataSignals] = await Promise.all([
       getCachedValue("dashboard:aggregate", 15_000, async () => {

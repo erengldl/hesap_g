@@ -7,7 +7,7 @@ import { saveProfitPricingRun } from "@/lib/profit-pricing/server";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  const session = await requireAuth();
+  const session = await requireAuth(request);
   if (session instanceof NextResponse) return session;
   try {
     const body = (await request.json().catch(() => ({}))) as {
@@ -47,4 +47,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

@@ -5,8 +5,8 @@ import { trainReturnRiskModel } from "@/lib/return-risk/server";
 
 export const dynamic = "force-dynamic";
 
-export async function POST() {
-  const session = await requireAuth();
+export async function POST(request: Request) {
+  const session = await requireAuth(request);
   if (session instanceof NextResponse) return session;
   try {
     const result = await trainReturnRiskModel();

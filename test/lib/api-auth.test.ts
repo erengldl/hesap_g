@@ -9,9 +9,13 @@ vi.mock("next/headers", () => ({
   cookies: cookiesMock,
 }));
 
-vi.mock("@/lib/auth", () => ({
-  verifyToken: verifyTokenMock,
-}));
+vi.mock("@/lib/auth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/auth")>();
+  return {
+    ...actual,
+    verifyToken: verifyTokenMock,
+  };
+});
 
 import { requireAuth } from "@/lib/api-auth";
 

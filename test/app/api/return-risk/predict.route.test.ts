@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { predictReturnRiskFromDataCenter } = vi.hoisted(() => ({
+const { predictReturnRiskFromDataCenter, requireAuthMock } = vi.hoisted(() => ({
   predictReturnRiskFromDataCenter: vi.fn(),
+  requireAuthMock: vi.fn(),
 }));
 
 vi.mock("@/lib/return-risk/server", () => ({
   predictReturnRiskFromDataCenter,
+}));
+
+vi.mock("@/lib/api-auth", () => ({
+  requireAuth: requireAuthMock,
 }));
 
 import { POST } from "@/app/api/return-risk/predict/route";
@@ -13,6 +18,12 @@ import { POST } from "@/app/api/return-risk/predict/route";
 describe("return risk predict route", () => {
   beforeEach(() => {
     predictReturnRiskFromDataCenter.mockReset();
+    requireAuthMock.mockResolvedValue({
+      userId: 1,
+      email: "demo@example.com",
+      name: "Demo User",
+      plan: "Pro",
+    });
   });
 
   it("returns a valid prediction response", async () => {

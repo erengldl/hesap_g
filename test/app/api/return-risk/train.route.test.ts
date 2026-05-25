@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { trainReturnRiskModel } = vi.hoisted(() => ({
+const { trainReturnRiskModel, requireAuthMock } = vi.hoisted(() => ({
   trainReturnRiskModel: vi.fn(),
+  requireAuthMock: vi.fn(),
 }));
 
 vi.mock("@/lib/return-risk/server", () => ({
   trainReturnRiskModel,
+}));
+
+vi.mock("@/lib/api-auth", () => ({
+  requireAuth: requireAuthMock,
 }));
 
 import { POST } from "@/app/api/return-risk/train/route";
@@ -13,6 +18,12 @@ import { POST } from "@/app/api/return-risk/train/route";
 describe("return risk train route", () => {
   beforeEach(() => {
     trainReturnRiskModel.mockReset();
+    requireAuthMock.mockResolvedValue({
+      userId: 1,
+      email: "demo@example.com",
+      name: "Demo User",
+      plan: "Pro",
+    });
   });
 
   it("returns a fallback-safe payload when data is insufficient", async () => {
@@ -26,7 +37,7 @@ describe("return risk train route", () => {
       reason: "Model egitimi icin en az 300 gecmis siparis gerekli.",
     });
 
-    const response = await POST();
+    const response = await POST(new Request("http://localhost/api/return-risk/train", { method: "POST" }));
     const data = await response.json();
 
     expect(response.status).toBe(422);

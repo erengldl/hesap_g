@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { saveProfitPricingRun } = vi.hoisted(() => ({
+const { saveProfitPricingRun, requireAuthMock } = vi.hoisted(() => ({
   saveProfitPricingRun: vi.fn(),
+  requireAuthMock: vi.fn(),
 }));
 
 vi.mock("@/lib/profit-pricing/server", () => ({
   saveProfitPricingRun,
+}));
+
+vi.mock("@/lib/api-auth", () => ({
+  requireAuth: requireAuthMock,
 }));
 
 import { POST } from "@/app/api/profit-pricing/save-result/route";
@@ -13,6 +18,12 @@ import { POST } from "@/app/api/profit-pricing/save-result/route";
 describe("profit pricing save-result route", () => {
   beforeEach(() => {
     saveProfitPricingRun.mockReset();
+    requireAuthMock.mockResolvedValue({
+      userId: 1,
+      email: "demo@example.com",
+      name: "Demo User",
+      plan: "Pro",
+    });
   });
 
   it("returns 400 when input is missing", async () => {
