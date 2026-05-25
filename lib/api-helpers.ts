@@ -30,7 +30,7 @@ export function badRequest(error: string): NextResponse {
   return NextResponse.json({ success: false, error }, { status: 400 });
 }
 
-export function unauthorized(error = "Yetkisiz erisim."): NextResponse {
+export function unauthorized(error = "Oturum gerekli."): NextResponse {
   return NextResponse.json({ success: false, error }, { status: 401 });
 }
 

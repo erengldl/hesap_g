@@ -1,5 +1,5 @@
 export const SEED_DEMO_WARNING_MESSAGE =
-  "Bu işlem mevcut tüm ürün ve sipariş verilerini SİLİP yerine demo veri yazar.";
+  "Bu islem mevcut tum urun ve siparis verilerini SILIP yerine demo veri yazar.";
 
 export type SeedDemoResponse = {
   success: boolean;
@@ -12,3 +12,17 @@ export type SeedDemoResponse = {
   message: string;
   warning: string;
 };
+
+export function buildSeedDemoSuccessMessage(summary: string) {
+  const trimmedSummary = summary.trim();
+
+  if (!trimmedSummary) {
+    return SEED_DEMO_WARNING_MESSAGE;
+  }
+
+  if (trimmedSummary.includes(SEED_DEMO_WARNING_MESSAGE)) {
+    return trimmedSummary;
+  }
+
+  return `${SEED_DEMO_WARNING_MESSAGE} ${trimmedSummary}`;
+}

@@ -1,8 +1,13 @@
-import { getDb } from "./db";
-import { DEMO_PRODUCT_SEEDS, deriveDemoSalePrice } from "./demo-product-seeds";
-import { generateDemoSalesHistory } from "./demo-sales-history";
 import { saveProductRecord } from "@/app/api/products/service";
-import { SEED_DEMO_WARNING_MESSAGE, type SeedDemoResponse } from "./seed-demo-contract";
+
+import { getDb } from "./db";
+import { generateDemoSalesHistory } from "./demo-sales-history";
+import { DEMO_PRODUCT_SEEDS, deriveDemoSalePrice } from "./demo-product-seeds";
+import {
+  buildSeedDemoSuccessMessage,
+  SEED_DEMO_WARNING_MESSAGE,
+  type SeedDemoResponse,
+} from "./seed-demo-contract";
 
 type Database = NonNullable<ReturnType<typeof getDb>>;
 
@@ -33,7 +38,7 @@ function getOrCreateGatewayId(db: Database, marketplaceId: number) {
     .prepare(
       "SELECT id FROM payment_gateway_rules WHERE marketplace_id = ? AND gateway_name = ? LIMIT 1"
     )
-    .get(marketplaceId, "Kullanıcı Tanımlı Ödeme Altyapısı") as { id: number } | undefined;
+    .get(marketplaceId, "Kullanici Tanimli Odeme Altyapisi") as { id: number } | undefined;
 
   if (existing) {
     return existing.id;
@@ -41,17 +46,13 @@ function getOrCreateGatewayId(db: Database, marketplaceId: number) {
 
   const result = db
     .prepare(
-      "INSERT INTO payment_gateway_rules (seller_profile_id, marketplace_id, gateway_name, fee_rate_percent, fixed_fee_per_order, vat_rate_percent, fee_values_include_vat, is_active) VALUES (1, ?, 'Kullanıcı Tanımlı Ödeme Altyapısı', 3.49, 0.25, 20, 1, 1)"
+      "INSERT INTO payment_gateway_rules (seller_profile_id, marketplace_id, gateway_name, fee_rate_percent, fixed_fee_per_order, vat_rate_percent, fee_values_include_vat, is_active) VALUES (1, ?, 'Kullanici Tanimli Odeme Altyapisi', 3.49, 0.25, 20, 1, 1)"
     )
     .run(marketplaceId);
 
   return Number(result.lastInsertRowid);
 }
 
-/**
- * Removes all existing products and related data from the database,
- * then re-seeds with the current DEMO_PRODUCT_SEEDS.
- */
 export async function ensureDemoData(): Promise<SeedDemoResponse> {
   const db = getDb();
 
@@ -61,7 +62,7 @@ export async function ensureDemoData(): Promise<SeedDemoResponse> {
       productsInserted: 0,
       productsSkipped: 0,
       settingsInserted: 0,
-      message: "Database bağlantısı kurulamadı. Demo veriler UI tarafında gösterilecek.",
+      message: "Database baglantisi kurulamadi. Demo veriler UI tarafinda gosterilecek.",
       warning: SEED_DEMO_WARNING_MESSAGE,
     };
   }
@@ -71,10 +72,9 @@ export async function ensureDemoData(): Promise<SeedDemoResponse> {
     getOrCreateGatewayId(db, ownWebsiteId);
 
     const ensureSellerProfile = db.prepare(
-      "INSERT INTO seller_profiles (profile_id, company_type, monthly_employee_cost, monthly_warehouse_cost, monthly_invoice_accounting_cost, monthly_other_expenses, expected_monthly_order_count) VALUES (1, 'Şahıs Şirketi', 0, 3000, 1000, 1000, 500) ON CONFLICT(profile_id) DO NOTHING"
+      "INSERT INTO seller_profiles (profile_id, company_type, monthly_employee_cost, monthly_warehouse_cost, monthly_invoice_accounting_cost, monthly_other_expenses, expected_monthly_order_count) VALUES (1, 'Sahis Sirketi', 0, 3000, 1000, 1000, 500) ON CONFLICT(profile_id) DO NOTHING"
     );
 
-    // ── Step 1: Delete ALL existing products and related data ──
     db.transaction(() => {
       const tableExists = (name: string) =>
         db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name);
@@ -97,24 +97,26 @@ export async function ensureDemoData(): Promise<SeedDemoResponse> {
 
     ensureSellerProfile.run();
 
-    // ── Step 2: Insert fresh demo products ──
     for (const product of DEMO_PRODUCT_SEEDS) {
       const categoryId = getCategoryId(db, product.categoryPath, product.fallbackCategoryId);
       const existing = findProduct.get(product.name) as ProductRow | undefined;
 
-      saveProductRecord({
-        name: product.name,
-        sku: product.sku,
-        image_url: product.imageUrl,
-        category_id: categoryId,
-        category_path: product.categoryPath,
-        cost: product.cost,
-        packaging_cost: product.packagingCost,
-        desi: product.desi,
-        sale_price: deriveDemoSalePrice(product.cost, product.packagingCost),
-        active_channels: product.activeChannels,
-        status: product.status,
-      }, existing?.product_id);
+      saveProductRecord(
+        {
+          name: product.name,
+          sku: product.sku,
+          image_url: product.imageUrl,
+          category_id: categoryId,
+          category_path: product.categoryPath,
+          cost: product.cost,
+          packaging_cost: product.packagingCost,
+          desi: product.desi,
+          sale_price: deriveDemoSalePrice(product.cost, product.packagingCost),
+          active_channels: product.activeChannels,
+          status: product.status,
+        },
+        existing?.product_id
+      );
 
       if (existing) {
         productsSkipped++;
@@ -124,6 +126,9 @@ export async function ensureDemoData(): Promise<SeedDemoResponse> {
     }
 
     const salesSummary = generateDemoSalesHistory(db, { days: 90, resetSalesTables: false });
+    const successSummary =
+      `Eski urunler silindi, ${productsInserted} yeni demo urun ve ` +
+      `son 90 gune ait ${salesSummary.ordersInserted} demo siparis eklendi.`;
 
     return {
       success: true,
@@ -133,7 +138,7 @@ export async function ensureDemoData(): Promise<SeedDemoResponse> {
       ordersInserted: salesSummary.ordersInserted,
       orderItemsInserted: salesSummary.orderItemsInserted,
       inventoryRowsInserted: salesSummary.inventoryRowsInserted,
-      message: `Eski ürünler silindi, ${productsInserted} yeni demo ürün ve son 90 güne ait ${salesSummary.ordersInserted} demo sipariş eklendi.`,
+      message: buildSeedDemoSuccessMessage(successSummary),
       warning: SEED_DEMO_WARNING_MESSAGE,
     };
   } catch (error) {
@@ -144,7 +149,7 @@ export async function ensureDemoData(): Promise<SeedDemoResponse> {
       productsInserted: 0,
       productsSkipped: 0,
       settingsInserted: 0,
-      message: "Veritabanı hatası: " + message,
+      message: `Veritabani hatasi: ${message}`,
       warning: SEED_DEMO_WARNING_MESSAGE,
     };
   }

@@ -1,12 +1,13 @@
-import { NextResponse } from 'next/server';
-import { buildDashboardSnapshot, buildAggregateDashboard } from '@/lib/portfolio-analytics';
-import { buildAdAnalysis } from '@/lib/ad-analysis';
-import { getProducts } from '@/lib/database-readers';
-import { getDb } from '@/lib/db';
-import { getCachedValue } from '@/lib/server-cache';
+import { NextResponse } from "next/server";
+
+import { buildAdAnalysis } from "@/lib/ad-analysis";
+import { getDb } from "@/lib/db";
+import { getProducts } from "@/lib/database-readers";
+import { buildAggregateDashboard, buildDashboardSnapshot } from "@/lib/portfolio-analytics";
+import { getCachedValue } from "@/lib/server-cache";
 import { requireAuth } from "@/lib/api-auth";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 type DashboardDataMode = "demo" | "live" | "partial";
 
@@ -145,15 +146,20 @@ function buildDashboardDataSignals(): { dataMode: DashboardDataMode; dataQuality
           : "partial";
 
   let score = hasProducts ? 100 : 0;
-  if (dataMode === "demo") score -= 45;
-  if (dataMode === "partial") score -= 20;
-  if (!lastSyncAt) score -= 15;
-  if (liveOrderCount === 0) score -= 15;
-  if (warnings.has("KDV hesaplanmadi.")) score -= 15;
-  if (warnings.has("Komisyon kategori eslesmesi yok.")) score -= 15;
-  if (warnings.has("Kargo sirketi eslesmesi eksik.")) score -= 10;
-  if (warnings.has("Kategori eslesmesi eksik.")) score -= 10;
+
+  if (dataMode === "demo") score -= 30;
+  if (dataMode === "partial") score -= 18;
+  if (!lastSyncAt) score -= 12;
+  if (liveOrderCount === 0 && dataMode !== "demo") score -= 15;
+  if (warnings.has("KDV hesaplanmadi.")) score -= 8;
+  if (warnings.has("Komisyon kategori eslesmesi yok.")) score -= 8;
+  if (warnings.has("Kargo sirketi eslesmesi eksik.")) score -= 6;
+  if (warnings.has("Kategori eslesmesi eksik.")) score -= 6;
   if (warnings.has("Demo ve canli urunler birlikte gorunuyor.")) score -= 5;
+
+  if (dataMode === "demo") {
+    score = clamp(score, 65, 70);
+  }
 
   return {
     dataMode,
@@ -176,46 +182,47 @@ function buildFallbackAggregate() {
     topProducts: [],
     salesTrend: [],
     stockAlerts: [],
-    methodology: 'CanlÄ± Ã¶zet Ã¼retilemediÄŸi iÃ§in boÅŸ baÅŸlangÄ±Ã§ verisi gÃ¶steriliyor.',
+    methodology: "Canli ozet uretilemedigi icin bos baslangic verisi gosteriliyor.",
   };
 }
 
 export async function GET() {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+
   try {
-    const aggregate = getCachedValue('dashboard:aggregate', 15_000, () => {
+    const aggregate = getCachedValue("dashboard:aggregate", 15_000, () => {
       try {
         return buildAggregateDashboard() ?? buildFallbackAggregate();
       } catch (error) {
-        console.error('Dashboard aggregate fallback:', error);
+        console.error("Dashboard aggregate fallback:", error);
         return buildFallbackAggregate();
       }
     });
 
-    const snapshot = getCachedValue('dashboard:snapshot', 15_000, () => {
+    const snapshot = getCachedValue("dashboard:snapshot", 15_000, () => {
       try {
         return buildDashboardSnapshot();
       } catch (error) {
-        console.error('Dashboard snapshot fallback:', error);
+        console.error("Dashboard snapshot fallback:", error);
         return null;
       }
     });
 
-    const adAnalysis = getCachedValue('dashboard:ad-analysis', 15_000, () => {
+    const adAnalysis = getCachedValue("dashboard:ad-analysis", 15_000, () => {
       try {
         return buildAdAnalysis();
       } catch (error) {
-        console.error('Dashboard ad-analysis fallback:', error);
+        console.error("Dashboard ad-analysis fallback:", error);
         return null;
       }
     });
 
-    const dataSignals = getCachedValue('dashboard:data-signals', 15_000, () => {
+    const dataSignals = getCachedValue("dashboard:data-signals", 15_000, () => {
       try {
         return buildDashboardDataSignals();
       } catch (error) {
-        console.error('Dashboard data signals fallback:', error);
+        console.error("Dashboard data signals fallback:", error);
         return {
           dataMode: "partial" as DashboardDataMode,
           dataQuality: {
@@ -232,44 +239,50 @@ export async function GET() {
       aggregate,
       dataMode: dataSignals.dataMode,
       dataQuality: dataSignals.dataQuality,
-      ...(snapshot ? {
-        product: snapshot.product,
-        results: snapshot.results,
-        bestChannel: snapshot.bestChannel,
-        bestChannelName: snapshot.bestChannelName,
-        bestNetProfit: snapshot.bestNetProfit,
-        bestMargin: snapshot.bestMargin,
-        lowestTotalCost: snapshot.lowestTotalCost,
-        totalNetProfit: snapshot.totalNetProfit,
-        averageMargin: snapshot.averageMargin,
-        costBreakdown: snapshot.costBreakdown,
-        methodology: aggregate.methodology,
-        adAnalysis: adAnalysis ? {
-          totalSpend: adAnalysis.totalSpend,
-          totalNetProfit: adAnalysis.totalNetProfit,
-          averagePoas: adAnalysis.averagePoas,
-          lossMakingCount: adAnalysis.lossMakingCount,
-          watchCount: adAnalysis.watchCount,
-          scaleCount: adAnalysis.scaleCount,
-          totalCampaigns: adAnalysis.totalCampaigns,
-          lastSyncedAt: adAnalysis.lastSyncedAt,
-        } : null,
-      } : {
-        methodology: aggregate.methodology,
-        adAnalysis: adAnalysis ? {
-          totalSpend: adAnalysis.totalSpend,
-          totalNetProfit: adAnalysis.totalNetProfit,
-          averagePoas: adAnalysis.averagePoas,
-          lossMakingCount: adAnalysis.lossMakingCount,
-          watchCount: adAnalysis.watchCount,
-          scaleCount: adAnalysis.scaleCount,
-          totalCampaigns: adAnalysis.totalCampaigns,
-          lastSyncedAt: adAnalysis.lastSyncedAt,
-        } : null,
-      }),
+      ...(snapshot
+        ? {
+            product: snapshot.product,
+            results: snapshot.results,
+            bestChannel: snapshot.bestChannel,
+            bestChannelName: snapshot.bestChannelName,
+            bestNetProfit: snapshot.bestNetProfit,
+            bestMargin: snapshot.bestMargin,
+            lowestTotalCost: snapshot.lowestTotalCost,
+            totalNetProfit: snapshot.totalNetProfit,
+            averageMargin: snapshot.averageMargin,
+            costBreakdown: snapshot.costBreakdown,
+            methodology: aggregate.methodology,
+            adAnalysis: adAnalysis
+              ? {
+                  totalSpend: adAnalysis.totalSpend,
+                  totalNetProfit: adAnalysis.totalNetProfit,
+                  averagePoas: adAnalysis.averagePoas,
+                  lossMakingCount: adAnalysis.lossMakingCount,
+                  watchCount: adAnalysis.watchCount,
+                  scaleCount: adAnalysis.scaleCount,
+                  totalCampaigns: adAnalysis.totalCampaigns,
+                  lastSyncedAt: adAnalysis.lastSyncedAt,
+                }
+              : null,
+          }
+        : {
+            methodology: aggregate.methodology,
+            adAnalysis: adAnalysis
+              ? {
+                  totalSpend: adAnalysis.totalSpend,
+                  totalNetProfit: adAnalysis.totalNetProfit,
+                  averagePoas: adAnalysis.averagePoas,
+                  lossMakingCount: adAnalysis.lossMakingCount,
+                  watchCount: adAnalysis.watchCount,
+                  scaleCount: adAnalysis.scaleCount,
+                  totalCampaigns: adAnalysis.totalCampaigns,
+                  lastSyncedAt: adAnalysis.lastSyncedAt,
+                }
+              : null,
+          }),
     });
   } catch (error) {
-    console.error('Dashboard API error:', error);
-    return NextResponse.json({ success: false, error: 'GÃ¶sterge paneli Ã¶zeti oluÅŸturulamadÄ±.' }, { status: 500 });
+    console.error("Dashboard API error:", error);
+    return NextResponse.json({ success: false, error: "Gosterge paneli ozeti olusturulamadi." }, { status: 500 });
   }
 }

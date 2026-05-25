@@ -6,6 +6,8 @@ import { verifyToken } from "./auth";
 export type ApiContext = {
   userId: number;
   email: string;
+  name: string;
+  plan: string;
 };
 
 export async function requireAuth(): Promise<ApiContext | NextResponse> {
@@ -18,11 +20,13 @@ export async function requireAuth(): Promise<ApiContext | NextResponse> {
 
   const user = await verifyToken(token);
   if (!user) {
-    return NextResponse.json({ success: false, error: "Oturum gerekli." }, { status: 401 });
+    return NextResponse.json({ success: false, error: "Oturum suresi dolmus." }, { status: 401 });
   }
 
   return {
     userId: user.userId,
     email: user.email,
+    name: user.name,
+    plan: user.plan,
   };
 }

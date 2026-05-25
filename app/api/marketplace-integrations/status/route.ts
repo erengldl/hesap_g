@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { proxyMarketplaceIntegrationRequest } from "@/lib/marketplace-integration-service";
 import type { MarketplaceIntegrationStatusItem, MarketplaceSlug } from "@/lib/marketplace-integration-types";
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +102,9 @@ function buildLocalFallbackStatus(serviceError?: string) {
 }
 
 export async function GET() {
+  const session = await requireAuth();
+  if (session instanceof NextResponse) return session;
+
   const response = await proxyMarketplaceIntegrationRequest("/api/v1/integrations/status", { method: "GET" });
 
   if (response.ok) {

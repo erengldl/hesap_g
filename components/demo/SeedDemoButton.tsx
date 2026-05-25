@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CloudDownload } from "lucide-react";
+import { CloudDownload, Loader2 } from "lucide-react";
 
 import { type SeedDemoResponse } from "@/lib/seed-demo-contract";
 import { cn } from "@/lib/utils";
@@ -10,44 +10,77 @@ type SeedDemoButtonProps = {
   className?: string;
   confirmMessage?: string;
   onError?: (message: string) => void;
+  onStart?: () => void;
   onSeeded?: (result: SeedDemoResponse) => Promise<void> | void;
 };
+
+type SeedDemoActionOptions = {
+  confirmMessage?: string;
+  onError?: (message: string) => void;
+  onStart?: () => void;
+  onSeeded?: (result: SeedDemoResponse) => Promise<void> | void;
+};
+
+export async function triggerSeedDemo({
+  confirmMessage,
+  onError,
+  onStart,
+  onSeeded,
+}: SeedDemoActionOptions) {
+  onStart?.();
+
+  if (confirmMessage && !window.confirm(confirmMessage)) {
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/seed-demo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    const data = (await response.json().catch(() => null)) as SeedDemoResponse | null;
+
+    if (!response.ok || !data?.success) {
+      throw new Error(data?.message || "Demo verileri yuklenemedi.");
+    }
+
+    if (onSeeded) {
+      await onSeeded(data);
+      return;
+    }
+
+    window.location.reload();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Demo verileri yuklenemedi.";
+    if (onError) {
+      onError(message);
+      return;
+    }
+
+    console.error("Seed demo error:", error);
+  }
+}
 
 export function SeedDemoButton({
   className,
   confirmMessage,
   onError,
+  onStart,
   onSeeded,
 }: SeedDemoButtonProps) {
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
     if (loading) return;
-    if (confirmMessage && !window.confirm(confirmMessage)) return;
 
     setLoading(true);
     try {
-      const response = await fetch("/api/seed-demo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      await triggerSeedDemo({
+        confirmMessage,
+        onError,
+        onStart,
+        onSeeded,
       });
-      const data = (await response.json().catch(() => null)) as SeedDemoResponse | null;
-      if (!response.ok || !data?.success) {
-        throw new Error(data?.message || "Demo verileri yüklenemedi.");
-      }
-
-      if (onSeeded) {
-        await onSeeded(data);
-      } else {
-        window.location.reload();
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Demo verileri yüklenemedi.";
-      if (onError) {
-        onError(message);
-      } else {
-        window.alert(message);
-      }
     } finally {
       setLoading(false);
     }
@@ -63,8 +96,8 @@ export function SeedDemoButton({
       aria-busy={loading}
       className={cn("btn-primary px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60", className)}
     >
-      <CloudDownload className={cn("h-4 w-4", loading && "animate-bounce")} />
-      {loading ? "Demo verileri yükleniyor..." : "Demo Verileri Yükle"}
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudDownload className="h-4 w-4" />}
+      {loading ? "Demo verileri yukleniyor..." : "Demo Verileri Yukle"}
     </button>
   );
 }

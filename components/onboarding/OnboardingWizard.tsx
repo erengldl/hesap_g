@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   CloudDownload,
   Globe,
+  LayoutDashboard,
   Link2,
   ShoppingBag,
   Store,
@@ -23,6 +24,7 @@ import { useToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 const ONBOARDING_STORAGE_KEY = "hg_onboarding_completed";
+const STEP_TRANSITION = { duration: 0.3, ease: "easeOut" } as const;
 
 const MARKETPLACE_CARDS = [
   {
@@ -47,50 +49,36 @@ const MARKETPLACE_CARDS = [
 
 const FEATURE_CARDS = [
   {
-    title: "KPI kartlari",
+    title: "KPI Paneli",
     description: "Ciro, siparis ve marj sinyallerini ilk bakista gor.",
     icon: CheckCircle2,
   },
   {
-    title: "Trend grafigi",
+    title: "Trend Grafigi",
     description: "Son gunlerdeki satis ivmesini aninda izle.",
     icon: TrendingUp,
   },
   {
-    title: "Karsilastirma",
+    title: "Kanal Analizi",
     description: "Kanal ve urun performansini ayni ekranda karsilastir.",
     icon: BarChart3,
   },
 ] as const;
 
-type DashboardGateResponse = {
-  success?: boolean;
-  aggregate?: {
-    totalRevenue?: number;
-    totalOrders?: number;
-    totalProducts?: number;
-    topProducts?: unknown[];
-    channelBreakdown?: unknown[];
-    salesTrend?: unknown[];
-  };
-};
-
-function isDashboardEmpty(payload: DashboardGateResponse | null) {
-  const aggregate = payload?.aggregate;
-  if (!aggregate) return true;
-
-  const totalRevenue = Number(aggregate.totalRevenue ?? 0);
-  const totalOrders = Number(aggregate.totalOrders ?? 0);
-  const totalProducts = Number(aggregate.totalProducts ?? 0);
-  const topProducts = Array.isArray(aggregate.topProducts) ? aggregate.topProducts.length : 0;
-  const trendPoints = Array.isArray(aggregate.salesTrend) ? aggregate.salesTrend.length : 0;
-  const channels = Array.isArray(aggregate.channelBreakdown) ? aggregate.channelBreakdown.length : 0;
-
-  return totalRevenue <= 0 && totalOrders <= 0 && totalProducts <= 0 && topProducts === 0 && trendPoints === 0 && channels === 0;
+function readOnboardingCompleted() {
+  try {
+    return window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
 }
 
-function isPremiumPlan(plan?: string | null) {
-  return /premium|pro/i.test(String(plan ?? ""));
+function writeOnboardingCompleted() {
+  try {
+    window.localStorage.setItem(ONBOARDING_STORAGE_KEY, "true");
+  } catch {
+    // localStorage failures should not block the flow.
+  }
 }
 
 function StepDot({ active }: { active: boolean }) {
@@ -115,7 +103,7 @@ export function OnboardingWizard() {
   const checkedUserIdRef = useRef<number | null>(null);
 
   const markCompleted = useCallback(() => {
-    window.localStorage.setItem(ONBOARDING_STORAGE_KEY, "true");
+    writeOnboardingCompleted();
   }, []);
 
   const closeWizard = useCallback(() => {
@@ -138,15 +126,17 @@ export function OnboardingWizard() {
   const handleFinish = useCallback(() => {
     markCompleted();
     setOpen(false);
-    window.location.assign("/dashboard");
-  }, [markCompleted]);
+    router.push("/dashboard");
+  }, [markCompleted, router]);
 
   const handleSeeded = useCallback(async (result: SeedDemoResponse) => {
     setSeededDemo(true);
     toast.success("Demo verileri yuklendi", result.message);
-    if (result.warning) {
+
+    if (result.warning && !result.message.includes(result.warning)) {
       toast.warning("Demo modu aktif", result.warning);
     }
+
     goToStep(1);
   }, [goToStep, toast]);
 
@@ -176,60 +166,38 @@ export function OnboardingWizard() {
       return;
     }
 
-    if (window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === "true") {
-      checkedUserIdRef.current = user.userId;
-      return;
-    }
-
     if (checkedUserIdRef.current === user.userId) {
       return;
     }
 
     checkedUserIdRef.current = user.userId;
 
-    if (!isPremiumPlan(user.plan)) {
-      setOpen(true);
-      setCurrentStep(0);
+    if (readOnboardingCompleted()) {
+      setOpen(false);
       return;
     }
 
-    let cancelled = false;
-
-    void (async () => {
-      try {
-        const response = await fetch("/api/dashboard", { cache: "no-store" });
-        const data = (await response.json().catch(() => null)) as DashboardGateResponse | null;
-
-        if (!cancelled && response.ok && isDashboardEmpty(data)) {
-          setOpen(true);
-          setCurrentStep(0);
-        }
-      } catch {
-        // Silent by design: onboarding should never block the shell.
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    setOpen(true);
+    setCurrentStep(0);
+    setSeededDemo(false);
   }, [loading, user]);
 
   return (
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[220] flex items-center justify-center bg-panel/72 px-4 py-6 backdrop-blur-md"
+          className="fixed inset-0 z-[220] flex items-stretch justify-center bg-panel/72 px-0 py-0 backdrop-blur-md sm:items-center sm:px-4 sm:py-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.22, ease: "easeOut" }}
+          transition={STEP_TRANSITION}
         >
           <motion.div
-            className="relative w-full max-w-xl overflow-hidden rounded-[28px] border border-border/80 bg-panel/96 shadow-[var(--shadow-card)]"
-            initial={{ opacity: 0, y: 20, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.98 }}
-            transition={{ duration: 0.28, ease: "easeOut" }}
+            className="relative h-full w-full overflow-hidden rounded-none bg-panel/96 shadow-[var(--shadow-card)] sm:h-auto sm:max-w-lg sm:rounded-[28px] sm:border sm:border-border/80"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={STEP_TRANSITION}
           >
             <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(90,124,255,0.18),transparent_70%)]" />
 
@@ -258,15 +226,15 @@ export function OnboardingWizard() {
               </div>
             </div>
 
-            <div className="relative px-5 py-5 sm:px-6 sm:py-6">
+            <div className="relative h-[calc(100%-89px)] overflow-y-auto px-5 py-5 sm:h-auto sm:px-6 sm:py-6">
               <AnimatePresence mode="wait">
                 {currentStep === 0 ? (
                   <motion.div
                     key="step-1"
-                    initial={{ opacity: 0, x: 24 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -24 }}
-                    transition={{ duration: 0.22, ease: "easeOut" }}
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    transition={STEP_TRANSITION}
                     className="space-y-6"
                   >
                     <div className="flex flex-col items-center text-center">
@@ -275,10 +243,10 @@ export function OnboardingWizard() {
                       </div>
                       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70">Adim 1</p>
                       <h2 className="mt-2 text-[1.9rem] font-semibold tracking-[-0.06em] text-foreground">
-                        Verilerini Yukle
+                        Hemen Basla
                       </h2>
                       <p className="mt-3 max-w-md text-sm leading-7 text-muted/60">
-                        Demo verilerle hemen basla veya kendi urunlerini yukle. Juri uygulamayi actigi anda akisi buradan baslatabilir.
+                        Demo verilerle hemen basla veya kendi urunlerini yukle.
                       </p>
                     </div>
 
@@ -309,10 +277,10 @@ export function OnboardingWizard() {
                 {currentStep === 1 ? (
                   <motion.div
                     key="step-2"
-                    initial={{ opacity: 0, x: 24 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -24 }}
-                    transition={{ duration: 0.22, ease: "easeOut" }}
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    transition={STEP_TRANSITION}
                     className="space-y-6"
                   >
                     <div className="flex flex-col items-center text-center">
@@ -321,10 +289,10 @@ export function OnboardingWizard() {
                       </div>
                       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-info/70">Adim 2</p>
                       <h2 className="mt-2 text-[1.9rem] font-semibold tracking-[-0.06em] text-foreground">
-                        Magazani Bagla
+                        Magazalarini Bagla
                       </h2>
                       <p className="mt-3 max-w-md text-sm leading-7 text-muted/60">
-                        Entegrasyon ile siparislerin otomatik gelsin. Bu adim opsiyonel, ister simdilik atlayip sonra geri donebilirsin.
+                        Entegrasyon ile siparislerin otomatik gelsin. Dilersen simdilik atlayabilirsin.
                       </p>
                     </div>
 
@@ -334,8 +302,13 @@ export function OnboardingWizard() {
                           key={item.name}
                           className="rounded-2xl border border-border/70 bg-surface-container/75 p-3.5"
                         >
-                          <div className={cn("mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl border", item.className)}>
-                            <item.icon className="h-5 w-5" />
+                          <div className="mb-3 flex items-start justify-between gap-3">
+                            <div className={cn("inline-flex h-11 w-11 items-center justify-center rounded-xl border", item.className)}>
+                              <item.icon className="h-5 w-5" />
+                            </div>
+                            <span className="rounded-full border border-border/70 bg-background/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted/70">
+                              Yakinda
+                            </span>
                           </div>
                           <h3 className="text-sm font-semibold text-foreground">{item.name}</h3>
                           <p className="mt-2 text-xs leading-6 text-muted/60">{item.description}</p>
@@ -346,50 +319,40 @@ export function OnboardingWizard() {
                     {seededDemo ? (
                       <GlassCard className="border-success/20 bg-success/10 p-4">
                         <p className="text-sm leading-7 text-success">
-                          Demo veri hazir. Istersen entegrasyon ekle, istemezsen son adima gecip dashboard'u gorebilirsin.
+                          Demo veri hazir. Son adima gecip dashboard uzerinden finansal akisi inceleyebilirsin.
                         </p>
                       </GlassCard>
                     ) : null}
 
-                    <div className="space-y-3">
-                      <button
-                        type="button"
-                        onClick={() => handleRouteAndClose("/integrations")}
-                        className="btn-primary w-full justify-center py-3.5 text-base"
-                      >
-                        Entegrasyonlari Ac
-                        <Link2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => goToStep(2)}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface-container px-4 py-3.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-border-strong hover:bg-surface-soft"
-                      >
-                        Simdilik Atla
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => goToStep(2)}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface-container px-4 py-3.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-border-strong hover:bg-surface-soft"
+                    >
+                      Simdilik Atla
+                    </button>
                   </motion.div>
                 ) : null}
 
                 {currentStep === 2 ? (
                   <motion.div
                     key="step-3"
-                    initial={{ opacity: 0, x: 24 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -24 }}
-                    transition={{ duration: 0.22, ease: "easeOut" }}
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    transition={STEP_TRANSITION}
                     className="space-y-6"
                   >
                     <div className="flex flex-col items-center text-center">
                       <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-[24px] border border-success/20 bg-success/10 text-success shadow-[0_24px_80px_-48px_rgba(16,185,129,0.9)]">
-                        <BarChart3 className="h-9 w-9" />
+                        <LayoutDashboard className="h-9 w-9" />
                       </div>
                       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-success/70">Adim 3</p>
                       <h2 className="mt-2 text-[1.9rem] font-semibold tracking-[-0.06em] text-foreground">
-                        Dashboard'unu Kesfet
+                        Kontrol Sende
                       </h2>
                       <p className="mt-3 max-w-md text-sm leading-7 text-muted/60">
-                        Iste finansal kontrol merkezin. KPI kartlari, trend grafigi ve urun karsilastirmalari ayni panelde seni bekliyor.
+                        Finansal kontrol merkezin hazir!
                       </p>
                     </div>
 
@@ -415,32 +378,11 @@ export function OnboardingWizard() {
                       className="btn-primary w-full justify-center py-3.5 text-base"
                     >
                       Dashboard'a Git
-                      <BarChart3 className="h-4 w-4" />
+                      <LayoutDashboard className="h-4 w-4" />
                     </button>
                   </motion.div>
                 ) : null}
               </AnimatePresence>
-            </div>
-
-            <div className="border-t border-border/70 px-5 py-4 sm:px-6">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-xs text-muted/60">
-                  Adim {currentStep + 1} / 3
-                </div>
-                {currentStep > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => goToStep(currentStep - 1)}
-                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface-container px-3 py-2 text-xs font-semibold text-foreground transition-colors duration-200 hover:border-border-strong hover:bg-surface-soft"
-                  >
-                    Geri
-                  </button>
-                ) : (
-                  <div className="inline-flex items-center gap-2 text-[11px] font-medium text-muted/60">
-                    30 saniyede hizli kurulum
-                  </div>
-                )}
-              </div>
             </div>
           </motion.div>
         </motion.div>
