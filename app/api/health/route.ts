@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { getDb, getDatabaseMode } from "@/lib/db";
 import { classifyDatabaseError } from "@/lib/database-error";
 import { hasDatabaseUrl } from "@/lib/database-url";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const geminiApiKey = process.env.GEMINI_API_KEY?.trim() ?? "";
   const geminiModel = process.env.GEMINI_MODEL?.trim() || null;
+  const supabaseConfigured = isSupabaseConfigured();
 
   if (!hasDatabaseUrl()) {
     return NextResponse.json({
@@ -16,7 +18,8 @@ export async function GET() {
       database_mode: getDatabaseMode(),
       db_configured: false,
       db_error_code: "missing_database_url",
-      db_error_message: "Production veritabani baglanti degiskeni eksik.",
+      db_error_message: "Supabase PostgreSQL baglanti degiskeni eksik.",
+      supabase_configured: supabaseConfigured,
       gemini_configured: geminiApiKey.length > 0,
       gemini_model: geminiModel,
       timestamp: new Date().toISOString(),
@@ -33,6 +36,7 @@ export async function GET() {
       status: "ok",
       database_mode: getDatabaseMode(),
       db_configured: true,
+      supabase_configured: supabaseConfigured,
       gemini_configured: geminiApiKey.length > 0,
       gemini_model: geminiModel,
       timestamp: new Date().toISOString(),
@@ -46,6 +50,7 @@ export async function GET() {
       db_configured: true,
       db_error_code: dbError.code,
       db_error_message: dbError.message,
+      supabase_configured: supabaseConfigured,
       gemini_configured: geminiApiKey.length > 0,
       gemini_model: geminiModel,
       timestamp: new Date().toISOString(),

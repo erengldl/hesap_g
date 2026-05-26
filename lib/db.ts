@@ -29,7 +29,7 @@ function getOrCreateClient(): postgres.Sql {
   const url = resolveDatabaseUrl();
   if (!url) {
     throw new Error(
-      "DATABASE_URL is required. Set DATABASE_URL (or POSTGRES_URL, SUPABASE_DB_URL) to a PostgreSQL connection string."
+      "DATABASE_URL is required. Set SUPABASE_DB_URL (or another PostgreSQL URL env) to a Supabase PostgreSQL connection string."
     );
   }
   const configuredPoolMax = Number(process.env.PG_POOL_MAX ?? 5);
@@ -287,5 +287,5 @@ export async function getOne<T = Record<string, unknown>>(
 }
 
 export function getDatabaseMode(): string {
-  return "postgres";
+  return "supabase-postgres";
 }
