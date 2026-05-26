@@ -22,7 +22,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params;
   const expenseId = parseExpenseId(id);
   if (!expenseId) {
-    return NextResponse.json({ success: false, error: "GeÃƒÂ§ersiz gider kimliÃ„Å¸i." }, { status: 400 });
+    return NextResponse.json({ success: false, error: "Geçersiz gider kimliği." }, { status: 400 });
   }
 
   try {
@@ -57,7 +57,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ success: true, expenseId });
   } catch (error) {
     console.error("Store expenses PUT error:", error);
-    return NextResponse.json({ success: false, error: "Gider gÃƒÂ¼ncellenemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Gider gҼncellenemedi." }, { status: 500 });
   }
 }
 
@@ -67,7 +67,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   const { id } = await params;
   const expenseId = parseExpenseId(id);
   if (!expenseId) {
-    return NextResponse.json({ success: false, error: "GeÃƒÂ§ersiz gider kimliÃ„Å¸i." }, { status: 400 });
+    return NextResponse.json({ success: false, error: "Geçersiz gider kimliği." }, { status: 400 });
   }
 
   try {

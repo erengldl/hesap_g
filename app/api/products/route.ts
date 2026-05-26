@@ -9,6 +9,10 @@ import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = 'force-dynamic';
 
+function shouldAllowDemoFallback() {
+  return process.env.NODE_ENV !== "production" && process.env.ALLOW_DEMO_FALLBACK === "true";
+}
+
 export async function GET(request: NextRequest) {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
@@ -17,7 +21,7 @@ export async function GET(request: NextRequest) {
     const dbProducts = await getProducts();
     const limit = Number(url.searchParams.get("limit") ?? 0);
     const query = (url.searchParams.get("q") ?? "").trim().toLocaleLowerCase("tr");
-    const products = dbProducts.length > 0 ? dbProducts : DEMO_PRODUCTS;
+    const products = dbProducts;
     const filteredProducts = query.length > 0
       ? products.filter((product) => {
           const haystack = [
@@ -42,13 +46,19 @@ export async function GET(request: NextRequest) {
       products: limitedProducts,
       count: limitedProducts.length,
     });
-  } catch {
-    return NextResponse.json({ 
-      success: true, 
-      products: DEMO_PRODUCTS,
-      count: DEMO_PRODUCTS.length,
-      warning: 'Database unavailable, using demo data'
-    });
+  } catch (error) {
+    console.error("Products API error:", error);
+
+    if (shouldAllowDemoFallback()) {
+      return NextResponse.json({
+        success: true,
+        products: DEMO_PRODUCTS,
+        count: DEMO_PRODUCTS.length,
+        warning: "Database unavailable, using demo data",
+      });
+    }
+
+    return NextResponse.json({ success: false, error: "Ürünler yüklenemedi." }, { status: 503 });
   }
 }
 
@@ -74,6 +84,6 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('Create product error:', error);
-    return NextResponse.json({ success: false, error: 'ÃƒÅ“rÃƒÂ¼n oluÃ…Å¸turulamadÃ„Â±.' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Ürün oluşturulamadı.' }, { status: 500 });
   }
 }

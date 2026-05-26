@@ -183,6 +183,6 @@ describe("dashboard route data signals", () => {
     const data = await response.json();
 
     expect(data.dataMode).toBe("partial");
-    expect(data.dataQuality.warnings).toContain("Demo ve canli urunler birlikte gorunuyor.");
+    expect(data.dataQuality.warnings).toContain("Demo ve canlı ürünler birlikte görünüyor.");
   });
 });

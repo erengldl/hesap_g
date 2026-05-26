@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     const file = formData.get("file");
 
     if (!(file instanceof File)) {
-      return NextResponse.json({ success: false, error: "Dosya bulunamadÃ„Â±." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Dosya bulunamadı." }, { status: 400 });
     }
 
     const localUpload = await saveProductImageUpload(file);
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Product image upload error:", error);
-    return NextResponse.json({ success: false, error: "GÃƒÂ¶rsel yÃƒÂ¼klenemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "GҶrsel yҼklenemedi." }, { status: 500 });
   }
 }
 
@@ -35,7 +35,7 @@ export async function DELETE(request: Request) {
     const imageUrl = url.searchParams.get("url");
 
     if (!imageUrl) {
-      return NextResponse.json({ success: false, error: "GÃƒÂ¶rsel URL bulunamadÃ„Â±." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Görsel URL bulunamadı." }, { status: 400 });
     }
 
     const deleted = await deleteProductImageUpload(imageUrl);
@@ -45,6 +45,6 @@ export async function DELETE(request: Request) {
     });
   } catch (error) {
     console.error("Product image delete error:", error);
-    return NextResponse.json({ success: false, error: "GÃƒÂ¶rsel silinemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "GҶrsel silinemedi." }, { status: 500 });
   }
 }

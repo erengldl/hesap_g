@@ -18,7 +18,7 @@ export async function GET() {
     return NextResponse.json(
       {
         ok: false,
-        error: "SatÃ„Â±Ã…Å¸ kanallarÃ„Â± alÃ„Â±namadÃ„Â±.",
+        error: "Satış kanalları alınamadı.",
       },
       { status: 500 }
     );

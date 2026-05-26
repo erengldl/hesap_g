@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Ã„Â°stek gÃƒÂ¶vdesi okunamadÃ„Â±.",
+          error: "İstek gövdesi okunamadı.",
         },
         { status: 400 }
       );
@@ -27,13 +27,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Channel SEO bulk optimize error:", error);
-    const message = error instanceof Error ? error.message : "Toplu optimizasyon baÃ…Å¸latÃ„Â±lamadÃ„Â±.";
+    const message = error instanceof Error ? error.message : "Toplu optimizasyon başlatılamadı.";
     return NextResponse.json(
       {
         ok: false,
         error: message,
       },
-      { status: message.includes("geÃƒÂ§ersiz") || message.includes("seÃƒÂ§ilmelidir") ? 400 : 500 }
+      { status: message.includes("geҧersiz") || message.includes("seҧilmelidir") ? 400 : 500 }
     );
   }
 }

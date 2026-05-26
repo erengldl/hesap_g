@@ -7,7 +7,6 @@
     "build": "next build",
     "start": "node .next/standalone/server.js",
     "lint": "eslint",
-    "migrate:sqlite-to-supabase": "node scripts/import_sqlite_to_supabase.mjs",
     "test": "node scripts/run-vitest.mjs run",
     "test:watch": "node scripts/run-vitest.mjs",
     "test:coverage": "node scripts/run-vitest.mjs run --coverage"

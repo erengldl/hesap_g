@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Son kayÃ„Â±tlar alÃ„Â±namadÃ„Â±.",
+        error: "Son kayıtlar alınamadı.",
       },
       { status: 500 }
     );

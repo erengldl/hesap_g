@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
     const result = await runPriceOptimization(input);
     if (!result) {
-      return NextResponse.json({ success: false, error: "Fiyat optimizasyonu hesaplanamadÃ„Â±." }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Fiyat optimizasyonu hesaplanamadı." }, { status: 404 });
     }
 
     const draftResult: PriceOptimizationResult = {
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     if (shouldPersist) {
       runId = await savePriceOptimizationRun(draftResult) ?? undefined;
       if (!runId) {
-        return NextResponse.json({ success: false, error: "Optimizasyon kaydÃ„Â± oluÃ…Å¸turulamadÃ„Â±." }, { status: 500 });
+        return NextResponse.json({ success: false, error: "Optimizasyon kaydı oluşturulamadı." }, { status: 500 });
       }
     }
 
@@ -72,6 +72,6 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Price optimization analyze POST error:", error);
-    return NextResponse.json({ success: false, error: "Optimizasyon sonucu hesaplanamadÃ„Â±." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Optimizasyon sonucu hesaplanamadı." }, { status: 500 });
   }
 }

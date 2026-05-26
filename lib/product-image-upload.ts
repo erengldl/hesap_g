@@ -27,7 +27,7 @@ function resolveExtension(file: File) {
 
 export async function saveProductImageUpload(file: File) {
   if (file.size <= 0) {
-    throw new Error("Bos dosya yuklenemez.");
+    throw new Error("Boş dosya yüklenemez.");
   }
 
   if (file.size > MAX_FILE_SIZE) {
@@ -36,7 +36,7 @@ export async function saveProductImageUpload(file: File) {
 
   const extension = resolveExtension(file);
   if (!extension) {
-    throw new Error("Sadece JPG, PNG, WebP veya GIF yuklenebilir.");
+    throw new Error("Sadece JPG, PNG, WebP veya GIF yüklenebilir.");
   }
 
   const fileName = `products/${Date.now()}-${randomUUID()}${extension}`;

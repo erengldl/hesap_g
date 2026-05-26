@@ -7,7 +7,7 @@ export type PublicAuthConfig = {
 
 const FALLBACK_AUTH_CONFIG: PublicAuthConfig = {
   authMode: "misconfigured",
-  error: "Kimlik dogrulama yapilandirmasi alinamadi.",
+  error: "Kimlik doğrulama yapılandırması alınamadı.",
 };
 
 let authConfigPromise: Promise<PublicAuthConfig> | null = null;

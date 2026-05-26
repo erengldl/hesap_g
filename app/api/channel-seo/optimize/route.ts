@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Ã„Â°stek gÃƒÂ¶vdesi okunamadÃ„Â±.",
+          error: "İstek gövdesi okunamadı.",
         },
         { status: 400 }
       );
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "productId boÃ…Å¸ olamaz.",
+          error: "productId boş olamaz.",
         },
         { status: 400 }
       );
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "SatÃ„Â±Ã…Å¸ kanalÃ„Â± geÃƒÂ§erli olmalÃ„Â±dÃ„Â±r.",
+          error: "Satış kanalı geçerli olmalıdır.",
         },
         { status: 400 }
       );
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Ton geÃƒÂ§erli olmalÃ„Â±dÃ„Â±r.",
+          error: "Ton geçerli olmalıdır.",
         },
         { status: 400 }
       );
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "ÃƒÅ“rÃƒÂ¼n bulunamadÃ„Â±.",
+          error: "Ürün bulunamadı.",
         },
         { status: 404 }
       );
@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error: "SEO iÃƒÂ§eriÃ„Å¸i ÃƒÂ¼retilemedi.",
+        error: "SEO içeriği üretilemedi.",
       },
       { status: 500 }
     );

@@ -40,7 +40,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Store expenses GET error:", error);
-    return NextResponse.json({ success: false, error: "Giderler yÃƒÂ¼klenemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Giderler yҼklenemedi." }, { status: 500 });
   }
 }
 
@@ -55,12 +55,12 @@ export async function POST(request: Request) {
     const status = normalizeStatus(body.status);
 
     if (!name) {
-      return NextResponse.json({ success: false, error: "Gider adÃ„Â± zorunludur." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Gider adı zorunludur." }, { status: 400 });
     }
 
     const db = getDb();
     if (!db) {
-      return NextResponse.json({ success: false, error: "VeritabanÃ„Â± baÃ„Å¸lantÃ„Â±sÃ„Â± kullanÃ„Â±lamÃ„Â±yor." }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Veritabanı bağlantısı kullanılamıyor." }, { status: 500 });
     }
 
     await db.prepare(`
@@ -73,6 +73,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Store expenses POST error:", error);
-    return NextResponse.json({ success: false, error: "Gider oluÃ…Å¸turulamadÃ„Â±." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Gider oluşturulamadı." }, { status: 500 });
   }
 }

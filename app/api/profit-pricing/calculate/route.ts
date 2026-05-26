@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: "KÃƒÂ¢rlÃ„Â±lÃ„Â±k hesaplanamadÃ„Â±. ÃƒÅ“rÃƒÂ¼n maliyeti veya satÃ„Â±Ã…Å¸ fiyatÃ„Â± eksik olabilir.",
+        error: "Kârlılık hesaplanamadı. Ürün maliyeti veya satış fiyatı eksik olabilir.",
       },
       { status: 500 }
     );

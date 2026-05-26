@@ -22,7 +22,7 @@ type SeedDemoActionOptions = {
 };
 
 const DEMO_SEED_ENABLED = process.env.NODE_ENV !== "production";
-const DEMO_SEED_DISABLED_MESSAGE = "Demo verileri production ortaminda kapali.";
+const DEMO_SEED_DISABLED_MESSAGE = "Demo verileri production ortamında kapalı.";
 
 export async function triggerSeedDemo({
   confirmMessage,
@@ -49,7 +49,7 @@ export async function triggerSeedDemo({
     const data = (await response.json().catch(() => null)) as SeedDemoResponse | null;
 
     if (!response.ok || !data?.success) {
-      throw new Error(data?.message || "Demo verileri yuklenemedi.");
+      throw new Error(data?.message || "Demo verileri yüklenemedi.");
     }
 
     if (onSeeded) {
@@ -59,7 +59,7 @@ export async function triggerSeedDemo({
 
     window.location.reload();
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Demo verileri yuklenemedi.";
+    const message = error instanceof Error ? error.message : "Demo verileri yüklenemedi.";
     if (onError) {
       onError(message);
       return;
@@ -109,7 +109,7 @@ export function SeedDemoButton({
       className={cn("btn-primary px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60", className)}
     >
       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudDownload className="h-4 w-4" />}
-      {loading ? "Demo verileri yukleniyor..." : "Demo Verileri Yukle"}
+      {loading ? "Demo verileri yükleniyor..." : "Demo Verileri Yükle"}
     </button>
   );
 }

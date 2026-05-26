@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Kanal karÃ…Å¸Ã„Â±laÃ…Å¸tÃ„Â±rmasÃ„Â± tamamlanamadÃ„Â±.",
+        error: "Kanal karşılaştırması tamamlanamadı.",
       },
       { status: 500 }
     );

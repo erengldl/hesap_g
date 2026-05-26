@@ -31,10 +31,10 @@ export class ErrorBoundary extends React.Component<Props, State> {
         <div className="min-h-[60vh] flex items-center justify-center p-8">
           <div className="rounded-xl border border-danger/20 bg-danger/5 p-8 max-w-lg text-center">
             <p className="text-sm font-extrabold text-danger uppercase tracking-[0.2em] mb-2">
-              Sayfa Yukleme Hatasi
+              Sayfa Yükleme Hatası
             </p>
             <p className="text-xs text-muted mb-4">
-              Bu sayfa yuklenirken bir hata olustu. Lutfen sayfayi yenileyin veya baska bir sayfaya gecin.
+              Bu sayfa yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin veya başka bir sayfaya geçin.
             </p>
             <button
               onClick={() => {

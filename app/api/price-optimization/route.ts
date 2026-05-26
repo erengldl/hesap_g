@@ -13,7 +13,7 @@ function parseNumeric(value: string | null, fallback: number) {
 async function buildResponse(productId?: number, marketplaceId?: number) {
   const preview = await buildSynchronizedOptimizationPreview(productId, marketplaceId);
   if (!preview) {
-    return NextResponse.json({ success: false, error: "Optimizasyon verisi bulunamadÃ„Â±." }, { status: 404 });
+    return NextResponse.json({ success: false, error: "Optimizasyon verisi bulunamadı." }, { status: 404 });
   }
 
   const payload: PriceOptimizationApiResponse = {
@@ -24,7 +24,7 @@ async function buildResponse(productId?: number, marketplaceId?: number) {
           ...preview.result,
         }
       : null,
-    warning: preview.result ? undefined : "Optimizasyon hesabÃ„Â± tamamlanamadÃ„Â±; ÃƒÂ¶n bilgi yÃƒÂ¼klendi.",
+    warning: preview.result ? undefined : "Optimizasyon hesabı tamamlanamadı; ön bilgi yüklendi.",
   };
 
   return NextResponse.json(payload);
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
     return await buildResponse(productId, marketplaceId);
   } catch (error) {
     console.error("Price optimization GET error:", error);
-    return NextResponse.json({ success: false, error: "Optimizasyon verisi yÃƒÂ¼klenemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Optimizasyon verisi yҼklenemedi." }, { status: 500 });
   }
 }
 
@@ -50,7 +50,7 @@ export async function POST() {
   return NextResponse.json(
     {
       success: false,
-      error: "Kuru ÃƒÂ§alÃ„Â±Ã…Å¸ma hesaplamalarÃ„Â± iÃƒÂ§in /api/price-optimization/analyze kullanÃ„Â±n.",
+      error: "Kuru çalışma hesaplamaları için /api/price-optimization/analyze kullanın.",
     },
     { status: 405 }
   );

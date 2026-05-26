@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "SatÃ„Â±Ã…Å¸ kanalÃ„Â± geÃƒÂ§erli olmalÃ„Â±dÃ„Â±r.",
+          error: "Satış kanalı geçerli olmalıdır.",
         },
         { status: 400 }
       );
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Durum filtresi geÃƒÂ§erli olmalÃ„Â±dÃ„Â±r.",
+          error: "Durum filtresi geçerli olmalıdır.",
         },
         { status: 400 }
       );
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error: "ÃƒÅ“rÃƒÂ¼nler alÃ„Â±namadÃ„Â±.",
+        error: "Ürünler alınamadı.",
       },
       { status: 500 }
     );

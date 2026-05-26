@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Kaydedilecek analiz girdisi bulunamadÃ„Â±.",
+          error: "Kaydedilecek analiz girdisi bulunamadı.",
         },
         { status: 400 }
       );
@@ -34,14 +34,14 @@ export async function POST(request: Request) {
       ok: true,
       data: saved.result,
       runId: saved.runId,
-      message: "SonuÃƒÂ§ kaydedildi. Bu analiz ÃƒÂ¼rÃƒÂ¼n geÃƒÂ§miÃ…Å¸ine eklendi.",
+      message: "Sonuç kaydedildi. Bu analiz ürün geçmişine eklendi.",
     });
   } catch (error) {
     console.error("Profit pricing save result POST error:", error);
     return NextResponse.json(
       {
         ok: false,
-        error: "SonuÃƒÂ§ kaydedilemedi. Tekrar deneyebilirsin.",
+        error: "Sonuҧ kaydedilemedi. Tekrar deneyebilirsin.",
       },
       { status: 500 }
     );

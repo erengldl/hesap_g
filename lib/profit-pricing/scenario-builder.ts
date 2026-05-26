@@ -104,7 +104,7 @@ function mapRiskNotes(risk: ScenarioRisk, input: ProfitPricingInput, point: Pric
   }
 
   if (point.returnRiskPrediction?.usedFallback) {
-    notes.push("Iade/fire riski gecmis ortalamalarla tahmin edildi.");
+    notes.push("İade/fire riski geçmiş ortalamalarla tahmin edildi.");
   }
 
   if (point.returnRiskPrediction?.confidence === "low") {

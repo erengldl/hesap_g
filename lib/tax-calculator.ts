@@ -43,7 +43,7 @@ export async function resolveVatRateForCategory(categoryId: number | null): Prom
       ratePercent: DEFAULT_VAT_RATE_PERCENT,
       source: "default",
       sourceCategoryId: null,
-      warning: "Kategori KDV orani bulunamadi, %18 varsayildi.",
+      warning: "Kategori KDV oranı bulunamadı, %18 varsayıldı.",
     };
   }
 
@@ -93,7 +93,7 @@ export async function resolveVatRateForCategory(categoryId: number | null): Prom
     ratePercent: DEFAULT_VAT_RATE_PERCENT,
     source: "default",
     sourceCategoryId: null,
-    warning: "Kategori KDV orani bulunamadi, %18 varsayildi.",
+    warning: "Kategori KDV oranı bulunamadı, %18 varsayıldı.",
   };
 }
 

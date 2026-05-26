@@ -13,7 +13,7 @@ function readErrorMessage(error: unknown) {
   return "";
 }
 
-export function getSupabaseErrorMessage(error: unknown, fallback = "Sunucu hatasi. Lutfen tekrar deneyin.") {
+export function getSupabaseErrorMessage(error: unknown, fallback = "Sunucu hatası. Lütfen tekrar deneyin.") {
   const rawMessage = readErrorMessage(error);
   const normalized = rawMessage.toLowerCase();
 
@@ -22,11 +22,11 @@ export function getSupabaseErrorMessage(error: unknown, fallback = "Sunucu hatas
   }
 
   if (normalized.includes("email not confirmed")) {
-    return "E-posta adresinizi dogrulamaniz gerekiyor.";
+    return "E-posta adresinizi doğrulamanız gerekiyor.";
   }
 
   if (normalized.includes("user already registered")) {
-    return "Bu e-posta adresi zaten kayitli.";
+    return "Bu e-posta adresi zaten kayıtlı.";
   }
 
   if (normalized.includes("password should be at least")) {
@@ -34,7 +34,7 @@ export function getSupabaseErrorMessage(error: unknown, fallback = "Sunucu hatas
   }
 
   if (normalized.includes("signup is disabled")) {
-    return "Yeni kayit su anda kapali.";
+    return "Yeni kayıt şu anda kapalı.";
   }
 
   if (normalized.includes("supabase auth yapilandirmasi eksik")) {

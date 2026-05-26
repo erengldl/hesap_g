@@ -49,7 +49,7 @@ describe("profit pricing apply-price route", () => {
     const data = await response.json();
 
     expect(response.status).toBe(409);
-    expect(data.error).toContain("kullanici onayi");
+    expect(data.error).toContain("kullanıcı onayı");
     expect(applyProfitPricingRun).not.toHaveBeenCalled();
   });
 

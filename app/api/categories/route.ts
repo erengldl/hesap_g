@@ -47,7 +47,7 @@ export async function GET() {
         if (parent) {
           parent.children.push(node);
         } else {
-          // Orphan Ã¢â‚¬â€ treat as root
+          // Orphan - treat as root
           tree.push(node);
         }
       }
@@ -80,6 +80,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Category API error:', error);
-    return NextResponse.json({ success: false, error: 'Kategoriler yÃƒÂ¼klenemedi.', categories: [] });
+    return NextResponse.json({ success: false, error: 'Kategoriler yüklenemedi.', categories: [] });
   }
 }
