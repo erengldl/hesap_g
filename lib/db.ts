@@ -10,6 +10,20 @@ let sqlClient: postgres.Sql | null = null;
 let schemaEnsured = false;
 let schemaEnsurePromise: Promise<void> | null = null;
 
+function shouldAutoInitializeSchema() {
+  const rawValue = process.env.DB_AUTO_INIT?.trim().toLowerCase();
+
+  if (rawValue === "true") {
+    return true;
+  }
+
+  if (rawValue === "false") {
+    return false;
+  }
+
+  return process.env.NODE_ENV !== "production";
+}
+
 function getOrCreateClient(): postgres.Sql {
   if (sqlClient) return sqlClient;
   const url = resolveDatabaseUrl();
@@ -238,6 +252,10 @@ export function getDb(): PgDatabase {
 
 async function ensureSchema() {
   if (schemaEnsured) return;
+  if (!shouldAutoInitializeSchema()) {
+    schemaEnsured = true;
+    return;
+  }
   if (!schemaEnsurePromise) {
     schemaEnsurePromise = initializePgSchema(getSql())
       .then(() => {
