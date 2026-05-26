@@ -5,14 +5,11 @@ import { getAuthenticatedUserFromCookieHeader } from "./request-auth";
 
 export type ApiContext = {
   userId: number;
+  authUserId?: string | null;
   email: string;
   name: string;
   plan: string;
 };
-
-function hasAuthCookie(cookieHeader: string) {
-  return /(?:^|;\s*)(hg_session|hg_token)=/.test(cookieHeader);
-}
 
 async function resolveCookieHeader(request?: Request) {
   if (request) {
@@ -21,11 +18,9 @@ async function resolveCookieHeader(request?: Request) {
 
   try {
     const cookieStore = await cookies();
-    const firebaseSession = cookieStore.get("hg_session")?.value;
-    const token = cookieStore.get("hg_token")?.value;
-
-    return [firebaseSession ? `hg_session=${firebaseSession}` : null, token ? `hg_token=${token}` : null]
-      .filter((value): value is string => Boolean(value))
+    return cookieStore
+      .getAll()
+      .map(({ name, value }) => `${name}=${value}`)
       .join("; ");
   } catch {
     return "";
@@ -35,7 +30,7 @@ async function resolveCookieHeader(request?: Request) {
 export async function requireAuth(request?: Request): Promise<ApiContext | NextResponse> {
   const cookieHeader = await resolveCookieHeader(request);
 
-  if (!hasAuthCookie(cookieHeader)) {
+  if (!cookieHeader.trim()) {
     return NextResponse.json({ success: false, error: "Oturum gerekli." }, { status: 401 });
   }
 
@@ -46,6 +41,7 @@ export async function requireAuth(request?: Request): Promise<ApiContext | NextR
 
   return {
     userId: user.userId,
+    authUserId: user.authUserId ?? null,
     email: user.email,
     name: user.name,
     plan: user.plan,

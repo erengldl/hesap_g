@@ -7,7 +7,7 @@ import type { AuthUser } from "@/lib/auth";
 function createDeferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
 
-  const promise = new Promise<T>((res, rej) => {
+  const promise = new Promise<T>((res) => {
     resolve = res;
   });
 

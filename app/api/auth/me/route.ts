@@ -1,8 +1,34 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { getClearedFirebaseSessionCookieOptions } from "@/lib/firebase/session";
 import { getAuthenticatedUserFromCookieHeader } from "@/lib/request-auth";
 import { TOKEN_COOKIE_NAME } from "@/lib/auth";
+
+const EXPIRED_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  path: "/",
+  maxAge: 0,
+};
+
+function getSupabaseCookieNames(cookieHeader: string) {
+  const names = new Set<string>();
+
+  for (const part of cookieHeader.split(";")) {
+    const trimmed = part.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    const separatorIndex = trimmed.indexOf("=");
+    const name = separatorIndex >= 0 ? trimmed.slice(0, separatorIndex).trim() : trimmed;
+    if (name.startsWith("sb-")) {
+      names.add(name);
+    }
+  }
+
+  return [...names];
+}
 
 export async function GET(request: Request) {
   try {
@@ -44,15 +70,15 @@ export async function GET(request: Request) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  const cookieHeader = request.headers.get("cookie") || "";
   const response = NextResponse.json({ success: true });
-  response.cookies.set(TOKEN_COOKIE_NAME, "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-  });
-  response.cookies.set("hg_session", "", getClearedFirebaseSessionCookieOptions());
+  response.cookies.set(TOKEN_COOKIE_NAME, "", EXPIRED_COOKIE_OPTIONS);
+  response.cookies.set("hg_session", "", EXPIRED_COOKIE_OPTIONS);
+
+  for (const cookieName of getSupabaseCookieNames(cookieHeader)) {
+    response.cookies.set(cookieName, "", EXPIRED_COOKIE_OPTIONS);
+  }
+
   return response;
 }

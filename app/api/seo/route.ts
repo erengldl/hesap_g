@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getProducts } from "@/lib/database-readers";
-import { ok, serverError } from "@/lib/api-helpers";
+import { ok } from "@/lib/api-helpers";
 import { requireAuth } from "@/lib/api-auth";
 
 type KeywordStatsRow = {

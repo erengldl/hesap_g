@@ -4,25 +4,22 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { LineChart, Eye, EyeOff, Loader2, UserPlus } from "lucide-react";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/layout/AuthContext";
 import { EyebrowBadge } from "@/components/ui-custom/GlassComponents";
-import { loadPublicAuthConfig } from "@/lib/firebase/auth-config-client";
-import { getFirebaseAuth, signOutFirebaseClient } from "@/lib/firebase/client";
-import { getFirebaseErrorMessage } from "@/lib/firebase/errors";
+import { loadPublicAuthConfig } from "@/lib/supabase/auth-config-client";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getSupabaseErrorMessage } from "@/lib/supabase/errors";
 
-async function exchangeFirebaseSession(idToken: string, displayName: string) {
-  const res = await fetch("/api/auth/session", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idToken, name: displayName }),
+async function getCurrentAuthenticatedUser() {
+  const res = await fetch("/api/auth/me", {
+    cache: "no-store",
   });
-
   const data = await res.json();
-  if (!res.ok || !data.success) {
-    throw new Error(data.error || "Firebase session could not be created.");
+
+  if (!res.ok || !data?.success || !data.user) {
+    throw new Error(data?.error || "Oturum okunamadi.");
   }
 
   return data.user;
@@ -39,10 +36,12 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setNotice("");
 
     if (!name || !email || !password) {
       setError("Tüm alanlar zorunludur.");
@@ -60,36 +59,52 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
-    let authMode: "firebase" | "misconfigured" = "misconfigured";
+    let authMode: "supabase" | "misconfigured" = "misconfigured";
     try {
       const authConfig = await loadPublicAuthConfig();
       authMode = authConfig.authMode;
 
       if (authMode === "misconfigured") {
-        setError(authConfig.error || "Firebase sunucu yapilandirmasi eksik.");
+        setError(authConfig.error || "Supabase auth yapilandirmasi eksik.");
         return;
       }
 
-      if (authMode === "firebase") {
-        const auth = await getFirebaseAuth();
-        const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-        await updateProfile(credential.user, { displayName: name.trim() });
+      const supabase = createSupabaseBrowserClient();
+      const signUpResult = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: {
+            name: name.trim(),
+          },
+          emailRedirectTo:
+            typeof window !== "undefined" ? `${window.location.origin}/auth/callback?next=/dashboard` : undefined,
+        },
+      });
 
-        const idToken = await credential.user.getIdToken(true);
-        const sessionUser = await exchangeFirebaseSession(idToken, name.trim());
-        if (sessionUser) {
-          setUser(sessionUser);
-        }
+      if (signUpResult.error) {
+        throw signUpResult.error;
+      }
 
-        router.push("/dashboard");
+      if (!signUpResult.data.session) {
+        setNotice("Hesap olusturuldu. Devam etmeden once e-posta dogrulamasini tamamlayin.");
+        router.push("/login?registered=1");
         router.refresh();
         return;
       }
-    } catch (error) {
-      if (authMode === "firebase") {
-        await signOutFirebaseClient().catch(() => {});
+
+      const sessionUser = await getCurrentAuthenticatedUser();
+      if (sessionUser) {
+        setUser(sessionUser);
       }
-      setError(getFirebaseErrorMessage(error, "Sunucu hatası. Lütfen tekrar deneyin."));
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch (error) {
+      if (authMode === "supabase") {
+        await createSupabaseBrowserClient().auth.signOut().catch(() => {});
+      }
+      setError(getSupabaseErrorMessage(error, "Sunucu hatasi. Lutfen tekrar deneyin."));
     } finally {
       setLoading(false);
     }
@@ -169,6 +184,11 @@ export default function RegisterPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              {notice && (
+                <div className="rounded-lg border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
+                  {notice}
+                </div>
+              )}
               {error && (
                 <div className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
                   {error}

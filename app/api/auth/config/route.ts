@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { resolveServerAuthMode } from "@/lib/firebase/auth-mode";
+import { resolveServerAuthMode } from "@/lib/supabase/auth-mode";
 
 export async function GET() {
   const { authMode, error } = resolveServerAuthMode();

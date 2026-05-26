@@ -52,24 +52,6 @@ function createTestDb(): TestDatabase {
       .map((s) => s.trim().replace(/["`]/g, ""));
   }
 
-  function extractSelectCols(sql: string): string[] | null {
-    const m = sql.match(/SELECT\s+([\s\S]+?)\s+FROM/i);
-    if (!m || m[1].trim() === "*") return null;
-    // Return aliased column names
-    const raw = m[1];
-    const cols: string[] = [];
-    for (const part of raw.split(",")) {
-      const asM = part.match(/\bAS\s+(\w+)/i);
-      const dotM = part.match(/(\w+)\.(\w+)/);
-      const plainM = part.match(/^[\s(]*(\w+)/);
-      if (asM) cols.push(asM[1]);
-      else if (dotM) cols.push(dotM[2]);
-      else if (plainM) cols.push(plainM[1]);
-      else cols.push(part.trim());
-    }
-    return cols;
-  }
-
   function parseWheres(
     sql: string,
   ): Array<{ col: string; op: string }> {
@@ -175,7 +157,6 @@ function createTestDb(): TestDatabase {
       // ── SELECT ──
       if (upper.startsWith("SELECT")) {
         const isCount = /COUNT\(\*\)/i.test(sql);
-        const selectCols = extractSelectCols(sql);
         const whereConds = parseWheres(sql);
         const limitM = sql.match(/LIMIT\s+(\d+)/i);
         const limit = limitM ? Number(limitM[1]) : Infinity;
@@ -274,7 +255,6 @@ function createTestDb(): TestDatabase {
               const whereParams = params.slice(1);
               const seoContents = tables.get("product_channel_seo_contents");
               const categories = tables.get("categories");
-              const marketplaces = tables.get("marketplaces");
               const pms = tables.get("product_marketplace_settings");
               const inventory = tables.get("inventory_daily");
 
@@ -398,7 +378,7 @@ function createTestDb(): TestDatabase {
             );
             return matched.slice(0, limit === Infinity ? undefined : limit);
           },
-          async run(..._params: unknown[]) {
+          async run() {
             throw new Error("SELECT does not support .run()");
           },
         };

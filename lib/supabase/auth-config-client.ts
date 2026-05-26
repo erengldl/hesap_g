@@ -1,4 +1,4 @@
-export type ClientAuthMode = "firebase" | "misconfigured";
+export type ClientAuthMode = "supabase" | "misconfigured";
 
 export type PublicAuthConfig = {
   authMode: ClientAuthMode;
@@ -32,7 +32,7 @@ export async function loadPublicAuthConfig(): Promise<PublicAuthConfig> {
       const data = (await response.json().catch(() => null)) as Partial<PublicAuthConfig> | null;
       const authMode = data?.authMode;
 
-      if (authMode === "firebase" || authMode === "misconfigured") {
+      if (authMode === "supabase" || authMode === "misconfigured") {
         return {
           authMode,
           error: typeof data?.error === "string" ? data.error : null,

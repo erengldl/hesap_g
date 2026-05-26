@@ -1,32 +1,34 @@
-import { getTokenFromCookies, verifyToken, type AuthUser } from "@/lib/auth";
-import {
-  getFirebaseSessionCookieFromCookies,
-  verifyFirebaseSessionCookie,
-} from "@/lib/firebase/session";
-import { upsertFirebaseUserFromClaims } from "@/lib/firebase/user-sync";
+import type { AuthUser } from "@/lib/auth";
+import { createSupabaseServerClientFromCookieHeader } from "@/lib/supabase/server";
+import { upsertSupabaseUser } from "@/lib/supabase/user-sync";
 
 export async function getAuthenticatedUserFromCookieHeader(
   cookieHeader: string
 ): Promise<AuthUser | null> {
-  const firebaseSessionCookie = getFirebaseSessionCookieFromCookies(cookieHeader);
-  if (firebaseSessionCookie) {
-    try {
-      const claims = await verifyFirebaseSessionCookie(firebaseSessionCookie);
-      const firebaseUser = await upsertFirebaseUserFromClaims(claims, claims.name ?? null);
-      if (firebaseUser) {
-        return firebaseUser;
-      }
-    } catch {
-      // Fall back to legacy auth cookies below.
-    }
-  }
-
-  const token = getTokenFromCookies(cookieHeader);
-  if (!token) {
+  if (!cookieHeader.trim()) {
     return null;
   }
 
-  return verifyToken(token);
+  try {
+    const supabase = createSupabaseServerClientFromCookieHeader(cookieHeader);
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      return null;
+    }
+
+    const appUser = await upsertSupabaseUser(user);
+    if (appUser) {
+      return appUser;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
 }
 
 export async function getAuthenticatedUserFromRequest(request: Request): Promise<AuthUser | null> {

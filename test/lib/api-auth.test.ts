@@ -1,33 +1,29 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { cookiesMock, verifyTokenMock } = vi.hoisted(() => ({
+const { cookiesMock, getAuthenticatedUserFromCookieHeaderMock } = vi.hoisted(() => ({
   cookiesMock: vi.fn(),
-  verifyTokenMock: vi.fn(),
+  getAuthenticatedUserFromCookieHeaderMock: vi.fn(),
 }));
 
 vi.mock("next/headers", () => ({
   cookies: cookiesMock,
 }));
 
-vi.mock("@/lib/auth", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/auth")>();
-  return {
-    ...actual,
-    verifyToken: verifyTokenMock,
-  };
-});
+vi.mock("@/lib/request-auth", () => ({
+  getAuthenticatedUserFromCookieHeader: getAuthenticatedUserFromCookieHeaderMock,
+}));
 
 import { requireAuth } from "@/lib/api-auth";
 
 describe("requireAuth", () => {
   beforeEach(() => {
     cookiesMock.mockReset();
-    verifyTokenMock.mockReset();
+    getAuthenticatedUserFromCookieHeaderMock.mockReset();
   });
 
-  it("returns 401 when the auth cookie is missing", async () => {
+  it("returns 401 when no cookies are present", async () => {
     cookiesMock.mockResolvedValue({
-      get: vi.fn(() => undefined),
+      getAll: vi.fn(() => []),
     });
 
     const result = await requireAuth();
@@ -39,17 +35,20 @@ describe("requireAuth", () => {
       success: false,
       error: "Oturum gerekli.",
     });
+    expect(getAuthenticatedUserFromCookieHeaderMock).not.toHaveBeenCalled();
   });
 
-  it("returns 401 when the token is invalid or expired", async () => {
+  it("returns 401 when the Supabase session cannot be resolved", async () => {
     cookiesMock.mockResolvedValue({
-      get: vi.fn(() => ({ value: "expired-token" })),
+      getAll: vi.fn(() => [{ name: "sb-test-auth-token", value: "expired-cookie" }]),
     });
-    verifyTokenMock.mockResolvedValue(null);
+    getAuthenticatedUserFromCookieHeaderMock.mockResolvedValue(null);
 
     const result = await requireAuth();
 
-    expect(verifyTokenMock).toHaveBeenCalledWith("expired-token");
+    expect(getAuthenticatedUserFromCookieHeaderMock).toHaveBeenCalledWith(
+      "sb-test-auth-token=expired-cookie"
+    );
     expect(result).toBeInstanceOf(Response);
     const response = result as Response;
     expect(response.status).toBe(401);
@@ -59,19 +58,25 @@ describe("requireAuth", () => {
     });
   });
 
-  it("returns the authenticated API context when the token is valid", async () => {
+  it("returns the authenticated API context when the Supabase session is valid", async () => {
     cookiesMock.mockResolvedValue({
-      get: vi.fn(() => ({ value: "valid-token" })),
+      getAll: vi.fn(() => [
+        { name: "sb-test-auth-token", value: "valid-cookie" },
+        { name: "theme", value: "dark" },
+      ]),
     });
-    verifyTokenMock.mockResolvedValue({
+    getAuthenticatedUserFromCookieHeaderMock.mockResolvedValue({
       userId: 42,
+      authUserId: "supabase-user-42",
       email: "demo@example.com",
       name: "Demo User",
       plan: "Premium Plan",
+      authProvider: "supabase",
     });
 
     await expect(requireAuth()).resolves.toEqual({
       userId: 42,
+      authUserId: "supabase-user-42",
       email: "demo@example.com",
       name: "Demo User",
       plan: "Premium Plan",

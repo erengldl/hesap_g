@@ -1,26 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_ROUTES = new Set(["/login", "/register"]);
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { updateSupabaseSession } from "@/lib/supabase/proxy";
 
-function hasAuthCookie(request: NextRequest) {
-  return request.cookies.has("hg_session") || request.cookies.has("hg_token");
-}
+const PUBLIC_ROUTES = new Set(["/login", "/register", "/auth/callback"]);
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { nextUrl } = request;
   const { pathname, search } = nextUrl;
 
-  if (pathname.startsWith("/api")) {
+  if (!isSupabaseConfigured()) {
     return NextResponse.next();
+  }
+
+  const { response, user } = await updateSupabaseSession(request);
+
+  if (pathname.startsWith("/api")) {
+    return response;
   }
 
   if (PUBLIC_ROUTES.has(pathname)) {
-    return NextResponse.next();
+    return response;
   }
 
-  const authenticated = hasAuthCookie(request);
-  if (authenticated) {
-    return NextResponse.next();
+  if (user) {
+    return response;
   }
 
   const loginUrl = nextUrl.clone();
@@ -30,5 +34,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map|txt|xml)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map|txt|xml)$).*)"],
 };

@@ -7,13 +7,14 @@ const TOKEN_EXPIRES_IN = "7d";
 
 export interface AuthUser {
   userId: number;
+  authUserId?: string | null;
   email: string;
   name: string;
   plan: string;
   company?: string | null;
   phone?: string | null;
   firebaseUid?: string | null;
-  authProvider?: "legacy" | "firebase";
+  authProvider?: "legacy" | "firebase" | "supabase";
 }
 
 // ─── Password utilities ────────────────────────────────────────────────

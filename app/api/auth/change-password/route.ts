@@ -1,16 +1,12 @@
-import { getDb } from "@/lib/db";
-import { verifyPassword, hashPassword } from "@/lib/auth";
 import { badRequest, unauthorized, serverError, ok } from "@/lib/api-helpers";
 import { getAuthenticatedUserFromRequest } from "@/lib/request-auth";
+import { createStatelessSupabaseClient, createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseErrorMessage } from "@/lib/supabase/errors";
 
 export async function POST(request: Request) {
   try {
     const user = await getAuthenticatedUserFromRequest(request);
     if (!user) return unauthorized();
-
-    if (user.authProvider === "firebase") {
-      return badRequest("Firebase ile giris yapan hesaplarin sifresi Firebase uzerinden degistirilir.");
-    }
 
     const { currentPassword, newPassword } = (await request.json()) as {
       currentPassword?: string;
@@ -29,27 +25,24 @@ export async function POST(request: Request) {
       return badRequest("Yeni sifre mevcut sifre ile ayni olamaz.");
     }
 
-    const db = getDb();
-    if (!db) return serverError();
+    const verificationClient = createStatelessSupabaseClient();
+    const verificationResult = await verificationClient.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
 
-    const row = await db.prepare("SELECT password_hash FROM users WHERE user_id = ?").get(user.userId) as {
-      password_hash: string;
-    } | undefined;
-
-    if (!row) {
-      return unauthorized("Kullanici bulunamadi.");
-    }
-
-    const isValid = await verifyPassword(currentPassword, row.password_hash);
-    if (!isValid) {
+    if (verificationResult.error) {
       return badRequest("Mevcut sifre hatali.");
     }
 
-    const newHash = await hashPassword(newPassword);
-    await db.prepare("UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?").run(
-      newHash,
-      user.userId
-    );
+    const supabase = await createSupabaseServerClient();
+    const updateResult = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (updateResult.error) {
+      return badRequest(getSupabaseErrorMessage(updateResult.error, "Sifre guncellenemedi."));
+    }
 
     return ok(undefined, { message: "Sifre basariyla guncellendi." });
   } catch (error) {
