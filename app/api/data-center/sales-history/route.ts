@@ -94,6 +94,11 @@ export async function GET(request: Request) {
     let rangeDays = 90;
     let rangeStart = addDays(todayKey, -(rangeDays - 1));
     let rangeEnd = todayKey;
+    const marketplaceNameExpr = "COALESCE(m.name, m.slug, 'Kanal')";
+    const marketplaceSlugExpr = "COALESCE(m.slug, 'market')";
+    const productIdExpr = "COALESCE(oi.product_id, o.product_id)";
+    const productNameExpr = "COALESCE(p.name, oi.merchant_sku, 'Ürün')";
+    const productSkuExpr = "COALESCE(p.sku, oi.merchant_sku)";
     let baseWhere = `
       FROM orders o
       JOIN order_items oi ON oi.order_id = o.order_id
@@ -166,12 +171,12 @@ export async function GET(request: Request) {
     const topMarketplace = (await query<TopMarketplaceRow>(
       `
         SELECT
-          COALESCE(m.name, m.slug, 'Kanal') AS marketplace_name,
-          COALESCE(m.slug, 'market') AS marketplace_slug,
+          ${marketplaceNameExpr} AS marketplace_name,
+          ${marketplaceSlugExpr} AS marketplace_slug,
           COUNT(DISTINCT o.order_id) AS order_count,
           COALESCE(SUM(oi.line_total), 0) AS revenue
         ${baseWhere}
-        GROUP BY o.marketplace_id
+        GROUP BY o.marketplace_id, ${marketplaceNameExpr}, ${marketplaceSlugExpr}
         ORDER BY revenue DESC, order_count DESC
         LIMIT 1
       `,
@@ -181,13 +186,13 @@ export async function GET(request: Request) {
     const topProduct = (await query<TopProductRow>(
       `
         SELECT
-          COALESCE(oi.product_id, o.product_id) AS product_id,
-          COALESCE(p.name, oi.merchant_sku, 'Ürün') AS product_name,
-          COALESCE(p.sku, oi.merchant_sku) AS product_sku,
+          ${productIdExpr} AS product_id,
+          ${productNameExpr} AS product_name,
+          ${productSkuExpr} AS product_sku,
           COALESCE(SUM(oi.quantity), 0) AS units,
           COALESCE(SUM(oi.line_total), 0) AS revenue
         ${baseWhere}
-        GROUP BY COALESCE(oi.product_id, o.product_id)
+        GROUP BY ${productIdExpr}, ${productNameExpr}, ${productSkuExpr}
         ORDER BY units DESC, revenue DESC
         LIMIT 1
       `,
