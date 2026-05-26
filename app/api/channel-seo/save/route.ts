@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "DoÃ„Å¸rulama hatasÃ„Â±.",
+          error: "Doğrulama hatası.",
           details: validation.errors,
         },
         { status: 422 }
@@ -33,13 +33,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Channel SEO save error:", error);
-    const message = error instanceof Error ? error.message : "KayÃ„Â±t iÃ…Å¸lemi tamamlanamadÃ„Â±.";
+    const message = error instanceof Error ? error.message : "Kayıt işlemi tamamlanamadı.";
     return NextResponse.json(
       {
         ok: false,
-        error: message.includes("ÃƒÅ“rÃƒÂ¼n bulunamadÃ„Â±") ? message : "KayÃ„Â±t iÃ…Å¸lemi tamamlanamadÃ„Â±.",
+        error: message.includes("Ürün bulunamadı") ? message : "Kayıt işlemi tamamlanamadı.",
       },
-      { status: message.includes("ÃƒÅ“rÃƒÂ¼n bulunamadÃ„Â±") ? 404 : 500 }
+      { status: message.includes("Ürün bulunamadı") ? 404 : 500 }
     );
   }
 }

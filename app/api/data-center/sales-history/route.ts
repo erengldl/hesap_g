@@ -182,7 +182,7 @@ export async function GET(request: Request) {
       `
         SELECT
           COALESCE(oi.product_id, o.product_id) AS product_id,
-          COALESCE(p.name, oi.merchant_sku, 'ÃƒÅ“rÃƒÂ¼n') AS product_name,
+          COALESCE(p.name, oi.merchant_sku, 'Ürün') AS product_name,
           COALESCE(p.sku, oi.merchant_sku) AS product_sku,
           COALESCE(SUM(oi.quantity), 0) AS units,
           COALESCE(SUM(oi.line_total), 0) AS revenue
@@ -217,7 +217,7 @@ export async function GET(request: Request) {
           COALESCE(m.name, m.slug, 'Kanal') AS marketplace_name,
           COALESCE(m.slug, 'market') AS marketplace_slug,
           COALESCE(oi.product_id, o.product_id) AS product_id,
-          COALESCE(p.name, oi.merchant_sku, 'ÃƒÅ“rÃƒÂ¼n') AS product_name,
+          COALESCE(p.name, oi.merchant_sku, 'Ürün') AS product_name,
           COALESCE(p.sku, oi.merchant_sku) AS product_sku,
           oi.quantity,
           oi.unit_price,
@@ -276,7 +276,7 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: "SatÃ„Â±Ã…Å¸ geÃƒÂ§miÃ…Å¸i yÃƒÂ¼klenemedi.",
+        error: "Satış geçmişi yüklenemedi.",
       },
       { status: 500 }
     );

@@ -12,6 +12,8 @@ __pycache__/
 *.pyc
 
 # Keep the source database files, but exclude SQLite live journal files.
+Veri Merkezi/*.db
+Veri Merkezi/*.sqlite
 Veri Merkezi/*.db-wal
 Veri Merkezi/*.db-shm
 Veri Merkezi/*.sqlite-journal

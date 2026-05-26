@@ -47,10 +47,10 @@ export function conflict(error: string): NextResponse {
 }
 
 export function validationError(details: Record<string, string[]>): NextResponse {
-  return NextResponse.json({ success: false, error: "Dogrulama hatasi.", details }, { status: 422 });
+  return NextResponse.json({ success: false, error: "Doğrulama hatası.", details }, { status: 422 });
 }
 
-export function serverError(error = "Sunucu hatasi."): NextResponse {
+export function serverError(error = "Sunucu hatası."): NextResponse {
   return NextResponse.json({ success: false, error }, { status: 500 });
 }
 

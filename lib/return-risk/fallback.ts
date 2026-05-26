@@ -65,22 +65,22 @@ function buildFallbackRiskFactors(stats: ReturnRiskStats, priceChangeRate: numbe
   const factors: string[] = [];
 
   if (stats.product.orderCount < 30) {
-    factors.push("Urun bazli iade/fire verisi sinirli");
+    factors.push("Ürün bazlı iade/fire verisi sınırlı");
   }
 
   if (stats.category.returnRate >= 0.12) {
-    factors.push("Kategori iade/fire orani yuksek");
+    factors.push("Kategori iade/fire oranı yüksek");
   }
 
   if (priceChangeRate > 0.2) {
-    factors.push("Fiyat son ortalamanin belirgin uzerinde");
+    factors.push("Fiyat son ortalamanın belirgin üzerinde");
   }
 
   if (shippingRatio >= 0.12) {
-    factors.push("Kargo maliyeti satis fiyatina gore yuksek");
+    factors.push("Kargo maliyeti satış fiyatına göre yüksek");
   }
 
-  return factors.length > 0 ? factors : ["Gecmis ortalamalara gore standart risk"];
+  return factors.length > 0 ? factors : ["Geçmiş ortalamalara göre standart risk"];
 }
 
 export function predictReturnRiskFallback(input: ReturnRiskPredictionInput): ReturnRiskPrediction {
@@ -114,6 +114,6 @@ export function predictReturnRiskFallback(input: ReturnRiskPredictionInput): Ret
     usedFallback: true,
     topRiskFactors,
     explanation:
-      "Iade/fire maliyeti gecmis urun, kategori ve kanal ortalamalarina gore tahmini hesaplandi.",
+      "İade/fire maliyeti geçmiş ürün, kategori ve kanal ortalamalarına göre tahmini hesaplandı.",
   };
 }

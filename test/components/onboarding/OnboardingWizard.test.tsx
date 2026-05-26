@@ -46,16 +46,16 @@ vi.mock("@/components/demo/SeedDemoButton", () => ({
             productsInserted: 5,
             productsSkipped: 0,
             settingsInserted: 15,
-            message: "Bu islem mevcut tum urun ve siparis verilerini SILIP yerine demo veri yazar. Demo veri hazir.",
-            warning: "Bu islem mevcut tum urun ve siparis verilerini SILIP yerine demo veri yazar.",
+            message: "Bu işlem mevcut tüm ürün ve sipariş verilerini SİLİP yerine demo veri yazar. Demo veri hazır.",
+            warning: "Bu işlem mevcut tüm ürün ve sipariş verilerini SİLİP yerine demo veri yazar.",
           });
           return;
         }
 
-        onError?.("Demo verisi yuklenemedi.");
+        onError?.("Demo verisi yüklenemedi.");
       }}
     >
-      Demo Verileri Yukle
+      Demo Verileri Yükle
     </button>
   ),
 }));
@@ -75,7 +75,7 @@ describe("OnboardingWizard", () => {
     render(<OnboardingWizard />);
 
     expect(await screen.findByText("Hemen Basla")).not.toBeNull();
-    expect(screen.getByText("Demo Verileri Yukle")).not.toBeNull();
+    expect(screen.getByText("Demo Verileri Yükle")).not.toBeNull();
   });
 
   it("stays closed when onboarding has already been completed", async () => {
@@ -102,12 +102,12 @@ describe("OnboardingWizard", () => {
   it("moves to step 2 after demo seeding succeeds", async () => {
     render(<OnboardingWizard />);
 
-    await userEvent.click(await screen.findByText("Demo Verileri Yukle"));
+    await userEvent.click(await screen.findByText("Demo Verileri Yükle"));
 
-    expect(await screen.findByText("Magazalarini Bagla")).not.toBeNull();
+    expect(await screen.findByText("Mağazalarını Bağla")).not.toBeNull();
     expect(successMock).toHaveBeenCalledWith(
-      "Demo verileri yuklendi",
-      "Bu islem mevcut tum urun ve siparis verilerini SILIP yerine demo veri yazar. Demo veri hazir."
+      "Demo verileri yüklendi",
+      "Bu işlem mevcut tüm ürün ve sipariş verilerini SİLİP yerine demo veri yazar. Demo veri hazır."
     );
     expect(warningMock).not.toHaveBeenCalled();
   });
@@ -115,8 +115,8 @@ describe("OnboardingWizard", () => {
   it("marks onboarding complete and navigates to the dashboard on finish", async () => {
     render(<OnboardingWizard />);
 
-    await userEvent.click(await screen.findByText("Demo Verileri Yukle"));
-    await userEvent.click(await screen.findByRole("button", { name: "Simdilik Atla" }));
+    await userEvent.click(await screen.findByText("Demo Verileri Yükle"));
+    await userEvent.click(await screen.findByRole("button", { name: "Şimdilik Atla" }));
     await userEvent.click(await screen.findByRole("button", { name: "Dashboard'a Git" }));
 
     expect(window.localStorage.getItem("hg_onboarding_completed")).toBe("true");

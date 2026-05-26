@@ -15,7 +15,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json(
         {
           ok: false,
-          error: "productId boÃ…Å¸ olamaz.",
+          error: "productId boş olamaz.",
         },
         { status: 400 }
       );
@@ -26,7 +26,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json(
         {
           ok: false,
-          error: "ÃƒÅ“rÃƒÂ¼n bulunamadÃ„Â±.",
+          error: "Ürün bulunamadı.",
         },
         { status: 404 }
       );
@@ -41,7 +41,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json(
       {
         ok: false,
-        error: "ÃƒÅ“rÃƒÂ¼n detayÃ„Â± alÃ„Â±namadÃ„Â±.",
+        error: "Ürün detayı alınamadı.",
       },
       { status: 500 }
     );

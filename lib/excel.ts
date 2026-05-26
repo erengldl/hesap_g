@@ -295,7 +295,7 @@ export function exportProductsToExcel(products: Product[]) {
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, buildWorksheet(rows, PRODUCT_EXPORT_WIDTHS), "Ürünler");
-  XLSX.writeFile(workbook, `urunler-${getTodayKey()}.xlsx`, { compression: true });
+  XLSX.writeFile(workbook, `ürünler-${getTodayKey()}.xlsx`, { compression: true });
 }
 
 export function exportSalesToExcel(sales: SalesRow[]) {
@@ -319,7 +319,7 @@ export function exportSalesToExcel(sales: SalesRow[]) {
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, buildWorksheet(rows, SALES_EXPORT_WIDTHS), "Satış Geçmişi");
-  XLSX.writeFile(workbook, `satis-gecmisi-${getTodayKey()}.xlsx`, { compression: true });
+  XLSX.writeFile(workbook, `satış-geçmişi-${getTodayKey()}.xlsx`, { compression: true });
 }
 
 export async function parseProductsFromExcelDetailed(file: File): Promise<ProductExcelParseResult> {

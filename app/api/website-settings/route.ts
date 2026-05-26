@@ -18,7 +18,7 @@ type WebsiteSettingsPayload = {
 
 function getDefaultSettings() {
   return {
-    gateway_name: "KullanÃ„Â±cÃ„Â± TanÃ„Â±mlÃ„Â± Ãƒâ€“deme AltyapÃ„Â±sÃ„Â±",
+    gateway_name: "Kullanıcı Tanımlı Ödeme Altyapısı",
     commission_rate: 3.49,
     fixed_fee: 0.25,
     manual_shipping_cost: 95,
@@ -63,7 +63,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Website settings GET error:", error);
-    return NextResponse.json({ success: false, error: "Web sitesi ayarlarÃ„Â± yÃƒÂ¼klenemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Web sitesi ayarları yüklenemedi." }, { status: 500 });
   }
 }
 
@@ -78,7 +78,7 @@ export async function PUT(request: Request) {
     }
 
     const payload = {
-      gateway_name: String(body.gateway_name ?? "KullanÃ„Â±cÃ„Â± TanÃ„Â±mlÃ„Â± Ãƒâ€“deme AltyapÃ„Â±sÃ„Â±"),
+      gateway_name: String(body.gateway_name ?? "Kullanıcı Tanımlı Ödeme Altyapısı"),
       commission_rate: Number(body.commission_rate ?? 3.49),
       fixed_fee: Number(body.fixed_fee ?? 0.25),
       manual_shipping_cost: Number(body.manual_shipping_cost ?? 95),
@@ -146,6 +146,6 @@ export async function PUT(request: Request) {
     });
   } catch (error) {
     console.error("Website settings PUT error:", error);
-    return NextResponse.json({ success: false, error: "Web sitesi ayarlarÃ„Â± kaydedilemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Web sitesi ayarları kaydedilemedi." }, { status: 500 });
   }
 }

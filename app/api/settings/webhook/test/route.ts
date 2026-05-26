@@ -131,7 +131,7 @@ export async function POST(request: Request) {
       clearTimeout(timeoutId);
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Webhook testi basarisiz.";
+    const message = error instanceof Error ? error.message : "Webhook testi başarısız.";
     return NextResponse.json({ success: false, error: message }, { status: 502 });
   }
 }

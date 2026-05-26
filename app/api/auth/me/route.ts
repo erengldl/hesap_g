@@ -64,7 +64,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Auth check error:", error);
     return NextResponse.json(
-      { success: false, error: "Sunucu hatasi." },
+      { success: false, error: "Sunucu hatası." },
       { status: 500 }
     );
   }

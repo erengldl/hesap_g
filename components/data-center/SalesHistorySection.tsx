@@ -245,10 +245,10 @@ export default function SalesHistorySection() {
 
     const headers = [
       "Tarih",
-      "Urun",
+      "Ürün",
       "Kod",
       "Kanal",
-      "Siparis",
+      "Sipariş",
       "Paket",
       "Adet",
       "Birim",
@@ -265,7 +265,7 @@ export default function SalesHistorySection() {
 
     const body = rows.map((row) => [
       formatDate(row.order_date),
-      row.product_name ?? "Urun",
+      row.product_name ?? "Ürün",
       row.product_sku ?? "",
       row.marketplace_name ?? "Kanal",
       row.external_order_number ?? `#${row.order_id}`,
@@ -281,7 +281,7 @@ export default function SalesHistorySection() {
     const url = window.URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     const fileDate = new Date().toISOString().slice(0, 10);
-    const filePrefix = isReturnsView ? "iadeler" : "satis-gecmisi";
+    const filePrefix = isReturnsView ? "iadeler" : "satış-geçmişi";
     anchor.href = url;
     anchor.download = `${filePrefix}-${fileDate}.csv`;
     anchor.click();

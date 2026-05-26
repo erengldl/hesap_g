@@ -29,19 +29,19 @@ const STEP_TRANSITION = { duration: 0.3, ease: "easeOut" } as const;
 const MARKETPLACE_CARDS = [
   {
     name: "Trendyol",
-    description: "Siparis akisini otomatik senkronla",
+    description: "Sipariş akışını otomatik senkronla",
     icon: ShoppingBag,
     className: "border-[#FF6A00]/20 bg-[#FF6A00]/10 text-[#FFB27A]",
   },
   {
     name: "Hepsiburada",
-    description: "Urun ve siparis baglantisini ac",
+    description: "Ürün ve sipariş bağlantısını aç",
     icon: Store,
     className: "border-[#1D4ED8]/20 bg-[#1D4ED8]/10 text-[#93C5FD]",
   },
   {
     name: "Kendi Websitem",
-    description: "Odeme ve trafik verilerini bagla",
+    description: "Ödeme ve trafik verilerini bağla",
     icon: Globe,
     className: "border-success/20 bg-success/10 text-success",
   },
@@ -50,17 +50,17 @@ const MARKETPLACE_CARDS = [
 const FEATURE_CARDS = [
   {
     title: "KPI Paneli",
-    description: "Ciro, siparis ve marj sinyallerini ilk bakista gor.",
+    description: "Ciro, sipariş ve marj sinyallerini ilk bakışta gör.",
     icon: CheckCircle2,
   },
   {
     title: "Trend Grafigi",
-    description: "Son gunlerdeki satis ivmesini aninda izle.",
+    description: "Son günlerdeki satış ivmesini anında izle.",
     icon: TrendingUp,
   },
   {
     title: "Kanal Analizi",
-    description: "Kanal ve urun performansini ayni ekranda karsilastir.",
+    description: "Kanal ve ürün performansını aynı ekranda karşılaştır.",
     icon: BarChart3,
   },
 ] as const;
@@ -131,7 +131,7 @@ export function OnboardingWizard() {
 
   const handleSeeded = useCallback(async (result: SeedDemoResponse) => {
     setSeededDemo(true);
-    toast.success("Demo verileri yuklendi", result.message);
+    toast.success("Demo verileri yüklendi", result.message);
 
     if (result.warning && !result.message.includes(result.warning)) {
       toast.warning("Demo modu aktif", result.warning);
@@ -141,7 +141,7 @@ export function OnboardingWizard() {
   }, [goToStep, toast]);
 
   const handleSeedError = useCallback((message: string) => {
-    toast.error("Demo verileri yuklenemedi", message);
+    toast.error("Demo verileri yüklenemedi", message);
   }, [toast]);
 
   useEffect(() => {
@@ -205,7 +205,7 @@ export function OnboardingWizard() {
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-3">
                   <EyebrowBadge className="gap-1.5 border-primary/20 bg-primary/10 text-primary">
-                    3 adimli hizli baslangic
+                    3 adımlı hızlı başlangıç
                   </EyebrowBadge>
                   <div className="flex items-center gap-2">
                     {[0, 1, 2].map((step) => (
@@ -241,18 +241,18 @@ export function OnboardingWizard() {
                       <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-[24px] border border-primary/20 bg-primary/10 text-primary shadow-[0_24px_80px_-48px_rgba(90,124,255,0.9)]">
                         <CloudDownload className="h-9 w-9" />
                       </div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70">Adim 1</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70">Adım 1</p>
                       <h2 className="mt-2 text-[1.9rem] font-semibold tracking-[-0.06em] text-foreground">
                         Hemen Basla
                       </h2>
                       <p className="mt-3 max-w-md text-sm leading-7 text-muted/60">
-                        Demo verilerle hemen basla veya kendi urunlerini yukle.
+                        Demo verilerle hemen başla veya kendi ürünlerini yükle.
                       </p>
                     </div>
 
                     <GlassCard className="border-primary/15 bg-primary/5 p-4 sm:p-5">
                       <p className="text-sm leading-7 text-muted/70">
-                        En hizli yol demo veriyi yuklemek. Bir tikla urunler, sentetik siparisler ve dashboard ozetleri hazir olur.
+                        En hızlı yol demo veriyi yüklemek. Bir tıkla ürünler, sentetik siparişler ve dashboard özetleri hazır olur.
                       </p>
                     </GlassCard>
 
@@ -267,7 +267,7 @@ export function OnboardingWizard() {
                         onClick={() => handleRouteAndClose("/veri-merkezi")}
                         className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface-container px-4 py-3.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-border-strong hover:bg-surface-soft"
                       >
-                        Kendi Verilerimi Yukle
+                        Kendi Verilerimi Yükle
                         <Link2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -287,12 +287,12 @@ export function OnboardingWizard() {
                       <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-[24px] border border-info/20 bg-info/10 text-info shadow-[0_24px_80px_-48px_rgba(56,189,248,0.9)]">
                         <Store className="h-9 w-9" />
                       </div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-info/70">Adim 2</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-info/70">Adım 2</p>
                       <h2 className="mt-2 text-[1.9rem] font-semibold tracking-[-0.06em] text-foreground">
-                        Magazalarini Bagla
+                        Mağazalarını Bağla
                       </h2>
                       <p className="mt-3 max-w-md text-sm leading-7 text-muted/60">
-                        Entegrasyon ile siparislerin otomatik gelsin. Dilersen simdilik atlayabilirsin.
+                        Entegrasyon ile siparişlerin otomatik gelsin. Dilersen şimdilik atlayabilirsin.
                       </p>
                     </div>
 
@@ -307,7 +307,7 @@ export function OnboardingWizard() {
                               <item.icon className="h-5 w-5" />
                             </div>
                             <span className="rounded-full border border-border/70 bg-background/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted/70">
-                              Yakinda
+                              Yakında
                             </span>
                           </div>
                           <h3 className="text-sm font-semibold text-foreground">{item.name}</h3>
@@ -319,7 +319,7 @@ export function OnboardingWizard() {
                     {seededDemo ? (
                       <GlassCard className="border-success/20 bg-success/10 p-4">
                         <p className="text-sm leading-7 text-success">
-                          Demo veri hazir. Son adima gecip dashboard uzerinden finansal akisi inceleyebilirsin.
+                          Demo veri hazır. Son adıma geçip dashboard üzerinden finansal akışı inceleyebilirsin.
                         </p>
                       </GlassCard>
                     ) : null}
@@ -329,7 +329,7 @@ export function OnboardingWizard() {
                       onClick={() => goToStep(2)}
                       className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface-container px-4 py-3.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-border-strong hover:bg-surface-soft"
                     >
-                      Simdilik Atla
+                      Şimdilik Atla
                     </button>
                   </motion.div>
                 ) : null}
@@ -347,12 +347,12 @@ export function OnboardingWizard() {
                       <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-[24px] border border-success/20 bg-success/10 text-success shadow-[0_24px_80px_-48px_rgba(16,185,129,0.9)]">
                         <LayoutDashboard className="h-9 w-9" />
                       </div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-success/70">Adim 3</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-success/70">Adım 3</p>
                       <h2 className="mt-2 text-[1.9rem] font-semibold tracking-[-0.06em] text-foreground">
                         Kontrol Sende
                       </h2>
                       <p className="mt-3 max-w-md text-sm leading-7 text-muted/60">
-                        Finansal kontrol merkezin hazir!
+                        Finansal kontrol merkezin hazır!
                       </p>
                     </div>
 

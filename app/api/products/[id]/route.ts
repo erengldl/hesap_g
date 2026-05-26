@@ -10,6 +10,10 @@ import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
+function shouldAllowDemoFallback() {
+  return process.env.NODE_ENV !== "production" && process.env.ALLOW_DEMO_FALLBACK === "true";
+}
+
 type ExistingProductRow = {
   product_id: number;
   name: string;
@@ -154,12 +158,16 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const { id } = await params;
     productId = parseProductId(id);
     if (!productId) {
-      return NextResponse.json({ success: false, error: "GeÃƒÂ§ersiz ÃƒÂ¼rÃƒÂ¼n kimliÃ„Å¸i." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Geçersiz ürün kimliği." }, { status: 400 });
     }
 
     const db = getDb();
     if (!db) {
-      return NextResponse.json(buildDemoProductDetailResponse(productId));
+      if (shouldAllowDemoFallback()) {
+        return NextResponse.json(buildDemoProductDetailResponse(productId));
+      }
+
+      return NextResponse.json({ success: false, error: "Ürün yüklenemedi." }, { status: 503 });
     }
 
     const product = await db.prepare(`
@@ -195,7 +203,11 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     `).get(productId) as (ExistingProductRow & { category_name: string | null; category_path_full: string | null }) | undefined;
 
     if (!product) {
-      return NextResponse.json(buildDemoProductDetailResponse(productId));
+      if (shouldAllowDemoFallback()) {
+        return NextResponse.json(buildDemoProductDetailResponse(productId));
+      }
+
+      return NextResponse.json({ success: false, error: "Ürün bulunamadı." }, { status: 404 });
     }
 
     const channels = await db.prepare(`
@@ -288,10 +300,11 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     });
   } catch (error) {
     console.error("Product detail API error:", error);
-    if (productId) {
+    if (productId && shouldAllowDemoFallback()) {
       return NextResponse.json(buildDemoProductDetailResponse(productId));
     }
-    return NextResponse.json({ success: false, error: "Failed" }, { status: 500 });
+
+    return NextResponse.json({ success: false, error: "Ürün yüklenemedi." }, { status: 503 });
   }
 }
 
@@ -302,7 +315,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const { id } = await params;
     const productId = parseProductId(id);
     if (!productId) {
-      return NextResponse.json({ success: false, error: "GeÃƒÂ§ersiz ÃƒÂ¼rÃƒÂ¼n kimliÃ„Å¸i." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Geçersiz ürün kimliği." }, { status: 400 });
     }
 
     const existing = await getExistingProduct(productId);
@@ -338,7 +351,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     });
   } catch (error) {
     console.error("Product update error:", error);
-    return NextResponse.json({ success: false, error: "ÃƒÅ“rÃƒÂ¼n gÃƒÂ¼ncellenemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Ürün güncellenemedi." }, { status: 500 });
   }
 }
 
@@ -349,7 +362,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     const { id } = await params;
     const productId = parseProductId(id);
     if (!productId) {
-      return NextResponse.json({ success: false, error: "GeÃƒÂ§ersiz ÃƒÂ¼rÃƒÂ¼n kimliÃ„Å¸i." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Geçersiz ürün kimliği." }, { status: 400 });
     }
 
     const existing = await getExistingProduct(productId);
@@ -365,6 +378,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     });
   } catch (error) {
     console.error("Product delete error:", error);
-    return NextResponse.json({ success: false, error: "ÃƒÅ“rÃƒÂ¼n silinemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Ürün silinemedi." }, { status: 500 });
   }
 }

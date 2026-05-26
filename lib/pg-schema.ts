@@ -637,7 +637,6 @@ export async function initializePgSchema(sql: postgres.Sql) {
       last_login_at TIMESTAMP,
       company TEXT,
       phone TEXT,
-      firebase_uid TEXT UNIQUE,
       auth_user_id TEXT UNIQUE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -777,9 +776,7 @@ export async function initializePgSchema(sql: postgres.Sql) {
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_organizations_owner ON organizations(owner_user_id)`);
   await sql.unsafe(`CREATE UNIQUE INDEX IF NOT EXISTS idx_organization_members_unique ON organization_members(organization_id, user_id)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_audit_logs_report_created ON audit_logs(report_id, created_at DESC)`);
-  await ensureColumn(sql, "users", "firebase_uid", "TEXT");
   await ensureColumn(sql, "users", "auth_user_id", "TEXT");
-  await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_users_firebase_uid ON users(firebase_uid)`);
   await sql.unsafe(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_auth_user_id ON users(auth_user_id)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_price_optimization_runs_status_created_at ON price_optimization_runs(status, created_at DESC)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_price_optimization_runs_published_at ON price_optimization_runs(published_at DESC)`);

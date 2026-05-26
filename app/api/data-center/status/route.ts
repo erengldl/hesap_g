@@ -89,7 +89,7 @@ export async function GET() {
     console.error('API Error:', error);
     return NextResponse.json({ 
       success: false, 
-      error: 'VeritabanÃ„Â± sayÃ„Â±larÃ„Â± alÃ„Â±namadÃ„Â±.',
+      error: 'Veritabanı sayıları alınamadı.',
       counts: {} 
     }, { status: 500 });
   }

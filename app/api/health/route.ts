@@ -18,7 +18,7 @@ export async function GET() {
       database_mode: getDatabaseMode(),
       db_configured: false,
       db_error_code: "missing_database_url",
-      db_error_message: "Supabase PostgreSQL baglanti degiskeni eksik.",
+      db_error_message: "Supabase PostgreSQL bağlantı değişkeni eksik.",
       supabase_configured: supabaseConfigured,
       gemini_configured: geminiApiKey.length > 0,
       gemini_model: geminiModel,

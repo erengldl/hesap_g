@@ -34,7 +34,7 @@ describe("return risk train route", () => {
       trainingRows: 42,
       positiveRows: 4,
       metrics: null,
-      reason: "Model egitimi icin en az 300 gecmis siparis gerekli.",
+      reason: "Model eğitimi için en az 300 geçmiş sipariş gerekli.",
     });
 
     const response = await POST(new Request("http://localhost/api/return-risk/train", { method: "POST" }));

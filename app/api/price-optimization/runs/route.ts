@@ -60,7 +60,7 @@ export async function GET(request: Request) {
         r.run_id,
         r.product_id,
         r.marketplace_id,
-        COALESCE(p.name, 'Bilinmeyen ÃƒÅ“rÃƒÂ¼n') AS product_name,
+        COALESCE(p.name, 'Bilinmeyen Ürün') AS product_name,
         COALESCE(m.name, 'Bilinmeyen Kanal') AS marketplace_name,
         UPPER(COALESCE(r.status, 'DRAFT')) AS status,
         r.current_price,
@@ -111,7 +111,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Price optimization runs GET error:", error);
     return NextResponse.json(
-      { success: false, runs: [], error: "Fiyat optimizasyon geÃƒÂ§miÃ…Å¸i yÃƒÂ¼klenemedi." } satisfies PriceOptimizationRunListResponse,
+      { success: false, runs: [], error: "Fiyat optimizasyon geçmişi yüklenemedi." } satisfies PriceOptimizationRunListResponse,
       { status: 500 }
     );
   }

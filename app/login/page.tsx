@@ -23,7 +23,7 @@ async function getCurrentAuthenticatedUser() {
   const data = await res.json();
 
   if (!res.ok || !data?.success || !data.user) {
-    throw new Error(data?.error || "Oturum okunamadi.");
+    throw new Error(data?.error || "Oturum okunamadı.");
   }
 
   return data.user;
@@ -65,7 +65,7 @@ export default function LoginPage() {
       authMode = authConfig.authMode;
 
       if (authMode === "misconfigured") {
-        setServerError(authConfig.error || "Supabase auth yapilandirmasi eksik.");
+        setServerError(authConfig.error || "Supabase auth yapılandırması eksik.");
         return;
       }
 
@@ -91,7 +91,7 @@ export default function LoginPage() {
       if (authMode === "supabase") {
         await createSupabaseBrowserClient().auth.signOut().catch(() => {});
       }
-      setServerError(getSupabaseErrorMessage(error, "Sunucu hatasi. Lutfen tekrar deneyin."));
+      setServerError(getSupabaseErrorMessage(error, "Sunucu hatası. Lütfen tekrar deneyin."));
     } finally {
       setLoading(false);
     }
@@ -128,7 +128,7 @@ export default function LoginPage() {
                   Finans, ürün ve reklam akışını tek panelden yönetin.
                 </h1>
                 <p className="mt-5 max-w-md text-sm leading-7 text-muted/60">
-                  Giristen sonra ayni oturum tum uygulama yuzeyinde gecerli olur. Supabase oturumu tarayici ve server tarafinda ayni akista kullanilir.
+                  Girişten sonra aynı oturum tüm uygulama yüzeyinde geçerli olur. Supabase oturumu tarayıcı ve server tarafında aynı akışta kullanılır.
                 </p>
               </div>
 
@@ -171,13 +171,13 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
               {showRegistrationNotice ? (
                 <div className="rounded-lg border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
-                  Hesap olusturuldu. E-posta dogrulamasi gerekiyorsa once kutunuzu kontrol edin, sonra giris yapin.
+                  Hesap oluşturuldu. E-posta doğrulaması gerekiyorsa önce kutunuzu kontrol edin, sonra giriş yapın.
                 </div>
               ) : null}
 
               {showCallbackError ? (
                 <div className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
-                  E-posta dogrulama oturumu tamamlanamadi. Lutfen tekrar giris yapin.
+                  E-posta doğrulama oturumu tamamlanamadı. Lütfen tekrar giriş yapın.
                 </div>
               ) : null}
 
@@ -249,7 +249,7 @@ export default function LoginPage() {
 
             {process.env.NODE_ENV !== "production" ? (
               <div className="mt-8 flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-surface-container/55 px-4 py-3 text-xs text-muted/60">
-                <span>Demo erisim</span>
+                <span>Demo erişim</span>
                 <span className="font-semibold text-foreground">admin@hesapg.com / admin123</span>
               </div>
             ) : null}

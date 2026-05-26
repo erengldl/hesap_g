@@ -69,7 +69,7 @@ async function buildSafeBootstrap(input: {
     }));
     const fallbackProduct = products[0] ?? {
       id: 0,
-      name: "Demo ÃƒÂ¼rÃƒÂ¼n",
+      name: "Demo ҼrҼn",
       sku: "",
       barcode: "",
       image_url: "",
@@ -139,18 +139,18 @@ async function buildSafeBootstrap(input: {
           modelName: "FallbackBaseline",
           forecastStartDate: new Date().toISOString().slice(0, 10),
           forecastEndDate: new Date().toISOString().slice(0, 10),
-          stockWarning: "Veri bulunamadÃ„Â±.",
+          stockWarning: "Veri bulunamadı.",
           dataSource: "synthetic",
         },
         chartData: [],
         tableRows: [],
-        methodology: "Veri bulunamadÃ„Â±Ã„Å¸Ã„Â± iÃƒÂ§in yedek tahmin ÃƒÂ¼retildi.",
-        warnings: ["Tahmin verisi ÃƒÂ¼retilemedi, yedek gÃƒÂ¶rÃƒÂ¼nÃƒÂ¼m gÃƒÂ¶steriliyor."],
+        methodology: "Veri bulunamadığı için yedek tahmin üretildi.",
+        warnings: ["Tahmin verisi Ҽretilemedi, yedek gҶrҼnҼm gҶsteriliyor."],
         generatedAt: new Date().toISOString(),
       },
       historyDepthDays: 0,
-      warnings: ["Tahmin verisi ÃƒÂ¼retilemedi, yedek gÃƒÂ¶rÃƒÂ¼nÃƒÂ¼m gÃƒÂ¶steriliyor."],
-      methodology: "Veri bulunamadÃ„Â±Ã„Å¸Ã„Â± iÃƒÂ§in yedek tahmin ÃƒÂ¼retildi.",
+      warnings: ["Tahmin verisi Ҽretilemedi, yedek gҶrҼnҼm gҶsteriliyor."],
+      methodology: "Veri bulunamadığı için yedek tahmin üretildi.",
     };
   }
 }

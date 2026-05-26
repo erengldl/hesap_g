@@ -29,9 +29,9 @@ function normalizeQualityWarnings(rawWarnings: string[]) {
   const warnings = new Set<string>();
 
   for (const warning of rawWarnings) {
-    if (/KDV/i.test(warning)) warnings.add("KDV hesaplanmadi.");
-    if (/komisyon/i.test(warning)) warnings.add("Komisyon kategori eslesmesi yok.");
-    if (/kargo/i.test(warning)) warnings.add("Kargo sirketi eslesmesi eksik.");
+    if (/KDV/i.test(warning)) warnings.add("KDV hesaplanamadı.");
+    if (/komisyon/i.test(warning)) warnings.add("Komisyon kategori eşleşmesi yok.");
+    if (/kargo/i.test(warning)) warnings.add("Kargo şirketi eşleşmesi eksik.");
   }
 
   return warnings;
@@ -50,7 +50,7 @@ async function buildDashboardDataSignals(): Promise<{ dataMode: DashboardDataMod
       dataMode: hasDemoProducts && !hasLiveProducts ? "demo" : "partial",
       dataQuality: {
         score: 0,
-        warnings: ["Veritabani baglantisi kurulamadi."],
+        warnings: ["Veritabanı bağlantısı kurulamadı."],
         lastSyncAt: null,
       },
     };
@@ -119,19 +119,19 @@ async function buildDashboardDataSignals(): Promise<{ dataMode: DashboardDataMod
   }
 
   if (Number(missingCategoryRow?.missing_count ?? 0) > 0) {
-    warnings.add("Kategori eslesmesi eksik.");
+    warnings.add("Kategori eşleşmesi eksik.");
   }
   if (!hasProducts) {
-    warnings.add("Urun verisi bulunmuyor.");
+    warnings.add("Ürün verisi bulunmuyor.");
   }
   if (!lastSyncAt) {
-    warnings.add("Veri merkezi henuz senkronize edilmedi.");
+    warnings.add("Veri merkezi henüz senkronize edilmedi.");
   }
   if (liveOrderCount === 0) {
-    warnings.add(hasDemoProducts || demoOrderCount > 0 ? "Gercek siparis verisi bulunmuyor." : "Tamamlanmis siparis verisi bulunmuyor.");
+    warnings.add(hasDemoProducts || demoOrderCount > 0 ? "Gerçek sipariş verisi bulunmuyor." : "Tamamlanmış sipariş verisi bulunmuyor.");
   }
   if (hasDemoProducts && hasLiveProducts) {
-    warnings.add("Demo ve canli urunler birlikte gorunuyor.");
+    warnings.add("Demo ve canlı ürünler birlikte görünüyor.");
   }
 
   const hasDemoSignal = hasDemoProducts || demoOrderCount > 0;
@@ -151,11 +151,11 @@ async function buildDashboardDataSignals(): Promise<{ dataMode: DashboardDataMod
   if (dataMode === "partial") score -= 18;
   if (!lastSyncAt) score -= 12;
   if (liveOrderCount === 0 && dataMode !== "demo") score -= 15;
-  if (warnings.has("KDV hesaplanmadi.")) score -= 8;
-  if (warnings.has("Komisyon kategori eslesmesi yok.")) score -= 8;
-  if (warnings.has("Kargo sirketi eslesmesi eksik.")) score -= 6;
-  if (warnings.has("Kategori eslesmesi eksik.")) score -= 6;
-  if (warnings.has("Demo ve canli urunler birlikte gorunuyor.")) score -= 5;
+  if (warnings.has("KDV hesaplanamadı.")) score -= 8;
+  if (warnings.has("Komisyon kategori eşleşmesi yok.")) score -= 8;
+  if (warnings.has("Kargo şirketi eşleşmesi eksik.")) score -= 6;
+  if (warnings.has("Kategori eşleşmesi eksik.")) score -= 6;
+  if (warnings.has("Demo ve canlı ürünler birlikte görünüyor.")) score -= 5;
 
   if (dataMode === "demo") {
     score = clamp(score, 65, 70);
@@ -182,7 +182,7 @@ function buildFallbackAggregate() {
     topProducts: [],
     salesTrend: [],
     stockAlerts: [],
-    methodology: "Canli ozet uretilemedigi icin bos baslangic verisi gosteriliyor.",
+    methodology: "Canlı özet üretilemediği için boş başlangıç verisi gösteriliyor.",
   };
 }
 
@@ -244,7 +244,7 @@ export async function GET(request: Request) {
             dataMode: "partial" as DashboardDataMode,
             dataQuality: {
               score: 0,
-              warnings: ["Veri kalitesi olculemedi."],
+              warnings: ["Veri kalitesi ölçülemedi."],
               lastSyncAt: null,
             },
           };
@@ -301,6 +301,6 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Dashboard API error:", error);
-    return NextResponse.json({ success: false, error: "Gosterge paneli ozeti olusturulamadi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Gösterge paneli özeti oluşturulamadı." }, { status: 500 });
   }
 }

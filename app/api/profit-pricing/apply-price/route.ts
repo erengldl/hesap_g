@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Uygulanacak analiz kaydÃ„Â± bulunamadÃ„Â±.",
+          error: "Uygulanacak analiz kaydı bulunamadı.",
         },
         { status: 400 }
       );
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Urun fiyati kullanici onayi olmadan degistirilemez.",
+          error: "Ürün fiyatı kullanıcı onayı olmadan değiştirilemez.",
         },
         { status: 409 }
       );
@@ -46,14 +46,14 @@ export async function POST(request: Request) {
       data: applied.result,
       oldPrice: applied.oldPrice,
       newPrice: applied.newPrice,
-      message: "ÃƒÅ“rÃƒÂ¼n fiyatÃ„Â± gÃƒÂ¼ncellendi.",
+      message: "Ürün fiyatı güncellendi.",
     });
   } catch (error) {
     console.error("Profit pricing apply price POST error:", error);
     return NextResponse.json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : "ÃƒÅ“rÃƒÂ¼n fiyatÃ„Â± gÃƒÂ¼ncellenemedi.",
+        error: error instanceof Error ? error.message : "Ürün fiyatı güncellenemedi.",
       },
       { status: 500 }
     );

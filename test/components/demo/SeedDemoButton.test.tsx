@@ -35,9 +35,9 @@ describe("SeedDemoButton", () => {
 
     render(<SeedDemoButton onSeeded={vi.fn()} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Demo Verileri Yukle" }));
+    await userEvent.click(screen.getByRole("button", { name: "Demo Verileri Yükle" }));
 
-    expect(screen.getByRole("button", { name: "Demo verileri yukleniyor..." }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: "Demo verileri yükleniyor..." }).hasAttribute("disabled")).toBe(true);
 
     deferred.resolve(
       new Response(
@@ -54,7 +54,7 @@ describe("SeedDemoButton", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Demo Verileri Yukle" }).hasAttribute("disabled")).toBe(false);
+      expect(screen.getByRole("button", { name: "Demo Verileri Yükle" }).hasAttribute("disabled")).toBe(false);
     });
   });
 
@@ -81,14 +81,14 @@ describe("SeedDemoButton", () => {
 
     const { rerender } = render(<SeedDemoButton confirmMessage="Silinsin mi?" />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Demo Verileri Yukle" }));
+    await userEvent.click(screen.getByRole("button", { name: "Demo Verileri Yükle" }));
 
     expect(confirmMock).toHaveBeenCalledWith("Silinsin mi?");
     expect(fetchMock).not.toHaveBeenCalled();
 
     rerender(<SeedDemoButton onSeeded={vi.fn()} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Demo Verileri Yukle" }));
+    await userEvent.click(screen.getByRole("button", { name: "Demo Verileri Yükle" }));
 
     expect(confirmMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -118,7 +118,7 @@ describe("SeedDemoButton", () => {
 
     render(<SeedDemoButton />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Demo Verileri Yukle" }));
+    await userEvent.click(screen.getByRole("button", { name: "Demo Verileri Yükle" }));
 
     await waitFor(() => {
       expect(reloadMock).toHaveBeenCalledTimes(1);
@@ -135,7 +135,7 @@ describe("SeedDemoButton", () => {
             productsInserted: 0,
             productsSkipped: 0,
             settingsInserted: 0,
-            message: "Seed basarisiz.",
+            message: "Seed başarısız.",
             warning: "Demo uyarisi",
           }),
           { status: 500, headers: { "Content-Type": "application/json" } }
@@ -145,10 +145,10 @@ describe("SeedDemoButton", () => {
 
     render(<SeedDemoButton onError={onError} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Demo Verileri Yukle" }));
+    await userEvent.click(screen.getByRole("button", { name: "Demo Verileri Yükle" }));
 
     await waitFor(() => {
-      expect(onError).toHaveBeenCalledWith("Seed basarisiz.");
+      expect(onError).toHaveBeenCalledWith("Seed başarısız.");
     });
   });
 });

@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, carriers });
     }
 
-    return NextResponse.json({ success: false, error: 'GeÃƒÂ§ersiz tÃƒÂ¼r.' }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Geҧersiz tҼr.' }, { status: 400 });
   } catch (error) {
     console.error('Cost Tariffs API error:', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });

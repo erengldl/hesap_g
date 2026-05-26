@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     const file = formData.get("file");
 
     if (!(file instanceof File)) {
-      return NextResponse.json({ success: false, error: "Dosya bulunamadÃ„Â±." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Dosya bulunamadı." }, { status: 400 });
     }
 
     const saved = await saveProductImageUpload(file);
@@ -24,6 +24,6 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Product image upload error:", error);
-    return NextResponse.json({ success: false, error: "GÃƒÂ¶rsel yÃƒÂ¼klenemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Görsel yüklenemedi." }, { status: 500 });
   }
 }

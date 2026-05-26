@@ -21,7 +21,7 @@ export async function GET(request: Request) {
           fallbackActive: true,
           lastTrainedAt: "not-trained",
         },
-        message: "Egitilmis iade/fire risk modeli henuz yok. Tahminlerde fallback kullanilir.",
+        message: "Eğitilmiş iade/fire risk modeli henüz yok. Tahminlerde fallback kullanılır.",
       });
     }
 

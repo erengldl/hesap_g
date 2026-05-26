@@ -38,7 +38,7 @@ async function getOrCreateGatewayId(db: Database, marketplaceId: number) {
     .prepare(
       "SELECT id FROM payment_gateway_rules WHERE marketplace_id = ? AND gateway_name = ? LIMIT 1"
     )
-    .get(marketplaceId, "Kullanici Tanimli Odeme Altyapisi") as { id: number } | undefined;
+    .get(marketplaceId, "Kullanıcı Tanımlı Ödeme Altyapısı") as { id: number } | undefined;
 
   if (existing) {
     return existing.id;
@@ -46,7 +46,7 @@ async function getOrCreateGatewayId(db: Database, marketplaceId: number) {
 
   const result = await db
     .prepare(
-      "INSERT INTO payment_gateway_rules (seller_profile_id, marketplace_id, gateway_name, fee_rate_percent, fixed_fee_per_order, vat_rate_percent, fee_values_include_vat, is_active) VALUES (1, ?, 'Kullanici Tanimli Odeme Altyapisi', 3.49, 0.25, 20, 1, 1)"
+      "INSERT INTO payment_gateway_rules (seller_profile_id, marketplace_id, gateway_name, fee_rate_percent, fixed_fee_per_order, vat_rate_percent, fee_values_include_vat, is_active) VALUES (1, ?, 'Kullanıcı Tanımlı Ödeme Altyapısı', 3.49, 0.25, 20, 1, 1)"
     )
     .run(marketplaceId);
 
@@ -62,7 +62,7 @@ export async function ensureDemoData(): Promise<SeedDemoResponse> {
       productsInserted: 0,
       productsSkipped: 0,
       settingsInserted: 0,
-      message: "Database baglantisi kurulamadi. Demo veriler UI tarafinda gosterilecek.",
+      message: "Veritabanı bağlantısı kurulamadı. Demo veriler UI tarafında gösterilecek.",
       warning: SEED_DEMO_WARNING_MESSAGE,
     };
   }
@@ -72,7 +72,7 @@ export async function ensureDemoData(): Promise<SeedDemoResponse> {
     await getOrCreateGatewayId(db, ownWebsiteId);
 
     const ensureSellerProfile = db.prepare(
-      "INSERT INTO seller_profiles (profile_id, company_type, monthly_employee_cost, monthly_warehouse_cost, monthly_invoice_accounting_cost, monthly_other_expenses, expected_monthly_order_count) VALUES (1, 'Sahis Sirketi', 0, 3000, 1000, 1000, 500) ON CONFLICT(profile_id) DO NOTHING"
+      "INSERT INTO seller_profiles (profile_id, company_type, monthly_employee_cost, monthly_warehouse_cost, monthly_invoice_accounting_cost, monthly_other_expenses, expected_monthly_order_count) VALUES (1, 'Şahıs Şirketi', 0, 3000, 1000, 1000, 500) ON CONFLICT(profile_id) DO NOTHING"
     );
 
     await db.transaction(async () => {
@@ -127,8 +127,8 @@ export async function ensureDemoData(): Promise<SeedDemoResponse> {
 
     const salesSummary = await generateDemoSalesHistory(db, { days: 90, resetSalesTables: false });
     const successSummary =
-      `Eski urunler silindi, ${productsInserted} yeni demo urun ve ` +
-      `son 90 gune ait ${salesSummary.ordersInserted} demo siparis eklendi.`;
+      `Eski ürünler silindi, ${productsInserted} yeni demo ürün ve ` +
+      `son 90 güne ait ${salesSummary.ordersInserted} demo sipariş eklendi.`;
 
     return {
       success: true,
@@ -149,7 +149,7 @@ export async function ensureDemoData(): Promise<SeedDemoResponse> {
       productsInserted: 0,
       productsSkipped: 0,
       settingsInserted: 0,
-      message: `Veritabani hatasi: ${message}`,
+      message: `Veritabanı hatası: ${message}`,
       warning: SEED_DEMO_WARNING_MESSAGE,
     };
   }

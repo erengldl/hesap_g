@@ -38,7 +38,7 @@ describe("return risk predict route", () => {
       modelVersion: "return-risk-v1-test",
       modelType: "typescript-logistic-regression",
       usedFallback: false,
-      topRiskFactors: ["Kategori iade/fire orani yuksek"],
+      topRiskFactors: ["Kategori iade/fire oranı yüksek"],
       explanation: "Tahmin hazir.",
     });
 
@@ -94,8 +94,8 @@ describe("return risk predict route", () => {
       modelVersion: "return-risk-fallback-v1",
       modelType: "historical-weighted-average",
       usedFallback: true,
-      topRiskFactors: ["Urun bazli iade/fire verisi sinirli"],
-      explanation: "Fallback kullanildi.",
+      topRiskFactors: ["Ürün bazlı iade/fire verisi sınırlı"],
+      explanation: "Fallback kullanıldı.",
     });
 
     const response = await POST(

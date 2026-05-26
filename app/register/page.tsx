@@ -19,7 +19,7 @@ async function getCurrentAuthenticatedUser() {
   const data = await res.json();
 
   if (!res.ok || !data?.success || !data.user) {
-    throw new Error(data?.error || "Oturum okunamadi.");
+    throw new Error(data?.error || "Oturum okunamadı.");
   }
 
   return data.user;
@@ -65,7 +65,7 @@ export default function RegisterPage() {
       authMode = authConfig.authMode;
 
       if (authMode === "misconfigured") {
-        setError(authConfig.error || "Supabase auth yapilandirmasi eksik.");
+        setError(authConfig.error || "Supabase auth yapılandırması eksik.");
         return;
       }
 
@@ -87,7 +87,7 @@ export default function RegisterPage() {
       }
 
       if (!signUpResult.data.session) {
-        setNotice("Hesap olusturuldu. Devam etmeden once e-posta dogrulamasini tamamlayin.");
+        setNotice("Hesap oluşturuldu. Devam etmeden önce e-posta doğrulamasını tamamlayın.");
         router.push("/login?registered=1");
         router.refresh();
         return;
@@ -104,7 +104,7 @@ export default function RegisterPage() {
       if (authMode === "supabase") {
         await createSupabaseBrowserClient().auth.signOut().catch(() => {});
       }
-      setError(getSupabaseErrorMessage(error, "Sunucu hatasi. Lutfen tekrar deneyin."));
+      setError(getSupabaseErrorMessage(error, "Sunucu hatası. Lütfen tekrar deneyin."));
     } finally {
       setLoading(false);
     }
