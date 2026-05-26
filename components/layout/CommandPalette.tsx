@@ -180,7 +180,7 @@ function buildActionResults(useDemoData: boolean): SearchResult[] {
       id: "action:go-dashboard",
       type: "action",
       group: "actions",
-      label: "Dashboard'a Git",
+      label: "Özete Git",
       sublabel: "Genel performans görünümünü aç",
       href: "/dashboard",
       icon: LayoutDashboard,

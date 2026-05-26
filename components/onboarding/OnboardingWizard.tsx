@@ -377,7 +377,7 @@ export function OnboardingWizard() {
                       onClick={handleFinish}
                       className="btn-primary w-full justify-center py-3.5 text-base"
                     >
-                      Dashboard'a Git
+                      Özete Git
                       <LayoutDashboard className="h-4 w-4" />
                     </button>
                   </motion.div>

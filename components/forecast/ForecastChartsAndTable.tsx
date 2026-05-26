@@ -56,7 +56,7 @@ export default function ForecastChartsAndTable({ result }: ForecastChartsAndTabl
     );
   }
 
-  const tableRows = [...(result?.tableRows ?? [])]
+  const tableRows = [...(result.tableRows ?? [])]
     .filter((row) => {
       const matchesSearch = `${row.date} ${row.label}`.toLowerCase().includes(search.toLowerCase());
       const matchesFilter =
@@ -81,8 +81,8 @@ export default function ForecastChartsAndTable({ result }: ForecastChartsAndTabl
       }
     });
 
-  const chartData = result?.chartData ?? [];
-  const summary = result?.summary;
+  const chartData = result.chartData ?? [];
+  const summary = result.summary;
   const forecastStartDate = summary?.forecastStartDate ?? chartData.find((item) => item.is_forecast)?.date;
 
   return (
@@ -91,7 +91,7 @@ export default function ForecastChartsAndTable({ result }: ForecastChartsAndTabl
         <div className="min-w-0 space-y-2">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/80">Özet</p>
           <h2 className="text-xl font-semibold text-foreground">Grafik ve tablo</h2>
-          <p className="max-w-2xl text-sm leading-6 text-muted">Geçmiş, tahmin ve notlar aynı yerde.</p>
+          <p className="max-w-2xl text-sm leading-6 text-soft">Geçmiş, tahmin ve notlar aynı yerde.</p>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -114,20 +114,20 @@ export default function ForecastChartsAndTable({ result }: ForecastChartsAndTabl
             <LegendPill color="bg-zinc-200" label="Gerçek" />
             <LegendPill color="bg-primary" label="Tahmin" />
             <LegendPill color="bg-primary/20" label="Aralık" />
-      <LegendPill color="bg-surface-container" label={result?.summary?.stockWarning ?? "Stok bilgisi"} />
+            <LegendPill color="bg-surface-container" label={result.summary?.stockWarning ?? "Stok bilgisi"} />
           </div>
 
           <div className="rounded-lg border border-border bg-panel/80 p-4">
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-foreground">Geçmiş ve tahmin</h3>
-                <p className="mt-1 text-[11px] text-muted">
-                  Beyaz çizgi geçmişi, neon çizgi tahmini, bant ise aralığı gösterir.
+                <p className="mt-1 text-[11px] text-soft">
+                  Beyaz çizgi geçmişi, neon çizgi tahmini, bant ise olası aralığı gösterir.
                 </p>
               </div>
-                <div className="text-[10px] uppercase tracking-[0.18em] text-muted">
-                        Başlangıç: {forecastStartDate ?? "Belirlenmedi"}
-                </div>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-muted">
+                Başlangıç: {forecastStartDate ?? "Belirlenmedi"}
+              </div>
             </div>
 
             <div className="h-[390px] w-full min-w-0">
@@ -158,7 +158,8 @@ export default function ForecastChartsAndTable({ result }: ForecastChartsAndTabl
                       stroke="none"
                       fill="transparent"
                       stackId="forecastBand"
-                      isAnimationActive={true} animationDuration={400}
+                      isAnimationActive={true}
+                      animationDuration={400}
                     />
                     <Area
                       type="monotone"
@@ -168,7 +169,8 @@ export default function ForecastChartsAndTable({ result }: ForecastChartsAndTabl
                       fill="url(#forecastBand)"
                       fillOpacity={0.2}
                       stackId="forecastBand"
-                      isAnimationActive={true} animationDuration={400}
+                      isAnimationActive={true}
+                      animationDuration={400}
                     />
                     <Line
                       type="monotone"
@@ -178,7 +180,8 @@ export default function ForecastChartsAndTable({ result }: ForecastChartsAndTabl
                       strokeWidth={2}
                       dot={false}
                       connectNulls
-                      isAnimationActive={true} animationDuration={400}
+                      isAnimationActive={true}
+                      animationDuration={400}
                     />
                     <Line
                       type="monotone"
@@ -189,12 +192,13 @@ export default function ForecastChartsAndTable({ result }: ForecastChartsAndTabl
                       strokeDasharray="7 6"
                       dot={{ r: 3, stroke: "var(--success)", strokeWidth: 2, fill: "var(--panel-bg)" }}
                       connectNulls
-                      isAnimationActive={true} animationDuration={400}
+                      isAnimationActive={true}
+                      animationDuration={400}
                     />
                   </ComposedChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-surface-container text-sm text-muted">
+                <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-surface-container text-sm text-soft">
                   Grafik verisi bulunamadı.
                 </div>
               )}
@@ -211,9 +215,9 @@ export default function ForecastChartsAndTable({ result }: ForecastChartsAndTabl
                   ? "Yüksek"
                   : summary?.confidenceScore === "Medium"
                     ? "Orta"
-                  : summary?.confidenceScore === "Low"
-                    ? "Düşük"
-                    : "Belirlenmedi"
+                    : summary?.confidenceScore === "Low"
+                      ? "Düşük"
+                      : "Belirlenmedi"
               }
             />
           </div>
@@ -222,32 +226,32 @@ export default function ForecastChartsAndTable({ result }: ForecastChartsAndTabl
 
       {activeTab === "table" ? (
         <div className="space-y-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-foreground">Günlük liste</h3>
-          <p className="mt-1 text-[11px] text-muted">Arama, sıralama ve filtre tek yerde.</p>
-        </div>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-foreground">Günlük liste</h3>
+              <p className="mt-1 text-[11px] text-soft">Arama, sıralama ve filtre tek yerde.</p>
+            </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Ara..."
-              className="form-input min-w-[220px] pl-10"
-            />
-          </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Ara..."
+                  className="form-input min-w-[220px] pl-10"
+                />
+              </div>
 
-          <select
-            value={sortKey}
-            onChange={(event) => setSortKey(event.target.value as SortKey)}
-            className="form-select min-w-[140px]"
-          >
-            <option value="date">Tarih</option>
-            <option value="forecast">Tahmin</option>
-            <option value="revenue">Gelir</option>
-            <option value="stock">Stok</option>
+              <select
+                value={sortKey}
+                onChange={(event) => setSortKey(event.target.value as SortKey)}
+                className="form-select min-w-[140px]"
+              >
+                <option value="date">Tarih</option>
+                <option value="forecast">Tahmin</option>
+                <option value="revenue">Gelir</option>
+                <option value="stock">Stok</option>
               </select>
 
               <div className="flex gap-2">
@@ -295,7 +299,7 @@ export default function ForecastChartsAndTable({ result }: ForecastChartsAndTabl
                       <Td>
                         <div className="space-y-1">
                           <p className="font-bold text-foreground">{row.label}</p>
-                          <p className="text-[10px] text-muted">{row.date}</p>
+                          <p className="text-[10px] text-soft">{row.date}</p>
                         </div>
                       </Td>
                       <Td className="text-right font-bold text-foreground">{formatNumber(row.predicted_units)}</Td>
@@ -340,22 +344,22 @@ export default function ForecastChartsAndTable({ result }: ForecastChartsAndTabl
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-foreground">Nasıl çalışır?</h3>
-                <p className="mt-1 text-[11px] text-muted">Kısa açıklama ve model davranışı.</p>
+                <p className="mt-1 text-[11px] text-soft">Model özeti ve kısa açıklamalar.</p>
               </div>
               <MetaPill>Tahmin modeli</MetaPill>
             </div>
             <p className="mt-4 whitespace-pre-line text-sm leading-7 text-soft">
-               {result?.methodology ?? "Yöntem bilgisi yükleniyor."}
+              {result.methodology ?? "Yöntem bilgisi yükleniyor."}
             </p>
           </div>
 
           <div className="space-y-4">
             <div className="rounded-lg border border-border bg-surface-container p-4">
               <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-foreground">Kısa özet</h3>
-      <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border/80 bg-surface-container">
+              <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border/80 bg-surface-container">
                 <MetricTile label="Tahmin" value={summary ? formatNumber(summary.totalForecastUnits) : "Belirlenmedi"} />
                 <MetricTile label="Net kâr" value={summary ? formatCurrency(summary.expectedNetProfit) : "Belirlenmedi"} />
-                <MetricTile label="Hata" value={summary ? `%${formatNumber(summary.wmape * 100)}` : "Belirlenmedi"} />
+                <MetricTile label="Tahmini hata" value={summary ? `%${formatNumber(summary.wmape * 100)}` : "Belirlenmedi"} />
                 <MetricTile label="Stok" value={summary?.stockWarning ?? "Belirtilmedi"} />
               </div>
             </div>
@@ -365,14 +369,14 @@ export default function ForecastChartsAndTable({ result }: ForecastChartsAndTabl
                 <AlertTriangle className="h-4 w-4" />
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em]">Uyarılar</p>
               </div>
-              {result?.warnings?.length ? (
+              {result.warnings?.length ? (
                 <ul className="mt-3 space-y-2 text-sm leading-6 text-soft">
                   {result.warnings.slice(0, 3).map((warning) => (
                     <li key={warning}>{warning}</li>
                   ))}
                 </ul>
               ) : (
-                <p className="mt-3 text-sm leading-6 text-muted">Ek uyarı yok.</p>
+                <p className="mt-3 text-sm leading-6 text-soft">Ek uyarı yok.</p>
               )}
             </div>
           </div>

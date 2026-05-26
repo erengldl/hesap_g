@@ -47,20 +47,20 @@ type AppStats = {
 type DataCenterTab = "products" | "sales" | "settings";
 
 function formatRelativeTime(value?: string | null) {
-  if (!value) return "HenÃ¼z iÅŸlem yapÄ±lmadÄ±";
+  if (!value) return "Henüz işlem yapılmadı";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "HenÃ¼z iÅŸlem yapÄ±lmadÄ±";
+  if (Number.isNaN(date.getTime())) return "Henüz işlem yapılmadı";
 
   const diffMs = Date.now() - date.getTime();
   const diffMinutes = Math.max(0, Math.round(diffMs / 60000));
-  if (diffMinutes < 1) return "ÅŸimdi";
-  if (diffMinutes < 60) return `${diffMinutes} dk Ã¶nce`;
+  if (diffMinutes < 1) return "Şimdi";
+  if (diffMinutes < 60) return `${diffMinutes} dk önce`;
 
   const diffHours = Math.round(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours} sa Ã¶nce`;
+  if (diffHours < 24) return `${diffHours} sa önce`;
 
   const diffDays = Math.round(diffHours / 24);
-  return `${diffDays} gÃ¼n Ã¶nce`;
+  return `${diffDays} gün önce`;
 }
 
 export function DataCenterTabs() {
@@ -108,7 +108,7 @@ export function DataCenterTabs() {
     } catch (error) {
       console.error("Failed to refresh data", error);
       setStats(null);
-      setLoadError("Veri merkezi yÃ¼klenemedi. Sunucu baÄŸlantÄ±sÄ± kesildi. Ä°nternet baÄŸlantÄ±nÄ±zÄ± kontrol edip tekrar deneyin.");
+      setLoadError("Veri Merkezi yüklenemedi. Sunucu bağlantısı kesildi. İnternet bağlantınızı kontrol edip tekrar deneyin.");
       setProducts(useDemoData ? DEMO_PRODUCTS : []);
       setSelectedIds([]);
       return useDemoData ? DEMO_PRODUCTS : [];
@@ -170,7 +170,7 @@ export function DataCenterTabs() {
         : products;
 
     if (exportProducts.length === 0) {
-      showMessage({ text: "DÄ±ÅŸa aktarÄ±lacak Ã¼rÃ¼n bulunamadÄ±.", type: "warning" });
+      showMessage({ text: "Dışa aktarılacak ürün bulunamadı.", type: "warning" });
       return;
     }
 
@@ -178,8 +178,8 @@ export function DataCenterTabs() {
     showMessage({
       text:
         selectedIds.length > 0
-          ? `${selectedIds.length} seÃ§ili Ã¼rÃ¼n Excel olarak indirildi.`
-          : `${exportProducts.length} Ã¼rÃ¼n Excel olarak indirildi.`,
+          ? `${selectedIds.length} seçili ürün Excel olarak indirildi.`
+          : `${exportProducts.length} ürün Excel olarak indirildi.`,
       type: "success",
     });
   };
@@ -196,19 +196,19 @@ export function DataCenterTabs() {
 
       const data = await response.json();
       if (!response.ok || !data?.success) {
-        throw new Error(data?.error || "ÃœrÃ¼n kaydedilemedi");
+        throw new Error(data?.error || "Ürün kaydedilemedi");
       }
 
       await refreshData();
       setIsProductFormOpen(false);
       setEditingProduct(null);
       showMessage({
-        text: isEdit ? "ÃœrÃ¼n gÃ¼ncellendi ve maliyet sonuÃ§larÄ± yenilendi." : "ÃœrÃ¼n eklendi ve maliyet sonuÃ§larÄ± Ã¼retildi.",
+        text: isEdit ? "Ürün güncellendi ve maliyet sonuçları yenilendi." : "Ürün eklendi ve maliyet sonuçları üretildi.",
         type: "success",
       });
     } catch (error) {
       console.error("Product save error:", error);
-      showMessage({ text: "ÃœrÃ¼n kaydedilemedi.", type: "error" });
+      showMessage({ text: "Ürün kaydedilemedi.", type: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -216,7 +216,7 @@ export function DataCenterTabs() {
 
   const handleDeleteProduct = async (productId: number) => {
     const product = products.find((item) => item.id === productId);
-    const confirmed = window.confirm(`${product?.name ?? "Bu Ã¼rÃ¼n"} silinsin mi? Bu iÅŸlem geri alÄ±namaz.`);
+    const confirmed = window.confirm(`${product?.name ?? "Bu ürün"} silinsin mi? Bu işlem geri alınamaz.`);
     if (!confirmed) return;
 
     setSubmitting(true);
@@ -224,14 +224,14 @@ export function DataCenterTabs() {
       const response = await fetch(`/api/products/${productId}`, { method: "DELETE" });
       const data = await response.json();
       if (!response.ok || !data?.success) {
-        throw new Error(data?.error || "ÃœrÃ¼n silinemedi");
+        throw new Error(data?.error || "Ürün silinemedi");
       }
 
       await refreshData();
-      showMessage({ text: "ÃœrÃ¼n silindi.", type: "success" });
+      showMessage({ text: "Ürün silindi.", type: "success" });
     } catch (error) {
       console.error("Product delete error:", error);
-      showMessage({ text: "ÃœrÃ¼n silinemedi.", type: "error" });
+      showMessage({ text: "Ürün silinemedi.", type: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -267,17 +267,17 @@ export function DataCenterTabs() {
 
           const data = await response.json();
           if (!response.ok || !data?.success) {
-            throw new Error(data?.error || `ÃœrÃ¼n ${id} gÃ¼ncellenemedi`);
+            throw new Error(data?.error || `Ürün ${id} güncellenemedi`);
           }
         })
       );
 
       await refreshData();
       setSelectedIds([]);
-      showMessage({ text: "SeÃ§ili Ã¼rÃ¼nler gÃ¼ncellendi.", type: "success" });
+      showMessage({ text: "Seçili ürünler güncellendi.", type: "success" });
     } catch (error) {
       console.error("Bulk status update error:", error);
-      showMessage({ text: "Toplu gÃ¼ncelleme yapÄ±lamadÄ±.", type: "error" });
+      showMessage({ text: "Toplu güncelleme yapılamadı.", type: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -286,7 +286,7 @@ export function DataCenterTabs() {
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
 
-    const confirmed = window.confirm(`${selectedIds.length} Ã¼rÃ¼n silinsin mi? Bu iÅŸlem geri alÄ±namaz.`);
+    const confirmed = window.confirm(`${selectedIds.length} ürün silinsin mi? Bu işlem geri alınamaz.`);
     if (!confirmed) return;
 
     setSubmitting(true);
@@ -296,16 +296,16 @@ export function DataCenterTabs() {
           const response = await fetch(`/api/products/${id}`, { method: "DELETE" });
           const data = await response.json();
           if (!response.ok || !data?.success) {
-            throw new Error(data?.error || `ÃœrÃ¼n ${id} silinemedi`);
+            throw new Error(data?.error || `Ürün ${id} silinemedi`);
           }
         })
       );
       await refreshData();
       setSelectedIds([]);
-      showMessage({ text: "SeÃ§ili Ã¼rÃ¼nler silindi.", type: "success" });
+      showMessage({ text: "Seçili ürünler silindi.", type: "success" });
     } catch (error) {
       console.error("Bulk delete error:", error);
-      showMessage({ text: "Toplu silme yapÄ±lamadÄ±.", type: "error" });
+      showMessage({ text: "Toplu silme yapılamadı.", type: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -316,13 +316,13 @@ export function DataCenterTabs() {
   const averagePrice = stats?.average_price ?? (products.reduce((sum, item) => sum + Number(item.sale_price ?? 0), 0) / Math.max(1, products.length));
   const averageProfitMargin = stats?.average_profit_margin ?? 0;
   const lastBulkSyncSummary = stats?.last_bulk_sync_time
-    ? `${formatRelativeTime(stats.last_bulk_sync_time)} Â· ${Number(stats.last_bulk_sync_count ?? 0)} Ã¼rÃ¼n`
-    : "HenÃ¼z toplu iÅŸlem yapÄ±lmadÄ±";
+    ? `${formatRelativeTime(stats.last_bulk_sync_time)} · ${Number(stats.last_bulk_sync_count ?? 0)} ürün`
+    : "Henüz toplu işlem yapılmadı";
   const lastBulkSyncScope = stats?.last_bulk_sync_scope === "marketplace_catalog_import"
-    ? "Pazaryeri katalog iÃ§e aktarma"
+    ? "Pazaryeri kataloğu içe aktarma"
     : stats?.last_bulk_sync_scope === "all_products"
-      ? "Veri merkezi yeniden hesaplama"
-      : stats?.last_bulk_sync_scope ?? "Ä°ÅŸlem yok";
+      ? "Veri Merkezi yeniden hesaplama"
+      : stats?.last_bulk_sync_scope ?? "İşlem yok";
 
   const handleBulkUpload = async () => {
     setBulkSyncing(true);
@@ -333,17 +333,17 @@ export function DataCenterTabs() {
       });
       const data = await response.json();
       if (!response.ok || !data?.success) {
-        throw new Error(data?.error || "Veri merkezi yÃ¼klemesi baÅŸarÄ±sÄ±z oldu");
+        throw new Error(data?.error || "Veri Merkezi yüklemesi başarısız oldu");
       }
 
       await refreshData();
       showMessage({
-        text: data?.message || `${Number(data?.processed_products ?? data?.product_count ?? 0)} Ã¼rÃ¼n veri merkezine yÃ¼klendi.`,
+        text: data?.message || `${Number(data?.processed_products ?? data?.product_count ?? 0)} ürün Veri Merkezi'ne yüklendi.`,
         type: "success",
       });
     } catch (error) {
       console.error("Data center bulk sync error:", error);
-      showMessage({ text: "TÃ¼m Ã¼rÃ¼nler veri merkezine yÃ¼klenemedi.", type: "error" });
+      showMessage({ text: "Tüm ürünler Veri Merkezi'ne yüklenemedi.", type: "error" });
     } finally {
       setBulkSyncing(false);
     }
@@ -358,18 +358,18 @@ export function DataCenterTabs() {
       });
       const data = await response.json();
       if (!response.ok || !data?.success) {
-        throw new Error(data?.error || "Pazaryeri kataloglarÄ± iÃ§e aktarÄ±lamadÄ±");
+        throw new Error(data?.error || "Pazaryeri katalogları içe aktarılamadı");
       }
 
       await refreshData();
       const importedCount = Number(data?.products_created ?? 0) + Number(data?.products_updated ?? 0);
       showMessage({
-        text: data?.message || `${importedCount} Ã¼rÃ¼n pazaryerlerinden iÃ§e aktarÄ±ldÄ± ve veri merkezi yenilendi.`,
+        text: data?.message || `${importedCount} ürün pazaryerlerinden içe aktarıldı ve Veri Merkezi yenilendi.`,
         type: "success",
       });
     } catch (error) {
       console.error("Marketplace catalog import error:", error);
-      showMessage({ text: "Pazaryeri kataloglarÄ± iÃ§e aktarÄ±lamadÄ±.", type: "error" });
+      showMessage({ text: "Pazaryeri katalogları içe aktarılamadı.", type: "error" });
     } finally {
       setCatalogImporting(false);
     }
@@ -462,38 +462,38 @@ export function DataCenterTabs() {
   return (
     <div className="w-full space-y-6">
       <div className="custom-scrollbar flex w-full gap-1 overflow-x-auto rounded-lg border border-border/70 bg-surface-container/55 p-1.5 shadow-[var(--shadow-card)]">
-        <button
+                <button
           onClick={() => activateTab("products")}
           className={cn(
             "whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-semibold transition-colors duration-200",
             activeTab === "products" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:bg-surface-soft hover:text-foreground"
           )}
         >
-          ÃœrÃ¼nler
+          Ürünler
         </button>
-        <button
+                <button
           onClick={() => activateTab("sales")}
           className={cn(
             "whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-semibold transition-colors duration-200",
             activeTab === "sales" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:bg-surface-soft hover:text-foreground"
           )}
         >
-          SatÄ±ÅŸ GeÃ§miÅŸi
+          Satış Geçmişi
         </button>
-        <button
+                <button
           onClick={() => activateTab("settings")}
           className={cn(
             "whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-semibold transition-colors duration-200",
             activeTab === "settings" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:bg-surface-soft hover:text-foreground"
           )}
         >
-          MaÄŸaza Bilgileri
+          Mağaza Bilgileri
         </button>
       </div>
 
       {loadError ? (
         <ErrorStateCard
-          title="Veri merkezi gÃ¼ncellenemedi"
+          title="Veri Merkezi güncellenemedi"
           description={loadError}
           action={
             <button
@@ -544,31 +544,31 @@ export function DataCenterTabs() {
       {activeTab === "products" && (
         <div className="space-y-5">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <KpiCard title="ÃœrÃ¼n SayÄ±sÄ±" value={String(productCount)} subValue="Toplam katalog" icon={Database} />
-            <KpiCard title="Aktif ÃœrÃ¼n SayÄ±sÄ±" value={String(activeProductCount)} subValue="SatÄ±ÅŸa aÃ§Ä±k" icon={CircleCheckBig} tone="success" />
-            <KpiCard title="Ortalama Fiyat" value={formatCurrency(averagePrice)} subValue="Liste ortalamasÄ±" icon={DollarSign} tone="primary" />
-            <KpiCard title="Ortalama KÃ¢r MarjÄ±" value={`%${Number(averageProfitMargin).toFixed(1)}`} subValue="Kanal sonuÃ§larÄ±na gÃ¶re" icon={BadgePercent} tone="warning" />
+            <KpiCard title="Ürün Sayısı" value={String(productCount)} subValue="Toplam katalog" icon={Database} />
+            <KpiCard title="Aktif Ürün Sayısı" value={String(activeProductCount)} subValue="Satışa açık" icon={CircleCheckBig} tone="success" />
+            <KpiCard title="Ortalama Fiyat" value={formatCurrency(averagePrice)} subValue="Liste ortalaması" icon={DollarSign} tone="primary" />
+            <KpiCard title="Ortalama Kâr Marjı" value={`%${Number(averageProfitMargin).toFixed(1)}`} subValue="Kanal sonuçlarına göre" icon={BadgePercent} tone="warning" />
           </div>
 
           <div className="rounded-lg border border-border/70 bg-panel/70 p-4 shadow-[var(--shadow-card)] sm:p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="space-y-2">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">Son toplu yÃ¼kleme</span>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">Son toplu yükleme</span>
                 <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
                   <span className="font-semibold text-foreground">{lastBulkSyncSummary}</span>
-                  <span>Â· {lastBulkSyncScope}</span>
+                  <span>· {lastBulkSyncScope}</span>
                   {stats?.last_bulk_sync_message && (
-                    <span>Â· {stats.last_bulk_sync_message}</span>
+                    <span>· {stats.last_bulk_sync_message}</span>
                   )}
                 </div>
                 <div>
-                  <h3 className="font-heading text-lg font-semibold text-foreground">ÃœrÃ¼nler</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">ÃœrÃ¼nleri seÃ§, dÃ¼zenle ve satÄ±ÅŸ kanallarÄ±nÄ± tek yerden yÃ¶net.</p>
+                  <h3 className="font-heading text-lg font-semibold text-foreground">Ürünler</h3>
+                  <p className="mt-1 text-sm text-soft">Ürünleri seç, düzenle ve satış kanallarını tek yerden yönet.</p>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 xl:justify-end">
                 <SeedDemoButton
-                  confirmMessage="Demo veriler yÃ¼klenecek. Mevcut veriler silinecek. Devam edilsin mi?"
+                  confirmMessage="Demo veriler yüklenecek. Mevcut veriler silinecek. Devam edilsin mi?"
                   onSeeded={handleSeedDemoSuccess}
                   onError={(text) => showMessage({ text, type: "error" })}
                   className="px-3.5 py-2.5"
@@ -580,7 +580,7 @@ export function DataCenterTabs() {
                   className="flex items-center gap-2 rounded-md border border-border/70 bg-surface-container/70 px-3.5 py-2.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-primary/25 hover:bg-card disabled:opacity-60"
                 >
                   <Upload className="h-4 w-4" />
-                  Excel Ä°Ã§e Aktar
+                  Excel İçe Aktar
                 </button>
                 <button
                   type="button"
@@ -589,7 +589,7 @@ export function DataCenterTabs() {
                   className="flex items-center gap-2 rounded-md border border-success/20 bg-success/10 px-3.5 py-2.5 text-sm font-semibold text-success transition-colors duration-200 hover:bg-success/15 disabled:opacity-60"
                 >
                   <FileSpreadsheet className="h-4 w-4" />
-                  Excel DÄ±ÅŸa Aktar
+                  Excel Dışa Aktar
                 </button>
                 <button
                   type="button"
@@ -598,7 +598,7 @@ export function DataCenterTabs() {
                   className="flex items-center gap-2 rounded-md border border-border/70 bg-surface-container/70 px-3.5 py-2.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-primary/25 hover:bg-card disabled:opacity-60"
                 >
                   <CloudDownload className={cn("h-4 w-4", catalogImporting && "animate-bounce")} />
-                  {catalogImporting ? "Katalog alÄ±nÄ±yor..." : "Katalog Al"}
+                  {catalogImporting ? "Katalog alınıyor..." : "Kataloğu İçe Al"}
                 </button>
                 <button
                   type="button"
@@ -607,7 +607,7 @@ export function DataCenterTabs() {
                   className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3.5 py-2.5 text-sm font-semibold text-primary transition-colors duration-200 hover:border-primary/35 hover:bg-primary/15 disabled:opacity-60"
                 >
                   <Database className={cn("h-4 w-4", bulkSyncing && "animate-pulse")} />
-                  {bulkSyncing ? "Yeniden hesaplanÄ±yor..." : "Yeniden Hesapla"}
+                  {bulkSyncing ? "Yeniden hesaplanıyor..." : "Yeniden Hesapla"}
                 </button>
                 <button
                   type="button"
@@ -618,14 +618,14 @@ export function DataCenterTabs() {
                   className="btn-primary px-3.5 py-2.5 text-sm"
                 >
                   <Plus className="h-4 w-4" />
-                  ÃœrÃ¼n Ekle
+                  Ürün Ekle
                 </button>
               </div>
             </div>
 
             {selectedIds.length > 0 && (
               <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-surface-container/60 px-3 py-2.5">
-                <span className="text-xs font-semibold text-muted">{selectedIds.length} Ã¼rÃ¼n seÃ§ili</span>
+                <span className="text-xs font-semibold text-muted">{selectedIds.length} ürün seçili</span>
                 <button
                   type="button"
                   onClick={handleProductExcelExport}
@@ -656,7 +656,7 @@ export function DataCenterTabs() {
                   disabled={submitting}
                   className="rounded-md bg-info/10 px-3 py-1.5 text-xs font-semibold text-info transition-colors duration-200 hover:bg-info/15 disabled:opacity-60"
                 >
-                  TaslaÄŸa Al
+                  Taslağa Al
                 </button>
                 <button
                   type="button"
@@ -681,8 +681,8 @@ export function DataCenterTabs() {
           {products.length === 0 && !loadError ? (
             <EmptyState
               icon={Database}
-              title="HenÃ¼z Ã¼rÃ¼n eklemediniz"
-              description="ÃœrÃ¼nleri Veri Merkezi'ne ekleyin ya da katalogu iÃ§e aktarÄ±n. ÃœrÃ¼nler olmadan kÃ¢rlÄ±lÄ±k ve tahmin hesaplarÄ± baÅŸlamaz."
+              title="Henüz ürün eklemediniz"
+              description="Ürünleri Veri Merkezi'ne ekleyin ya da kataloğu içe aktarın. Ürünler olmadan kârlılık ve tahmin hesapları başlamaz."
               className="mx-auto max-w-md"
               action={
                 <div className="flex flex-wrap justify-center gap-2">
@@ -696,7 +696,7 @@ export function DataCenterTabs() {
                     className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-container px-4 py-2.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-border-strong hover:bg-surface-container"
                   >
                     <Upload className="h-4 w-4" />
-                    Excel Ä°Ã§e Aktar
+                    Excel İçe Aktar
                   </button>
                   <button
                     type="button"
@@ -707,7 +707,7 @@ export function DataCenterTabs() {
                     className="btn-primary px-4 py-2.5 text-sm"
                   >
                     <Plus className="h-4 w-4" />
-                    ÃœrÃ¼n Ekle
+                    Ürün Ekle
                   </button>
                   <button
                     type="button"
@@ -716,7 +716,7 @@ export function DataCenterTabs() {
                     className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-container px-4 py-2.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-border-strong hover:bg-surface-container disabled:opacity-60"
                   >
                     <CloudDownload className={cn("h-4 w-4", catalogImporting && "animate-bounce")} />
-                    Katalog Al
+                    Kataloğu İçe Al
                   </button>
                 </div>
               }
@@ -787,7 +787,7 @@ export function DataCenterTabs() {
 
       {loading && (
         <div className="fixed bottom-6 left-6 z-[100] rounded-lg border border-border bg-panel/95 px-4 py-3 text-sm text-muted shadow-[var(--shadow-card)] backdrop-blur-2xl">
-          Veri merkezi yÃ¼kleniyor...
+          Veri Merkezi yükleniyor...
         </div>
       )}
     </div>

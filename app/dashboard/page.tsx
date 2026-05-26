@@ -58,7 +58,7 @@ function getDataModeMeta(mode: DashboardDataMode) {
       label: "DEMO MOD",
       icon: FlaskConical,
       className: "gap-1.5 border-primary/30 bg-primary/10 text-primary",
-      description: "Sentetik urun ve siparis akisi gosteriliyor.",
+      description: "Örnek ürün ve sipariş akışı gösteriliyor.",
     };
   }
 
@@ -67,7 +67,7 @@ function getDataModeMeta(mode: DashboardDataMode) {
       label: "CANLI VERI",
       icon: ShieldCheck,
       className: "gap-1.5 border-success/30 bg-success/10 text-success",
-      description: "Canli urun ve siparis verisi kullaniliyor.",
+      description: "Canlı ürün ve sipariş verisi kullanılıyor.",
     };
   }
 
@@ -75,7 +75,7 @@ function getDataModeMeta(mode: DashboardDataMode) {
     label: "KISMI VERI",
     icon: AlertTriangle,
     className: "gap-1.5 border-warning/30 bg-warning/10 text-warning",
-    description: "Demo ve canli veri birlikte gorunuyor.",
+    description: "Bazı alanlar canlı, bazı alanlar örnek veriyle gösteriliyor.",
   };
 }
 
@@ -108,12 +108,12 @@ function getDataQualityMeta(score: number) {
 
 function formatSyncLabel(value: string | null) {
   if (!value) {
-    return "Henuz senkronize edilmedi";
+    return "Henüz senkronize edilmedi";
   }
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return "Henuz senkronize edilmedi";
+    return "Henüz senkronize edilmedi";
   }
 
   return new Intl.DateTimeFormat("tr-TR", {
@@ -181,11 +181,11 @@ export default function DashboardPage() {
   const baseMethodology = payload?.methodology ?? agg?.methodology ?? "";
   const hasEstimatedTopProductMargin = agg?.topProducts.some((product) => product.marginConfidence === "estimated") ?? false;
   const methodologyFootnote = [
-    baseMethodology || "Analiz, gercek zamanli pazar verileri, komisyon oranlari ve lojistik maliyetleri kullanilarak yapilmistir.",
+    baseMethodology || "Analiz, güncel pazar verileri, komisyon oranları ve lojistik maliyetleri kullanılarak hazırlanır.",
     hasEstimatedTopProductMargin
-      ? "TAHMINI etiketi tasiyan lider urun marjlari, cost_results kaydi olmadigi icin yalnizca gercek siparis cirosu ile urun ve paketleme maliyeti uzerinden hesaplanir."
-      : "Lider urun marjlari, gercek siparis cirosu ile eslesen cost_results kayitlari uzerinden hesaplanir.",
-    "Genel ortalama marj ve toplam kar KPI'lari mevcut urun ayarlarindan turetilen tahmini degerlerdir.",
+      ? "Tahmini etiketi görünen ürün marjları, sipariş geliri ile ürün ve paketleme maliyetlerinden hesaplanır; ayrıntılı kanal maliyeti eksik olabilir."
+      : "Ürün marjları, sipariş gelirleri ile kanal bazlı maliyet kayıtları birleştirilerek hesaplanır.",
+    "Toplam kâr ve ortalama marj göstergeleri, hızlı karar desteği için hazırlanmış yönetim özetidir.",
   ].join(" ");
   const methodology = methodologyFootnote;
   const adSummary = payload?.adAnalysis ?? null;
@@ -218,7 +218,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="page-shell">
-        <PageHeader eyebrow="Genel Bakis" title="Ozet" description="Veriler hazirlaniyor..." />
+        <PageHeader eyebrow="Genel Bakış" title="Özet" description="Veriler hazırlanıyor..." />
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {[...Array(4)].map((_, i) => <SkeletonCard key={i} className="h-24" />)}
         </div>
@@ -233,11 +233,11 @@ export default function DashboardPage() {
   if (!agg) {
     return (
       <div className="page-shell">
-        <PageHeader eyebrow="Genel Bakis" title="Ozet" description="Satis kanallari ve karlilik kisa bakista gorunur." />
+        <PageHeader eyebrow="Genel Bakış" title="Özet" description="Satış kanalları ve kârlılık kısa bakışta görünür." />
         <EmptyState
           icon={BarChart3}
-          title="Henuz ozet olusturulmadi"
-          description="Ozeti gormek icin once urun ve siparis verisi ekleyin."
+          title="Henüz özet oluşturulmadı"
+          description="Özeti görmek için önce ürün ve sipariş verisi ekleyin."
           action={(
             <div className="flex flex-wrap justify-center gap-2">
               <SeedDemoButton
@@ -249,7 +249,7 @@ export default function DashboardPage() {
                 href="/veri-merkezi"
                 className="btn-primary py-3 px-6 text-sm"
               >
-                Urun Merkezini Ac
+                Veri Merkezini Aç
               </Link>
               {seedDemoError ? (
                 <p className="basis-full text-center text-sm font-medium text-danger">{seedDemoError}</p>
@@ -265,45 +265,45 @@ export default function DashboardPage() {
 
   return (
     <div className="page-shell">
-      <PageHeader eyebrow="Genel Bakis" title="Ozet" description="Tum urunler, kanallar ve siparisler uzerinden kisa finansal ozet.">
+      <PageHeader eyebrow="Genel Bakış" title="Özet" description="Tüm ürünler, kanallar ve siparişler üzerinden kısa finansal özet.">
         <EyebrowBadge className={cn("gap-1.5", dataModeMeta.className)}>
           <dataModeMeta.icon className="h-3.5 w-3.5" />
           {dataModeMeta.label}
         </EyebrowBadge>
         <div className="flex items-center gap-1.5 rounded-md border border-border bg-surface-container px-2 py-0.5 text-[10px] font-medium text-muted">
           <Zap className="h-3 w-3 text-primary" />
-          Canli Analiz
+          Canlı analiz
         </div>
       </PageHeader>
 
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard title="Toplam Ciro" value={formatCurrency(agg.totalRevenue)} icon={DollarSign}
-          subValue={`${formatNumber(agg.totalOrders)} siparis`} />
-        <KpiCard title="Ortalama Kar Marji" value={formatPercent(agg.avgMargin)} icon={TrendingUp}
-          trend={{ value: "%25-%45 araligi", isPositive: true }} />
-        <KpiCard title="Tahmini Net Kar" value={formatCurrency(agg.totalProfit)} icon={Wallet}
-          subValue={`${agg.totalProducts} aktif urun`} />
-        <KpiCard title="Tamamlanan Siparis" value={formatNumber(agg.totalOrders)} icon={ShoppingCart}
-          subValue="Son 90 gun" />
+          subValue={`${formatNumber(agg.totalOrders)} sipariş`} />
+        <KpiCard title="Ortalama Kâr Marjı" value={formatPercent(agg.avgMargin)} icon={TrendingUp}
+          trend={{ value: "%25-%45 aralığı", isPositive: true }} />
+        <KpiCard title="Tahmini Net Kâr" value={formatCurrency(agg.totalProfit)} icon={Wallet}
+          subValue={`${agg.totalProducts} aktif ürün`} />
+        <KpiCard title="Tamamlanan Sipariş" value={formatNumber(agg.totalOrders)} icon={ShoppingCart}
+          subValue="Son 90 gün" />
       </div>
 
       {adSummary && (
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <KpiCard
-            title="Reklam Harcamasi"
+            title="Reklam Harcaması"
             value={formatCurrency(adSummary.totalSpend)}
             subValue={`${formatNumber(adSummary.totalCampaigns)} kampanya`}
             icon={Megaphone}
           />
           <KpiCard
-            title="Reklam Net Kari"
+            title="Reklam Net Kârı"
             value={formatCurrency(adSummary.totalNetProfit)}
             subValue={`Senkron: ${new Intl.DateTimeFormat("tr-TR", { dateStyle: "short" }).format(new Date(adSummary.lastSyncedAt))}`}
             icon={Wallet}
             className="border-border/80 bg-surface-container"
           />
           <KpiCard
-            title="Kar Orani"
+            title="Kârlılık Oranı"
             value={`${adSummary.averagePoas.toFixed(2)}x`}
             subValue="Kar / harcama"
             icon={TrendingUp}
@@ -311,7 +311,7 @@ export default function DashboardPage() {
           <KpiCard
             title="Kritik Kampanyalar"
             value={formatNumber(adSummary.lossMakingCount)}
-            subValue={`${adSummary.watchCount} takip | ${adSummary.scaleCount} olcek`}
+            subValue={`${adSummary.watchCount} takip | ${adSummary.scaleCount} ölçek`}
             icon={AlertTriangle}
             className="border-danger/20 bg-danger/5"
           />
@@ -320,14 +320,14 @@ export default function DashboardPage() {
 
       <GlassCard className="mb-4">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h3 className="panel-title">Hizli Gecis</h3>
-          <WarningBadge>Tek akis</WarningBadge>
+          <h3 className="panel-title">Hızlı Geçiş</h3>
+          <WarningBadge>Tek akış</WarningBadge>
         </div>
         <div className="grid grid-cols-2 gap-2 xl:grid-cols-5">
           {[
             { label: "Tahmin", href: "/forecast", icon: TrendingUp },
-            { label: "Karlilik", href: "/profit-pricing", icon: Target },
-            { label: "Urunler", href: "/veri-merkezi", icon: Database },
+            { label: "Kârlılık", href: "/profit-pricing", icon: Target },
+            { label: "Ürünler", href: "/veri-merkezi", icon: Database },
             { label: "Reklam", href: "/reklam-analizi", icon: Megaphone },
             { label: "SEO", href: "/channel-seo", icon: Sparkles },
           ].map((action) => (
@@ -349,7 +349,7 @@ export default function DashboardPage() {
           <div className="mb-3 flex items-center justify-between gap-3">
             <h3 className="panel-title">Performans Trendi</h3>
             <div className="flex items-center gap-2">
-              <WarningBadge>30 Gunluk Veri</WarningBadge>
+              <WarningBadge>30 günlük veri</WarningBadge>
               <span className="text-[10px] font-medium text-muted">Zirve: {formatCurrency(trendMax)}</span>
             </div>
           </div>
@@ -378,7 +378,7 @@ export default function DashboardPage() {
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-surface-container text-xs text-muted/60">
+              <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-surface-container text-xs text-soft">
                 Yeterli trend verisi birikmedi
               </div>
             )}
@@ -402,7 +402,7 @@ export default function DashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-surface-container text-xs text-muted/60">
+              <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-surface-container text-xs text-soft">
                 Kanal verisi yok
               </div>
             )}
@@ -555,8 +555,8 @@ export default function DashboardPage() {
               <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-success/10 text-success">
                 <Package className="h-4 w-4" />
               </div>
-              <p className="text-sm font-medium text-foreground">Stoklar guvende</p>
-              <p className="mt-1 text-xs text-muted">Su an mudahale gerektiren urun bulunmuyor.</p>
+              <p className="text-sm font-medium text-foreground">Stoklar güvenli</p>
+              <p className="mt-1 text-xs text-soft">Şu an müdahale gerektiren ürün bulunmuyor.</p>
             </GlassCard>
           )}
 
@@ -568,7 +568,7 @@ export default function DashboardPage() {
               <div>
                 <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-primary/80">En iyi kanal</p>
                 <p className="mt-0.5 text-sm font-semibold text-foreground">
-                  {bestChannelName} uzerinden <span className="text-primary">{formatCurrency(bestChannel.net_profit)}</span> net kar elde ediliyor.
+                  {bestChannelName} üzerinden <span className="text-primary">{formatCurrency(bestChannel.net_profit)}</span> net kâr elde ediliyor.
                 </p>
               </div>
             </GlassCard>
@@ -579,7 +579,7 @@ export default function DashboardPage() {
       {bestChannel && payload?.costBreakdown && (
         <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <GlassCard>
-            <h3 className="panel-title mb-3">Maliyet Kirilimi ({bestChannelName})</h3>
+            <h3 className="panel-title mb-3">Maliyet Kırılımı ({bestChannelName})</h3>
             <div className="h-[220px] min-w-0">
               {chartsReady && isClient ? (
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} initialDimension={{ width: 1, height: 1 }}>
@@ -601,7 +601,7 @@ export default function DashboardPage() {
           </GlassCard>
 
           <GlassCard>
-            <h3 className="panel-title mb-3">Basabas Analizi</h3>
+            <h3 className="panel-title mb-3">Başabaş Analizi</h3>
             <div className="space-y-4">
               <div className="flex items-end justify-between">
                 <div className="space-y-1">
@@ -609,7 +609,7 @@ export default function DashboardPage() {
                   <p className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{formatCurrency(bestChannel.total_unit_cost)}</p>
                 </div>
                 <div className="space-y-1 text-right">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted/60">Onerilen Satis</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted/60">Önerilen satış</p>
                   <p className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">{formatCurrency(bestChannel.sale_price)}</p>
                 </div>
               </div>
@@ -650,8 +650,8 @@ export default function DashboardPage() {
         <GlassCard className="mb-4">
           <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div className="space-y-1">
-              <h3 className="panel-title">Kanal Karlilik Matrisi</h3>
-              <p className="text-xs font-medium text-muted/60">Urun bazinda platformlar arasi finansal performans farki.</p>
+              <h3 className="panel-title">Kanal Kârlılık Matrisi</h3>
+              <p className="text-xs font-medium text-soft">Ürün bazında platformlar arası finansal performans farkı.</p>
             </div>
             <WarningBadge>Sistem Tahmini</WarningBadge>
           </div>
@@ -726,8 +726,8 @@ export default function DashboardPage() {
               <Sparkles className="h-4 w-4 text-primary" />
               <h3 className="panel-title">Veri Kalitesi</h3>
             </div>
-            <p className="text-xs font-medium text-muted/60">
-              Juri icin veri modunu, guven skorunu ve kritik eksikleri tek yerde ozetler.
+            <p className="text-xs font-medium text-soft">
+              Veri modunu, güven skorunu ve kritik eksikleri tek yerde özetler.
             </p>
           </div>
           <EyebrowBadge className={cn("gap-1.5", dataQualityMeta.accentClassName)}>
@@ -782,7 +782,7 @@ export default function DashboardPage() {
               <dataModeMeta.icon className={cn("h-4 w-4", dataMode === "live" ? "text-success" : dataMode === "demo" ? "text-primary" : "text-warning")} />
               <p className="text-sm font-semibold text-foreground">{dataModeMeta.label}</p>
             </div>
-            <p className="mt-2 text-xs leading-6 text-muted/60">{dataModeMeta.description}</p>
+            <p className="mt-2 text-xs leading-6 text-soft">{dataModeMeta.description}</p>
 
             <div className="mt-4 border-t border-border/60 pt-4">
               <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">Son senkronizasyon</span>
@@ -793,7 +793,7 @@ export default function DashboardPage() {
 
         <div className="mt-4 rounded-lg border border-border/70 bg-surface-container p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">Uyarilar</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">Uyarılar</span>
             <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted/60">
               {dataQuality.warnings.length} kayit
             </span>
@@ -821,8 +821,8 @@ export default function DashboardPage() {
         <div className="rounded-md bg-primary/10 p-2 text-primary">
           <Info className="h-4 w-4" />
         </div>
-        <p className="text-xs leading-snug text-muted/60">
-          {methodology || "Analiz, gercek zamanli pazar verileri, komisyon oranlari ve lojistik maliyetleri kullanilarak yapilmistir. Tum veriler tahmini olup kesin finansal sonuc garanti etmez."}
+        <p className="text-xs leading-snug text-soft">
+          {methodology || "Analiz, güncel pazar verileri, komisyon oranları ve lojistik maliyetleri kullanılarak hazırlanır. Gösterilen değerler karar desteği içindir; kesin muhasebe sonucu yerine hızlı bir yönetim özeti sunar."}
         </p>
       </GlassCard>
     </div>
