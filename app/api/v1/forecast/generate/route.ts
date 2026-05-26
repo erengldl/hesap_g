@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildDemandForecastBootstrap, generateDemandForecast } from "@/lib/demand-forecast";
 import { getMarketplaces, getProducts } from "@/lib/database-readers";
-import type { ForecastHorizon } from "@/lib/demand-forecast-types";
+import type { DemandForecastRunResponse, ForecastHorizon } from "@/lib/demand-forecast-types";
 import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
@@ -189,7 +189,14 @@ export async function POST(request: Request) {
 
     const result = await generateDemandForecast(input);
 
-    return NextResponse.json(result);
+    const response: DemandForecastRunResponse = {
+      success: true,
+      result,
+      savedRows: input.persist === false ? 0 : result.tableRows.length,
+      warnings: result.warnings,
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Forecast generation error:", error);
     const bootstrap = await buildSafeBootstrap({ horizonDays: 14 });

@@ -35,6 +35,35 @@ type SeoPayload = {
   products: Array<{ id: number; name: string; sku: string }>;
 };
 
+type SeoApiResponse = {
+  success?: boolean;
+  data?: SeoPayload;
+  error?: string;
+} & Partial<SeoPayload>;
+
+function resolveSeoPayload(payload: SeoApiResponse | null): SeoPayload | null {
+  if (!payload?.success) {
+    return null;
+  }
+
+  const candidate = payload.data ?? payload;
+  if (
+    !Array.isArray(candidate.audits) ||
+    !candidate.keywordStats ||
+    !Array.isArray(candidate.recSummary) ||
+    !Array.isArray(candidate.products)
+  ) {
+    return null;
+  }
+
+  return {
+    audits: candidate.audits,
+    keywordStats: candidate.keywordStats,
+    recSummary: candidate.recSummary,
+    products: candidate.products,
+  };
+}
+
 export default function SeoPage() {
   const [loading, setLoading] = useState(true);
   const [payload, setPayload] = useState<SeoPayload | null>(null);
@@ -43,8 +72,9 @@ export default function SeoPage() {
     void (async () => {
       try {
         const res = await fetch("/api/seo", { cache: "no-store" });
-        const data = await res.json();
-        if (data?.success) setPayload(data);
+        const data = (await res.json().catch(() => null)) as SeoApiResponse | null;
+        const nextPayload = resolveSeoPayload(data);
+        if (nextPayload) setPayload(nextPayload);
       } catch (error) {
         console.error("SEO load error:", error);
       } finally {
