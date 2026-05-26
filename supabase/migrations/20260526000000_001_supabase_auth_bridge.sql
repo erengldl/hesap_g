@@ -1,3 +1,4 @@
+-- Canonical timestamped filename to satisfy Supabase hosted Branching.
 BEGIN;
 
 ALTER TABLE public.users

@@ -2,7 +2,7 @@
 
 Bu klasor SQLite verisini Supabase Postgres'e tasimak icin iki artifact tutar:
 
-- `migrations/20260525_001_initial_sqlite_migration.sql`
+- `migrations/20260525000000_001_initial_sqlite_migration.sql`
   Yerel SQLite semasinin Postgres karsiligi.
 - `seed/20260525_001_sqlite_data.sql`
   Yerel SQLite verisinin SQL dump'i.
