@@ -5,14 +5,14 @@ import { fileURLToPath } from "node:url";
 import postgres from "postgres";
 
 const DATABASE_URL_ENV_KEYS = [
-  "DATABASE_URL",
-  "DATABASE_URL_NON_POOLING",
-  "DATABASE_URL_UNPOOLED",
-  "POSTGRES_URL",
-  "POSTGRES_PRISMA_URL",
-  "POSTGRES_URL_NON_POOLING",
   "SUPABASE_DB_URL",
   "SUPABASE_POSTGRES_URL",
+  "DATABASE_URL_NON_POOLING",
+  "DATABASE_URL_UNPOOLED",
+  "POSTGRES_URL_NON_POOLING",
+  "DATABASE_URL",
+  "POSTGRES_PRISMA_URL",
+  "POSTGRES_URL",
 ];
 
 const __filename = fileURLToPath(import.meta.url);
