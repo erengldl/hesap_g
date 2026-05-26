@@ -58,8 +58,8 @@ export default function ForecastControlPanel({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/80">Kontrol</p>
-          <h2 className="mt-1 text-xl font-semibold text-foreground">Seçenekler</h2>
-          <p className="mt-1 text-sm leading-6 text-muted">Seçim yaptıkça sonuç yenilenir.</p>
+          <h2 className="mt-1 text-xl font-semibold text-foreground">Tahmin ayarları</h2>
+          <p className="mt-1 text-sm leading-6 text-soft">Seçimi değiştirdikçe sonuç yenilenir.</p>
         </div>
 
         <div className="flex shrink-0 flex-col items-end gap-2">
@@ -67,7 +67,7 @@ export default function ForecastControlPanel({
             {dataSourceLabel}
           </span>
           <span className="rounded-md border border-border bg-surface-container px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
-            Pazar {selectedMarketplaceId}
+            {selectedMarketplace?.name ?? `Pazar ${selectedMarketplaceId}`}
           </span>
         </div>
       </div>
@@ -143,7 +143,7 @@ export default function ForecastControlPanel({
             <h3 className="mt-1 truncate text-base font-semibold text-foreground">
               {selectedProduct?.name ?? "Ürün seçilmedi"}
             </h3>
-            <p className="mt-1 truncate text-xs text-muted">
+            <p className="mt-1 truncate text-xs text-soft">
               {selectedMarketplace?.name ?? "Kanal seçilmedi"} · Kod {selectedProduct?.sku ?? "Belirtilmedi"}
             </p>
           </div>
@@ -156,7 +156,7 @@ export default function ForecastControlPanel({
           <MetricTile label="Fiyat" value={formatCurrency(selectedMarketplace?.current_price ?? 0)} />
           <MetricTile label="Birim maliyet" value={formatCurrency(selectedMarketplace?.current_unit_cost ?? 0)} />
           <MetricTile label="Net kâr" value={formatCurrency(selectedMarketplace?.current_net_profit ?? 0)} />
-          <MetricTile label="Ürün stok" value={formatNumber(selectedProduct?.current_stock ?? 0)} />
+          <MetricTile label="Ürün stoku" value={formatNumber(selectedProduct?.current_stock ?? 0)} />
         </div>
       </div>
 
@@ -174,7 +174,7 @@ export default function ForecastControlPanel({
         ) : (
           <>
             <Zap className="h-4 w-4" />
-            Şimdi yenile
+            Tahmini Güncelle
           </>
         )}
       </button>

@@ -117,7 +117,7 @@ describe("OnboardingWizard", () => {
 
     await userEvent.click(await screen.findByText("Demo Verileri Yukle"));
     await userEvent.click(await screen.findByRole("button", { name: "Simdilik Atla" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Dashboard'a Git" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Özete Git" }));
 
     expect(window.localStorage.getItem("hg_onboarding_completed")).toBe("true");
     expect(pushMock).toHaveBeenCalledWith("/dashboard");

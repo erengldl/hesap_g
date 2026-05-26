@@ -91,7 +91,7 @@ export function KpiCard({
           <h3 className="font-heading mt-3 max-w-full truncate text-[1.65rem] font-semibold leading-none tracking-[-0.05em] text-foreground sm:text-[1.9rem]">
             {value}
           </h3>
-          {subValue && <p className="mt-2 text-[12px] leading-5 text-muted/60">{subValue}</p>}
+          {subValue && <p className="mt-2 text-[12px] leading-5 text-soft">{subValue}</p>}
           {trend && (
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <span
@@ -134,8 +134,8 @@ export function MetricBadge({
 
   return (
     <div className={cn("flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em]", colors[type])}>
-      <span className="opacity-60">{label}</span>
-      <span className="text-[8px] opacity-50">•</span>
+      <span className="opacity-80">{label}</span>
+      <span className="text-[8px] opacity-60">•</span>
       <span>{value}</span>
     </div>
   );
@@ -169,7 +169,7 @@ export function EyebrowBadge({
   className,
 }: EyebrowBadgeProps) {
   const variantStyles: Record<EyebrowBadgeVariant, string> = {
-    default: "border border-border/80 bg-surface-container/70 text-muted/60",
+    default: "border border-border/80 bg-surface-container/70 text-muted",
     primary: "border border-primary/20 bg-primary/10 text-primary",
   };
 
@@ -208,7 +208,7 @@ export function PageHeader({
             {title}
           </h1>
           {description && (
-            <p className="max-w-2xl text-sm leading-6 text-muted/60 sm:text-[15px]">
+            <p className="max-w-2xl text-sm leading-6 text-soft sm:text-[15px]">
               {description}
             </p>
           )}
@@ -332,7 +332,7 @@ export function EmptyState({
         {title}
       </h3>
       {description && (
-        <p className={cn("mx-auto mt-2 leading-6 text-muted/60", isInline ? "max-w-xs text-xs" : "max-w-sm text-sm")}>
+        <p className={cn("mx-auto mt-2 leading-6 text-soft", isInline ? "max-w-xs text-xs" : "max-w-sm text-sm")}>
           {description}
         </p>
       )}
@@ -364,7 +364,7 @@ export function ErrorStateCard({
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-semibold text-foreground">{title}</h3>
-          <p className="mt-1 text-sm leading-6 text-muted/60">{description}</p>
+          <p className="mt-1 text-sm leading-6 text-soft">{description}</p>
           {action ? <div className="mt-4 flex flex-wrap gap-2">{action}</div> : null}
         </div>
       </div>

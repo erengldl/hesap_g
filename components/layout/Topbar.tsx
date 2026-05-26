@@ -53,7 +53,7 @@ const routeMeta: Array<{ match: (pathname: string) => boolean; meta: TopbarMeta 
     match: (pathname) => pathname.startsWith("/forecast"),
     meta: {
       eyebrow: "Tahmin",
-      title: "Forecast",
+      title: "Talep Tahmini",
       description: "Satış öngörüleri, senaryolar ve trend kırılımları.",
     },
   },

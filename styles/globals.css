@@ -84,7 +84,7 @@
   --accent: #ff8e63;
   --accent-foreground: #251108;
   --muted: #171722;
-  --muted-foreground: #8d8c9d;
+  --muted-foreground: #9f9eb0;
   --border: var(--surface-strong);
   --input: #171722;
   --ring: #8578ff;
@@ -115,7 +115,7 @@
   --glow: rgba(109, 94, 252, 0.24);
   --text-main: var(--foreground);
   --text-muted: var(--muted-foreground);
-  --text-soft: #c3c2d2;
+  --text-soft: #d2d0e0;
   --border-soft: var(--border);
   --border-strong: rgba(255, 255, 255, 0.14);
   --border-green: var(--primary);
@@ -157,7 +157,7 @@ html.light {
   --accent: #f37d4f;
   --accent-foreground: #2d1408;
   --muted: #f2f2f7;
-  --muted-foreground: #6b6d7e;
+  --muted-foreground: #5d6070;
   --border: rgba(23, 23, 32, 0.08);
   --input: #f5f5fa;
   --ring: #6a59ff;
@@ -188,7 +188,7 @@ html.light {
   --glow: rgba(91, 73, 255, 0.14);
   --text-main: var(--foreground);
   --text-muted: var(--muted-foreground);
-  --text-soft: #4a4b5a;
+  --text-soft: #434552;
   --border-soft: var(--border);
   --border-strong: rgba(23, 23, 32, 0.13);
   --border-green: var(--primary);

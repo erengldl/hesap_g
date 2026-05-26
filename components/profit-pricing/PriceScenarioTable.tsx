@@ -28,7 +28,7 @@ export default function PriceScenarioTable(props: {
       <div className="border-b border-border/70 bg-gradient-to-r from-primary/8 via-transparent to-transparent px-4 py-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
               Senaryolar
             </p>
             <h3 className="mt-2 text-lg font-semibold text-foreground">Fiyat senaryoları</h3>
@@ -161,7 +161,7 @@ function HeaderBadge({
         accent ? "border-primary/20 bg-primary/10 text-primary" : "border-border/70 bg-panel/60 text-foreground"
       )}
     >
-      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-muted/60">{label}</p>
+      <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-muted">{label}</p>
       <p className="mt-1 text-sm font-semibold tracking-tight">{value}</p>
     </div>
   );

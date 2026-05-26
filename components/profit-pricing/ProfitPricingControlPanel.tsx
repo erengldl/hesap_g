@@ -89,7 +89,7 @@ function ChannelInput(props: {
 }) {
   return (
     <label className="space-y-1.5">
-      <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
+      <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
         {props.label}
       </span>
       <input
@@ -102,7 +102,7 @@ function ChannelInput(props: {
         }
         className="form-input"
       />
-      <span className="block text-[10px] leading-4 text-muted/600">{props.hint}</span>
+      <span className="block text-[10px] leading-4 text-soft">{props.hint}</span>
     </label>
   );
 }
@@ -135,7 +135,7 @@ function ChannelCard(props: {
           <p className="text-xs font-semibold text-foreground">
             {channelLabel(profile.channel)}
           </p>
-          <p className="mt-1 text-[10px] text-muted/600">
+          <p className="mt-1 text-[10px] text-soft">
             Grafikleri bu kartı seçerek değiştir.
           </p>
         </div>
@@ -144,7 +144,7 @@ function ChannelCard(props: {
             "rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em]",
             active
               ? "border-primary/25 bg-primary/10 text-primary"
-              : "border-border/70 bg-surface-container/70 text-muted/650"
+              : "border-border/70 bg-surface-container/70 text-muted"
           )}
         >
           {active ? "Seçili kanal" : "Kanal"}
@@ -175,7 +175,6 @@ function ChannelCard(props: {
           }
         />
       </div>
-
     </div>
   );
 }
@@ -204,7 +203,7 @@ export default function ProfitPricingControlPanel(props: {
       <div className="flex w-full flex-col gap-4">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/600">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
               Ürün seçimi
             </p>
             <h2 className="mt-2 text-xl font-semibold tracking-tight text-foreground">
@@ -220,7 +219,7 @@ export default function ProfitPricingControlPanel(props: {
 
         <div className="flex w-full flex-col gap-2">
           <label className="space-y-2">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
               Ürün seç
             </span>
             <select
