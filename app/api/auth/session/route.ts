@@ -7,6 +7,7 @@ import {
   getFirebaseSessionCookieOptions,
 } from "@/lib/firebase/session";
 import { upsertFirebaseUserFromClaims } from "@/lib/firebase/user-sync";
+import { classifyDatabaseError } from "@/lib/database-error";
 
 type SessionExchangeBody = {
   idToken?: string;
@@ -58,6 +59,14 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error) {
+    const dbError = classifyDatabaseError(error);
+    if (dbError.code !== "db_query_failed") {
+      return NextResponse.json(
+        { success: false, error: dbError.message, errorCode: dbError.code },
+        { status: 503 }
+      );
+    }
+
     console.error("Firebase session exchange error:", error);
     return NextResponse.json(
       { success: false, error: "Sunucu hatasi." },
