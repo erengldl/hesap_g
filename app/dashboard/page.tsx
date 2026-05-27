@@ -227,7 +227,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="page-shell">
-        <PageHeader eyebrow="Genel Bakış" title="Özet" description="Veriler hazırlanıyor..." />
+        <PageHeader eyebrow="Başlangıç" title="Kontrol Merkezi" description="Veriler hazırlanıyor..." />
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {[...Array(4)].map((_, i) => <SkeletonCard key={i} className="h-24" />)}
         </div>
@@ -242,7 +242,7 @@ export default function DashboardPage() {
   if (!agg) {
     return (
       <div className="page-shell">
-        <PageHeader eyebrow="Genel Bakış" title="Özet" description="Satış kanalları ve kârlılık kısa bakışta görünür." />
+        <PageHeader eyebrow="Başlangıç" title="Kontrol Merkezi" description="Satış kanalları ve kârlılık kısa bakışta görünür." />
         <EmptyState
           icon={BarChart3}
           title="Henüz özet oluşturulmadı"
@@ -274,7 +274,11 @@ export default function DashboardPage() {
 
   return (
     <div className="page-shell">
-      <PageHeader eyebrow="Genel Bakış" title="Özet" description="Tüm ürünler, kanallar ve siparişler üzerinden kısa finansal özet.">
+      <PageHeader
+        eyebrow="Başlangıç"
+        title="Kontrol Merkezi"
+        description="Önce veri kalitesini ve stok uyarılarını kontrol et, sonra kârlılık ve ürün optimizasyonuna geç."
+      >
         <EyebrowBadge className={cn("gap-1.5", dataModeMeta.className)}>
           <dataModeMeta.icon className="h-3.5 w-3.5" />
           {dataModeMeta.label}

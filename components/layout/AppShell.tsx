@@ -3,26 +3,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
-import Sidebar from "./Sidebar";
-import Topbar from "./Topbar";
-import { DashboardStatsProvider } from "./DashboardStatsProvider";
+
 import { AuthProvider } from "./AuthContext";
-import { ToastProvider } from "@/lib/toast";
 import { ErrorBoundary } from "./ErrorBoundary";
 
-const CommandPalette = dynamic(() => import("./CommandPalette"), {
+const ProtectedShell = dynamic(() => import("./ProtectedShell"), {
   loading: () => null,
-  ssr: false,
-});
-
-const MobileNavigation = dynamic(() => import("./MobileNavigation"), {
-  loading: () => null,
-  ssr: false,
-});
-
-const OnboardingWizard = dynamic(() => import("../onboarding/OnboardingWizard").then((module) => module.OnboardingWizard), {
-  loading: () => null,
-  ssr: false,
 });
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -32,9 +18,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const sidebarHydratedRef = useRef(false);
   const isAuthRoute = pathname === "/login" || pathname === "/register";
-  const sidebarStyle = {
-    "--sidebar-width": sidebarCollapsed ? "96px" : "304px",
-  } as React.CSSProperties & { "--sidebar-width": string };
 
   useEffect(() => {
     if (!sidebarHydratedRef.current) {
@@ -56,56 +39,38 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     setCommandPaletteOpen(false);
     setMobileNavigationOpen(true);
   }, []);
+
   const openCommandPalette = useCallback(() => {
     setMobileNavigationOpen(false);
     setCommandPaletteOpen(true);
   }, []);
+
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed((current) => !current);
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-background text-foreground" style={sidebarStyle}>
-      <ToastProvider>
-        <AuthProvider>
-          {isAuthRoute ? (
-            <main className="min-h-screen animate-[fadeInUp_0.4s_ease-out]">
-              <ErrorBoundary>
-                {children}
-              </ErrorBoundary>
-            </main>
-          ) : (
-            <DashboardStatsProvider>
-              <>
-                <Sidebar
-                  collapsed={sidebarCollapsed}
-                  onToggleCollapse={toggleSidebar}
-                />
-                <div className="relative pl-0 md:pl-[var(--sidebar-width)]">
-                  <Topbar
-                    onOpenMobileNavigation={openMobileNavigation}
-                    onOpenCommandPalette={openCommandPalette}
-                  />
-                  <main className="min-h-screen pt-[76px] animate-[fadeInUp_0.4s_ease-out]">
-                    <ErrorBoundary>
-                      {children}
-                    </ErrorBoundary>
-                  </main>
-                </div>
-                <MobileNavigation
-                  open={mobileNavigationOpen}
-                  onOpenChange={setMobileNavigationOpen}
-                />
-                <OnboardingWizard />
-                <CommandPalette
-                  open={commandPaletteOpen}
-                  onOpenChange={setCommandPaletteOpen}
-                />
-              </>
-            </DashboardStatsProvider>
-          )}
-        </AuthProvider>
-      </ToastProvider>
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
+      <AuthProvider>
+        {isAuthRoute ? (
+          <main className="min-h-screen animate-[fadeInUp_0.4s_ease-out]">
+            <ErrorBoundary>{children}</ErrorBoundary>
+          </main>
+        ) : (
+          <ProtectedShell
+            sidebarCollapsed={sidebarCollapsed}
+            commandPaletteOpen={commandPaletteOpen}
+            mobileNavigationOpen={mobileNavigationOpen}
+            onToggleSidebar={toggleSidebar}
+            onOpenMobileNavigation={openMobileNavigation}
+            onOpenCommandPalette={openCommandPalette}
+            onMobileNavigationOpenChange={setMobileNavigationOpen}
+            onCommandPaletteOpenChange={setCommandPaletteOpen}
+          >
+            {children}
+          </ProtectedShell>
+        )}
+      </AuthProvider>
     </div>
   );
 }

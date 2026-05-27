@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRight, LineChart, X } from "lucide-react";
+import { ChevronRight, LineChart, X, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBadge } from "@/components/ui-custom/GlassComponents";
 import { useDashboardStats } from "./DashboardStatsProvider";
@@ -125,6 +125,25 @@ export default function MobileNavigation({ open, onOpenChange }: MobileNavigatio
                     badge={item.href === "/veri-merkezi" ? alertCount : undefined}
                   />
                 ))}
+              </div>
+            </section>
+
+            <section>
+              <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/70">
+                  Hızlı başlangıç
+                </p>
+                <p className="mt-2 text-sm font-semibold tracking-[-0.03em] text-foreground">
+                  Ürün seç, maliyeti gör, kârlı kanalı uygulamaya al.
+                </p>
+                <Link
+                  href="/veri-merkezi"
+                  onClick={() => onOpenChange(false)}
+                  className="btn-primary mt-4 w-full justify-center"
+                >
+                  Veri Merkezi
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
             </section>
           </div>

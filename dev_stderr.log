@@ -1,0 +1,58 @@
+
+thread '<unnamed>' (58852) panicked at C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rayon-core-1.12.1\src\registry.rs:168:10:
+The global thread pool has not been initialized.: ThreadPoolBuildError { kind: IOError(Os { code: 1450, kind: Uncategorized, message: "İstenen hizmeti tamamlamak için yeterli sistem kaynağı yok." }) }
+
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+#
+# Fatal process out of memory: Re-embedded builtins: set permissions
+#
+----- Native stack trace -----
+
+ 1: 00007FF7A2A26F4D node::MultiIsolatePlatform::DisposeIsolate+5341
+ 2: 00007FF7A3E8DAC6 v8::base::FatalOOM+54
+ 3: 00007FF7A371FA86 v8::Function::NewInstance+390
+ 4: 00007FF7A3586DFE v8::CppHeap::CollectGarbageInYoungGenerationForTesting+111438
+ 5: 00007FF7A35BA3FF SSL_CTX_set_default_read_buffer_len+41247
+ 6: 00007FF7A35BAEB2 SSL_CTX_set_default_read_buffer_len+43986
+ 7: 00007FF7A35BB892 SSL_CTX_set_default_read_buffer_len+46514
+ 8: 00007FF7A30B7703 v8::internal::Version::GetSONAME+121171
+ 9: 00007FF7A374A946 v8::Isolate::Initialize+662
+10: 00007FF7A2BE3F3D node::SetIsolateUpForNode+749
+11: 00007FF7A2935243 RSA_meth_get_flags+223043
+12: 00007FF7A29345D9 RSA_meth_get_flags+219865
+13: 00007FF7A293DFC0 RSA_meth_get_flags+259264
+14: 00007FF7A3774A36 uv_thread_detach+150
+15: 00007FF7A49D5A73 v8::base::UnsignedDivisionByConstant<unsigned __int64>+2907235
+16: 00007FF9DE0FE957 BaseThreadInitThunk+23
+17: 00007FF9E016427C RtlUserThreadStart+44
+
+
+#
+# Fatal process out of memory: Re-embedded builtins: set permissions
+#
+----- Native stack trace -----
+
+
+<--- Last few GCs --->
+
+FATAL ERROR: Committing semi space failed. Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+ 1: 00007FF7A2A26F4D 
+ 2: 00007FF7A3E8DAC6 
+ 3: 00007FF7A371FA86 
+ 4: 00007FF7A3586DFE 
+ 5: 00007FF7A35BA3FF 
+ 6: 00007FF7A35BAEB2 
+ 7: 00007FF7A35BB892 
+ 8: 00007FF7A30B7703 
+ 9: 00007FF7A374A946 
+10: 00007FF7A2BE3F3D 
+11: 00007FF7A2935243 
+12: 00007FF7A29345D9 
+13: 00007FF7A293DFC0 
+14: 00007FF7A3774A36 
+15: 00007FF7A49D5A73 
+16: 00007FF9DE0FE957 BaseThreadInitThunk+23
+17: 00007FF9E016427C RtlUserThreadStart+44

@@ -42,7 +42,7 @@ export async function GET() {
       databaseMode: getDatabaseMode(),
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({
       success: false,
       status: "degraded",

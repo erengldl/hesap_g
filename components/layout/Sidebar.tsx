@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, LineChart } from "lucide-react";
+import { ChevronLeft, ChevronRight, LineChart, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBadge } from "@/components/ui-custom/GlassComponents";
 import { useDashboardStats } from "./DashboardStatsProvider";
@@ -143,6 +143,29 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
           </section>
         </div>
       </nav>
+
+      {!collapsed && (
+        <div className="border-t border-border/80 px-4 py-4">
+          <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/70">
+              Başlangıç akışı
+            </p>
+            <p className="mt-2 text-sm font-semibold tracking-[-0.03em] text-foreground">
+              1. Ürünü seç 2. Kârı gör 3. En uygun kanalı uygula
+            </p>
+            <p className="mt-2 text-xs leading-5 text-soft">
+              Karar almak için önce Veri Merkezi'nden başlaman en hızlı yol.
+            </p>
+            <Link
+              href="/veri-merkezi"
+              className="btn-primary mt-4 w-full justify-center"
+            >
+              Veri Merkezi
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

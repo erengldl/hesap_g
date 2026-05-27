@@ -23,7 +23,7 @@ export const primaryNavigationItems: NavigationItem[] = [
     name: "Kârlılık",
     href: "/profit-pricing",
     icon: ArrowRightLeft,
-    description: "Kârlılık, maliyet ve fiyat kararları",
+    description: "Fiyat optimizasyonu ve net maliyet",
   },
 ];
 

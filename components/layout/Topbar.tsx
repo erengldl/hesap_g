@@ -36,9 +36,9 @@ const routeMeta: Array<{ match: (pathname: string) => boolean; meta: TopbarMeta 
   {
     match: (pathname) => pathname === "/dashboard",
     meta: {
-      eyebrow: "Kontrol Merkezi",
-      title: "Anasayfa",
-      description: "Finansal özet, sipariş akışı ve marj görünümü.",
+      eyebrow: "Başlangıç",
+      title: "Kontrol Merkezi",
+      description: "Önce veri kalitesi, sonra kârlılık ve stok uyarıları.",
     },
   },
   {
@@ -61,8 +61,8 @@ const routeMeta: Array<{ match: (pathname: string) => boolean; meta: TopbarMeta 
     match: (pathname) => pathname.startsWith("/profit-pricing"),
     meta: {
       eyebrow: "Kârlılık",
-      title: "Kârlılık ve Fiyat Optimizasyonu",
-      description: "Net maliyet, başabaş, senaryolar ve kanal kararı tek ekranda.",
+      title: "Kârlılık",
+      description: "Fiyat Optimizasyonu ve Net Maliyet, aynı karar alanında.",
     },
   },
   {

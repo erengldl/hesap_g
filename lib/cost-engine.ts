@@ -14,6 +14,7 @@ import {
 import { resolveProductMarketplaceDefaults } from "./net-cost-defaults";
 import { clearNetCostMlSignalCache, predictNetCostSignals } from "./net-cost-ml";
 import { getProductSalesVelocity } from "./product-history";
+import type { ProductMarketplaceSettingSummary } from "./profit-pricing/workspace-types";
 import { requireCurrentAuthUserId } from "./tenant";
 import type { ChannelCostResult, Marketplace, Product } from "./types";
 
@@ -583,6 +584,25 @@ function buildWarningList(...warnings: Array<string | null | undefined>) {
   return warnings.filter((warning): warning is string => Boolean(warning && warning.trim().length > 0));
 }
 
+function toProductMarketplaceSettingSummary(
+  setting: Awaited<ReturnType<typeof resolveProductMarketplaceDefaults>>
+): ProductMarketplaceSettingSummary | null {
+  if (!setting) {
+    return null;
+  }
+
+  return {
+    sale_price: Number(setting.sale_price ?? 0),
+    shipping_company_id: setting.shipping_company_id ?? null,
+    manual_shipping_cost: setting.manual_shipping_cost ?? null,
+    payment_gateway_rule_id: setting.payment_gateway_rule_id ?? null,
+    shipping_mode: setting.shipping_mode ?? null,
+    traffic_cpa: setting.traffic_cpa ?? null,
+    marketplace_name: setting.marketplace_name ?? null,
+    marketplace_slug: setting.marketplace_slug ?? null,
+  };
+}
+
 export function calculateTrafficCost(settings?: WebsiteTrafficSettings): number {
   return getTrafficCostFromSettings(settings);
 }
@@ -1053,9 +1073,9 @@ export async function buildCostBootstrap(productId?: number) {
 
   const defaultProductSettings = selectedProduct
     ? {
-        trendyol: await resolveProductMarketplaceDefaults(selectedProduct.id, 1),
-        hepsiburada: await resolveProductMarketplaceDefaults(selectedProduct.id, 2),
-        my_website: await resolveProductMarketplaceDefaults(selectedProduct.id, 3),
+        trendyol: toProductMarketplaceSettingSummary(await resolveProductMarketplaceDefaults(selectedProduct.id, 1)),
+        hepsiburada: toProductMarketplaceSettingSummary(await resolveProductMarketplaceDefaults(selectedProduct.id, 2)),
+        my_website: toProductMarketplaceSettingSummary(await resolveProductMarketplaceDefaults(selectedProduct.id, 3)),
       }
     : null;
 

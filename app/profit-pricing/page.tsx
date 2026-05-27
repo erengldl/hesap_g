@@ -1,9 +1,8 @@
 import type { SalesChannel } from "@/lib/profit-pricing/types";
 import { buildProfitPricingBootstrap } from "@/lib/profit-pricing/server";
+import { buildCostBootstrap, recalculateCostResultsForProductFromDatabase } from "@/lib/cost-engine";
 
-import ProfitPricingPage from "@/components/profit-pricing/ProfitPricingPage";
-import ProfitPricingErrorState from "@/components/profit-pricing/ProfitPricingErrorState";
-import { PageHeader } from "@/components/ui-custom/GlassComponents";
+import ProfitPricingWorkspace from "@/components/profit-pricing/ProfitPricingWorkspace";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +15,10 @@ function readFirstValue(value: string | string[] | undefined) {
 function parseProductId(value: string | undefined) {
   const numericValue = Number(value);
   return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : undefined;
+}
+
+function parseTab(value: string | undefined) {
+  return value === "net-cost" ? "net-cost" : "pricing";
 }
 
 function resolveChannel(params: SearchParams): SalesChannel | undefined {
@@ -32,20 +35,46 @@ function resolveChannel(params: SearchParams): SalesChannel | undefined {
   return undefined;
 }
 
-async function resolveBootstrap(searchParams: SearchParams) {
+async function resolvePricingBootstrap(searchParams: SearchParams) {
   try {
     return {
       bootstrap: await buildProfitPricingBootstrap({
         productId: parseProductId(readFirstValue(searchParams.productId)),
         channel: resolveChannel(searchParams),
       }),
-      error: null,
+      error: null as string | null,
     };
   } catch (error) {
     console.error("Profit pricing page bootstrap error:", error);
     return {
       bootstrap: null,
-      error: "Kârlılık ekranı hazırlanamadı. Veri kaynağına erişim tekrar denenmeli.",
+      error: "Fiyat optimizasyonu için gerekli veri hazırlanamadı. Veri kaynağına erişim tekrar denenmeli.",
+    };
+  }
+}
+
+async function resolveNetCostBootstrap(searchParams: SearchParams) {
+  const productId = parseProductId(readFirstValue(searchParams.productId));
+
+  try {
+    const [bootstrap, results] = await Promise.all([
+      buildCostBootstrap(productId),
+      recalculateCostResultsForProductFromDatabase(productId),
+    ]);
+
+    return {
+      bootstrap,
+      results,
+      error: null as string | null,
+      selectedProductId: productId ?? bootstrap.selectedProduct?.id,
+    };
+  } catch (error) {
+    console.error("Net cost page bootstrap error:", error);
+    return {
+      bootstrap: null,
+      results: null,
+      error: "Net maliyet ekranı hazırlanamadı. Veri kaynağına erişim tekrar denenmeli.",
+      selectedProductId: productId,
     };
   }
 }
@@ -54,22 +83,41 @@ export default async function ProfitPricingRoute(props: {
   searchParams?: Promise<SearchParams>;
 }) {
   const searchParams = props.searchParams ? await props.searchParams : {};
-  const { bootstrap, error } = await resolveBootstrap(searchParams);
+  const activeTab = parseTab(readFirstValue(searchParams.tab));
+  const selectedProductId = parseProductId(readFirstValue(searchParams.productId));
+  const channel = resolveChannel(searchParams);
+  const marketplaceIdValue = Number(readFirstValue(searchParams.marketplaceId));
+  const marketplaceId = Number.isFinite(marketplaceIdValue) && marketplaceIdValue > 0 ? marketplaceIdValue : undefined;
 
-  if (bootstrap) {
-    return <ProfitPricingPage bootstrap={bootstrap} />;
+  if (activeTab === "net-cost") {
+    const { bootstrap, results, error, selectedProductId: resolvedProductId } = await resolveNetCostBootstrap(searchParams);
+
+    return (
+      <ProfitPricingWorkspace
+        activeTab="net-cost"
+        bootstrap={null}
+        costBootstrap={bootstrap}
+        costResults={results}
+        selectedProductId={resolvedProductId}
+        channel={channel}
+        marketplaceId={marketplaceId}
+        error={error}
+      />
+    );
   }
 
+  const { bootstrap, error } = await resolvePricingBootstrap(searchParams);
+
   return (
-    <div className="page-shell">
-      <PageHeader
-        eyebrow="Karar ekranı"
-        title="Kârlılık ve Fiyat Optimizasyonu"
-        description="Ürünün gerçek maliyetini hesapla, kârlı fiyat aralığını aynı ekranda gör."
-      />
-      <ProfitPricingErrorState
-        message={error ?? "Kârlılık ekranı hazırlanamadı. Veri kaynağına erişim tekrar denenmeli."}
-      />
-    </div>
+    <ProfitPricingWorkspace
+      activeTab="pricing"
+      bootstrap={bootstrap}
+      costBootstrap={null}
+      costResults={null}
+      selectedProductId={selectedProductId}
+      channel={channel}
+      marketplaceId={marketplaceId}
+      error={error}
+    />
   );
 }
