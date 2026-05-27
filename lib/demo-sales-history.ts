@@ -1,4 +1,4 @@
-import { getDb } from "./db";
+import { getDb, isTransactionActive } from "./db";
 import { getCampaignPlatformConfig, resolveCampaignPlatformFromProduct } from "./ad-analysis";
 import { requireCurrentAuthUserId } from "./tenant";
 
@@ -257,7 +257,7 @@ export async function generateDemoSalesHistory(db: Database, options: DemoSalesG
     rowsByProduct.set(row.product_id, list);
   }
 
-  const counts = await db.transaction(async () => {
+  const runGeneration = async () => {
     const orderInsert = db.prepare(
       `
         INSERT INTO orders (
@@ -525,12 +525,14 @@ export async function generateDemoSalesHistory(db: Database, options: DemoSalesG
       }
     }
 
-    return {
-      ordersInserted,
-      orderItemsInserted,
-      inventoryRowsInserted,
-    };
-  });
+      return {
+        ordersInserted,
+        orderItemsInserted,
+        inventoryRowsInserted,
+      };
+  };
+
+  const counts = isTransactionActive() ? await runGeneration() : await db.transaction(runGeneration);
 
   return {
     days,

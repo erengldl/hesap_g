@@ -1,4 +1,4 @@
-import { getDb, getOne } from "@/lib/db";
+import { getDb, getOne, isTransactionActive } from "@/lib/db";
 import { getMarketplaceBySlug, getOwnWebsiteGatewayRule } from "@/lib/database-readers";
 import { requireCurrentAuthUserId } from "@/lib/tenant";
 import type { ProductUpsertInput } from "@/lib/types";
@@ -174,8 +174,8 @@ export async function saveProductRecord(payload: ProductUpsertInput, productId?:
     WHERE product_id = ? AND user_id = ?
   `);
 
-  let nextProductId = resolvedProductId;
-  await db.transaction(async () => {
+  const runSave = async () => {
+    let nextProductId = resolvedProductId;
     if (resolvedProductId) {
       await updateProduct.run(
         payload.name,
@@ -217,9 +217,11 @@ export async function saveProductRecord(payload: ProductUpsertInput, productId?:
     }
 
     await persistProductSettings(db, nextProductId, payload);
-  });
+    return nextProductId;
+  };
 
-  return nextProductId as number;
+  return isTransactionActive() ? await runSave() : await db.transaction(runSave);
+
 }
 
 export async function deleteProductRecord(productId: number) {

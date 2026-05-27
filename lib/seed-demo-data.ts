@@ -149,12 +149,12 @@ export async function ensureDemoData(explicitAuthUserId?: string): Promise<SeedD
     }
 
     const salesSummary = await generateDemoSalesHistory(db, {
-      months: 3,
+      days: 90,
       resetSalesTables: false,
       authUserId,
     });
     const successSummary =
-      `${productsInserted} demo ürün ve son 3 tamamlanmış aya ait ` +
+      `${productsInserted} demo ürün ve son 90 güne ait ` +
       `${salesSummary.ordersInserted} demo sipariş çalışma alanınıza yüklendi.`;
 
     return {

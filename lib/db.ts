@@ -26,6 +26,10 @@ function getSql(): postgres.Sql {
   return (txStore.getStore() as postgres.Sql | undefined) ?? getOrCreateClient();
 }
 
+export function isTransactionActive() {
+  return Boolean(txStore.getStore());
+}
+
 async function applySessionConfig(client: postgres.Sql | postgres.TransactionSql) {
   const context = getRequestContext();
   if (!context) {

@@ -18,10 +18,23 @@ export async function POST(request: Request) {
 
   try {
     const result = await ensureDemoData(authUserId);
-    await Promise.all([
+    if (!result.success) {
+      return NextResponse.json(result, { status: 500 });
+    }
+
+    const recalculationResults = await Promise.allSettled([
       recalculateAllCostResults(),
       refreshCampaignProfitMetrics(),
     ]);
+
+    const recalculationFailures = recalculationResults.filter((entry) => entry.status === "rejected");
+    if (recalculationFailures.length > 0) {
+      console.warn("Seed demo recalculation completed with warnings:", recalculationFailures.map((entry) => entry.status === "rejected" ? entry.reason : null));
+      return NextResponse.json({
+        ...result,
+        warning: `${result.warning} Demo verisi yüklendi ancak bazı özet hesaplar tamamlanamadı.`,
+      });
+    }
 
     return NextResponse.json(result);
   } catch (error) {
