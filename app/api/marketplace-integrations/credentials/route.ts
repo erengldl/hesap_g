@@ -7,10 +7,14 @@ export const dynamic = "force-dynamic";
 export async function PUT(request: Request) {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  const authUserId = session.authUserId?.trim() || "";
+  if (!authUserId) {
+    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
 
   const body = await request.text();
   return proxyMarketplaceIntegrationRequest("/api/v1/integrations/credentials", {
     method: "PUT",
     body,
-  });
+  }, undefined, authUserId);
 }

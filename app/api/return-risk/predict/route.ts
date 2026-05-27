@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
+import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 
 import { predictReturnRiskFromDataCenter } from "@/lib/return-risk/server";
 import { validateReturnRiskPredictionInput } from "@/lib/return-risk/validation";
@@ -11,6 +11,11 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const session = await requireAuth(request);
   if (session instanceof NextResponse) return session;
+  const authUserId = session.authUserId?.trim() || "";
+  if (!authUserId) {
+    return NextResponse.json({ ok: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
+  primeRequestContextFromApiContext(session);
   try {
     const body = (await request.json().catch(() => ({}))) as Partial<ReturnRiskPredictionInput>;
     const validation = validateReturnRiskPredictionInput(body);

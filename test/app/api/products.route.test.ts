@@ -12,6 +12,7 @@ vi.mock("@/lib/database-readers", () => ({
 
 vi.mock("@/lib/api-auth", () => ({
   requireAuth: requireAuthMock,
+  primeRequestContextFromApiContext: vi.fn(),
 }));
 
 import { GET } from "@/app/api/products/route";
@@ -26,6 +27,7 @@ describe("products route", () => {
     requireAuthMock.mockReset();
     requireAuthMock.mockResolvedValue({
       userId: 1,
+      authUserId: "test-auth-user",
       email: "demo@example.com",
       name: "Demo User",
       plan: "Premium Plan",

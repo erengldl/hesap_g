@@ -25,7 +25,25 @@ function resolveExtension(file: File) {
   return null;
 }
 
-export async function saveProductImageUpload(file: File) {
+function resolveBlobPath(imageUrl: string) {
+  const trimmed = imageUrl.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    return new URL(trimmed).pathname.replace(/^\/+/, "");
+  } catch {
+    return trimmed.replace(/^\/+/, "");
+  }
+}
+
+export async function saveProductImageUpload(file: File, authUserId: string) {
+  const normalizedAuthUserId = authUserId.trim();
+  if (!normalizedAuthUserId) {
+    throw new Error("Authenticated user id is required.");
+  }
+
   if (file.size <= 0) {
     throw new Error("Boş dosya yüklenemez.");
   }
@@ -39,7 +57,7 @@ export async function saveProductImageUpload(file: File) {
     throw new Error("Sadece JPG, PNG, WebP veya GIF yüklenebilir.");
   }
 
-  const fileName = `products/${Date.now()}-${randomUUID()}${extension}`;
+  const fileName = `products/${normalizedAuthUserId}/${Date.now()}-${randomUUID()}${extension}`;
   const blob = await put(fileName, file, { access: "public" });
 
   return {
@@ -48,10 +66,31 @@ export async function saveProductImageUpload(file: File) {
   };
 }
 
-export async function deleteProductImageUpload(imageUrl: string) {
+export async function deleteProductImageUpload(
+  imageUrl: string,
+  options: {
+    authUserId?: string | null;
+    allowLegacyDeletion?: boolean;
+  } = {}
+) {
   const trimmedUrl = imageUrl.trim();
   if (!trimmedUrl) {
     return false;
+  }
+
+  const blobPath = resolveBlobPath(trimmedUrl);
+  if (!blobPath) {
+    return false;
+  }
+
+  const normalizedAuthUserId = options.authUserId?.trim() || "";
+  const ownedPrefix = normalizedAuthUserId ? `products/${normalizedAuthUserId}/` : null;
+  const legacyPrefix = "products/";
+
+  if (!ownedPrefix || !blobPath.startsWith(ownedPrefix)) {
+    if (!options.allowLegacyDeletion || !blobPath.startsWith(legacyPrefix)) {
+      throw new Error("Görsel sahipliği doğrulanamadı.");
+    }
   }
 
   try {

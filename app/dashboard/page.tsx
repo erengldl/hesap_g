@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import type { CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader, KpiCard, GlassCard, MobileCardList, WarningBadge, SkeletonCard, EmptyState, EyebrowBadge } from "@/components/ui-custom/GlassComponents";
 import { SeedDemoButton } from "@/components/demo/SeedDemoButton";
 import {
@@ -58,6 +60,20 @@ type DashboardPayload = {
   costBreakdown?: { label: string; value: number }[];
   methodology?: string;
 };
+
+const ProductComparisonSection = dynamic(
+  () => import("@/components/dashboard/ProductComparison"),
+  {
+    loading: () => (
+      <GlassCard className="p-5">
+        <div className="space-y-2">
+          <h3 className="font-heading text-base font-bold text-foreground">Benchmark Analizi</h3>
+          <p className="text-sm text-muted/70">Ürün karşılaştırma paneli hazırlanıyor...</p>
+        </div>
+      </GlassCard>
+    ),
+  }
+);
 
 function getDataModeMeta(mode: DashboardDataMode) {
   if (mode === "demo") {
@@ -201,7 +217,7 @@ export default function DashboardPage() {
     "var(--warning)",
     "var(--info)",
   ];
-  const chartTooltipStyle: React.CSSProperties = {
+  const chartTooltipStyle: CSSProperties = {
     backgroundColor: "var(--bg-elevated)",
     border: "1px solid var(--border-soft)",
     borderRadius: "var(--radius)",
@@ -359,7 +375,7 @@ export default function DashboardPage() {
             <h3 className="panel-title">Performans Trendi</h3>
             <div className="flex items-center gap-2">
               <WarningBadge>30 günlük veri</WarningBadge>
-              <span className="text-[10px] font-medium text-muted">Zirve: {formatCurrency(trendMax)}</span>
+              <span className="text-xs font-medium text-muted">Zirve: {formatCurrency(trendMax)}</span>
             </div>
           </div>
           <div className="h-[260px] min-w-0 w-full">
@@ -418,7 +434,7 @@ export default function DashboardPage() {
           </div>
           <div className="mt-3 space-y-1.5">
             {agg.channelBreakdown.map((ch, i) => (
-              <div key={ch.slug} className="flex items-center justify-between text-[11px]">
+              <div key={ch.slug} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full" style={{ backgroundColor: chartPalette[i % chartPalette.length] }} />
                   <span className="text-muted">{ch.name}</span>
@@ -435,15 +451,15 @@ export default function DashboardPage() {
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <GlassCard>
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 className="panel-title">Lider Urunler</h3>
-            <span className="rounded-md border border-border bg-surface-container px-2 py-0.5 text-[10px] font-medium text-muted">Brut Ciro</span>
+            <h3 className="panel-title">Lider Ürünler</h3>
+            <span className="rounded-md border border-border bg-surface-container px-2 py-0.5 text-xs font-medium text-muted">Brüt Ciro</span>
           </div>
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-border/50 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted/60">
-                  <th className="pb-2">Urun Detayi</th>
-                  <th className="pb-2 text-right">Siparis</th>
+                <tr className="border-b border-border/50 text-xs font-semibold uppercase tracking-[0.1em] text-muted/60">
+                  <th className="pb-2">Ürün Detayı</th>
+                  <th className="pb-2 text-right">Sipariş</th>
                   <th className="pb-2 text-right">Ciro</th>
                   <th className="pb-2 text-right">Marj</th>
                 </tr>
@@ -453,14 +469,14 @@ export default function DashboardPage() {
                   <tr key={p.id} className="group transition-colors duration-200 hover:bg-surface-subtle">
                     <td className="py-2.5">
                       <p className="max-w-[220px] truncate text-sm font-medium text-foreground">{p.name}</p>
-                      <p className="mt-0.5 text-[10px] text-muted/60">{p.sku}</p>
+                      <p className="mt-0.5 text-xs text-muted/60">{p.sku}</p>
                     </td>
                     <td className="py-2.5 text-right text-sm font-medium text-foreground">{formatNumber(p.orders)}</td>
                     <td className="py-2.5 text-right text-sm font-bold text-primary">{formatCurrency(p.revenue)}</td>
                     <td className="py-2.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <span className={cn(
-                          "inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold",
+                          "inline-flex rounded-md border px-2 py-0.5 text-xs font-semibold",
                           p.marginConfidence === "exact"
                             ? "border-border bg-primary-soft text-primary"
                             : "border-warning/20 bg-warning/10 text-warning"
@@ -468,7 +484,7 @@ export default function DashboardPage() {
                           %{p.margin}
                         </span>
                         <span className={cn(
-                          "inline-flex rounded-md border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
+                          "inline-flex rounded-md border px-1.5 py-0.5 text-xs font-semibold uppercase tracking-[0.08em]",
                           getMarginConfidenceMeta(p.marginConfidence).className
                         )}>
                           {getMarginConfidenceMeta(p.marginConfidence).label}
@@ -489,24 +505,24 @@ export default function DashboardPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{p.name}</p>
-                    <p className="mt-0.5 text-[10px] text-muted/60">{p.sku}</p>
+                    <p className="mt-0.5 text-xs text-muted/60">{p.sku}</p>
                   </div>
-                  <span className="inline-flex shrink-0 rounded-md border border-border bg-surface-soft px-2 py-0.5 text-[10px] font-semibold text-muted">
+                  <span className="inline-flex shrink-0 rounded-md border border-border bg-surface-soft px-2 py-0.5 text-xs font-semibold text-muted">
                     #{index + 1}
                   </span>
                 </div>
 
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   <div className="rounded-md border border-border bg-surface-soft p-2">
-                    <p className="mb-1 text-[9px] uppercase tracking-wide text-muted/60">Siparis</p>
+                    <p className="mb-1 text-xs uppercase tracking-wide text-muted/60">Sipariş</p>
                     <p className="text-sm font-bold text-foreground">{formatNumber(p.orders)}</p>
                   </div>
                   <div className="rounded-md border border-border bg-surface-soft p-2">
-                    <p className="mb-1 text-[9px] uppercase tracking-wide text-muted/60">Ciro</p>
+                    <p className="mb-1 text-xs uppercase tracking-wide text-muted/60">Ciro</p>
                     <p className="text-sm font-bold text-primary">{formatCurrency(p.revenue)}</p>
                   </div>
                   <div className="rounded-md border border-border bg-surface-soft p-2 text-right">
-                    <p className="mb-1 text-[9px] uppercase tracking-wide text-muted/60">Marj</p>
+                    <p className="mb-1 text-xs uppercase tracking-wide text-muted/60">Marj</p>
                     <div className="flex items-center justify-end gap-1.5">
                       <p className={cn(
                         "text-sm font-bold",
@@ -515,7 +531,7 @@ export default function DashboardPage() {
                         %{p.margin}
                       </p>
                       <span className={cn(
-                        "inline-flex rounded-md border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em]",
+                        "inline-flex rounded-md border px-1.5 py-0.5 text-xs font-semibold uppercase tracking-[0.08em]",
                         getMarginConfidenceMeta(p.marginConfidence).className
                       )}>
                         {getMarginConfidenceMeta(p.marginConfidence).label}
@@ -546,7 +562,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-foreground">{alert.name}</p>
-                      <p className="mt-0.5 text-[10px] text-muted/60">{alert.channel}</p>
+                      <p className="mt-0.5 text-xs text-muted/60">{alert.channel}</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -554,7 +570,7 @@ export default function DashboardPage() {
                       alert.stock < 5 ? "text-danger" : "text-warning")}>
                       {alert.stock} ADET
                     </span>
-                    <span className="text-[9px] font-medium uppercase tracking-wide text-muted/60">Kritik Seviye</span>
+                    <span className="text-xs font-medium uppercase tracking-wide text-muted/60">Kritik Seviye</span>
                   </div>
                 </GlassCard>
               ))}
@@ -575,7 +591,7 @@ export default function DashboardPage() {
                 <Activity className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-primary/80">En iyi kanal</p>
+                <p className="text-xs font-medium uppercase tracking-[0.08em] text-primary/80">En iyi kanal</p>
                 <p className="mt-0.5 text-sm font-semibold text-foreground">
                   {bestChannelName} üzerinden <span className="text-primary">{formatCurrency(bestChannel.net_profit)}</span> net kâr elde ediliyor.
                 </p>
@@ -614,11 +630,11 @@ export default function DashboardPage() {
             <div className="space-y-4">
               <div className="flex items-end justify-between">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted/60">Birim Maliyet</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted/60">Birim Maliyet</p>
                   <p className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{formatCurrency(bestChannel.total_unit_cost)}</p>
                 </div>
                 <div className="space-y-1 text-right">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted/60">Önerilen satış</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted/60">Önerilen satış</p>
                   <p className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">{formatCurrency(bestChannel.sale_price)}</p>
                 </div>
               </div>
@@ -630,21 +646,21 @@ export default function DashboardPage() {
                   <div className="h-full bg-primary transition-[width] duration-300 ease-out"
                     style={{ width: `${Math.max(0, 100 - (bestChannel.total_unit_cost / Math.max(1, bestChannel.sale_price)) * 100)}%` }} />
                 </div>
-                <div className="mt-2 flex justify-between text-[10px] font-medium uppercase tracking-wide">
+                <div className="mt-2 flex justify-between text-xs font-medium uppercase tracking-wide">
                   <span className="text-muted">Maliyet %{Math.round((bestChannel.total_unit_cost / Math.max(1, bestChannel.sale_price)) * 100)}</span>
-                  <span className="text-primary">Net kar %{Math.round(bestChannel.profit_margin_percent)}</span>
+                  <span className="text-primary">Net kâr %{Math.round(bestChannel.profit_margin_percent)}</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <GlassCard className="p-3 sm:p-3">
-                  <p className="mb-1 text-[9px] font-medium uppercase tracking-wide text-muted/60">ROI</p>
+                  <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted/60">ROI</p>
                   <p className="text-xl font-bold tracking-tight text-foreground">
                     {formatPercent((bestChannel.net_profit / Math.max(1, bestChannel.total_unit_cost)) * 100)}
                   </p>
                 </GlassCard>
                 <GlassCard className="border-primary/20 bg-primary-soft p-3 sm:p-3">
-                  <p className="mb-1 text-[9px] font-medium uppercase tracking-wide text-primary/60">Net Marj</p>
+                  <p className="mb-1 text-xs font-medium uppercase tracking-wide text-primary/60">Net Marj</p>
                   <p className="text-xl font-bold tracking-tight text-primary">
                     {formatPercent(bestChannel.profit_margin_percent)}
                   </p>
@@ -681,13 +697,13 @@ export default function DashboardPage() {
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium text-foreground">{result.channel_name}</p>
-                      <p className="mt-0.5 text-[10px] font-medium text-muted/60">
+                      <p className="mt-0.5 text-xs font-medium text-muted/60">
                         {formatCurrency(result.sale_price)} <span className="opacity-40">/</span> {formatCurrency(result.total_unit_cost)}
                       </p>
                     </div>
                     <span
                       className={cn(
-                        "rounded-md border px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em]",
+                        "rounded-md border px-2 py-0.5 text-xs font-medium uppercase tracking-[0.08em]",
                         isBest ? "bg-primary-soft text-primary border-border" : "bg-surface-soft text-muted border-border"
                       )}
                     >
@@ -697,11 +713,11 @@ export default function DashboardPage() {
 
                   <div className="mb-4 flex items-end justify-between">
                     <div className="space-y-1">
-                      <p className="text-[9px] font-medium uppercase tracking-wide text-muted/60">Net Kar</p>
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted/60">Net Kâr</p>
                       <p className="text-2xl font-bold tracking-tight text-foreground">{formatCurrency(result.net_profit)}</p>
                     </div>
                     <div className="space-y-1 text-right">
-                      <p className="text-[9px] font-medium uppercase tracking-wide text-muted/60">Marj</p>
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted/60">Marj</p>
                       <p className={cn("text-lg font-semibold tracking-tight", isBest ? "text-primary" : "text-foreground/80")}>
                         {formatPercent(result.profit_margin_percent)}
                       </p>
@@ -715,7 +731,7 @@ export default function DashboardPage() {
                     />
                   </div>
 
-                  <div className="flex justify-between text-[9px] font-medium uppercase tracking-wide text-muted/60">
+                  <div className="flex justify-between text-xs font-medium uppercase tracking-wide text-muted/60">
                     <span>Vergi & Kargo Dahil</span>
                     <span>%{Math.round(result.profit_margin_percent)} Verim</span>
                   </div>
@@ -726,7 +742,7 @@ export default function DashboardPage() {
         </GlassCard>
       )}
 
-      <ProductComparison />
+      <ProductComparisonSection />
 
       <GlassCard className="mt-4">
         <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -748,7 +764,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.35fr_0.65fr]">
           <div className="rounded-lg border border-border/70 bg-surface-container p-4">
             <div className="mb-2 flex items-center justify-between gap-3">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">Veri kalitesi</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted/60">Veri kalitesi</span>
               <span className="text-sm font-semibold text-foreground">{dataQualityLabel}</span>
             </div>
             <div className="h-16">
@@ -778,7 +794,7 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-            <div className="mt-2 flex justify-between text-[10px] font-medium uppercase tracking-wide text-muted/60">
+            <div className="mt-2 flex justify-between text-xs font-medium uppercase tracking-wide text-muted/60">
               <span>0</span>
               <span>50</span>
               <span>100</span>
@@ -786,7 +802,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="rounded-lg border border-border/70 bg-surface-container p-4">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">Veri modu</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted/60">Veri modu</span>
             <div className="mt-2 flex items-center gap-2">
               <dataModeMeta.icon className={cn("h-4 w-4", dataMode === "live" ? "text-success" : dataMode === "demo" ? "text-primary" : "text-warning")} />
               <p className="text-sm font-semibold text-foreground">{dataModeMeta.label}</p>
@@ -794,7 +810,7 @@ export default function DashboardPage() {
             <p className="mt-2 text-xs leading-6 text-soft">{dataModeMeta.description}</p>
 
             <div className="mt-4 border-t border-border/60 pt-4">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">Son senkronizasyon</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted/60">Son senkronizasyon</span>
               <p className="mt-2 text-sm font-semibold text-foreground">{formatSyncLabel(dataQuality.lastSyncAt)}</p>
             </div>
           </div>
@@ -802,8 +818,8 @@ export default function DashboardPage() {
 
         <div className="mt-4 rounded-lg border border-border/70 bg-surface-container p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">Uyarılar</span>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted/60">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted/60">Uyarılar</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted/60">
               {dataQuality.warnings.length} kayıt
             </span>
           </div>
@@ -835,276 +851,5 @@ export default function DashboardPage() {
         </p>
       </GlassCard>
     </div>
-  );
-}
-
-type CompareProduct = {
-  id: number;
-  name: string;
-  sku: string;
-  imageUrl: string;
-  cost: number;
-  packagingCost: number;
-  channels: Array<{ channelName: string; salePrice: number; totalCost: number; netProfit: number; margin: number }>;
-};
-
-function ProductComparison() {
-  const [products, setProducts] = useState<Array<{ id: number; name: string }>>([]);
-  const [productsLoading, setProductsLoading] = useState(false);
-  const [productsLoaded, setProductsLoaded] = useState(false);
-  const [productsError, setProductsError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<number[]>([]);
-  const [comparing, setComparing] = useState(false);
-  const [compareError, setCompareError] = useState<string | null>(null);
-  const [results, setResults] = useState<CompareProduct[] | null>(null);
-
-  const loadProducts = useCallback(async () => {
-    if (productsLoaded || productsLoading) return;
-
-    setProductsLoading(true);
-    setProductsError(null);
-    try {
-      const res = await fetch("/api/products?limit=50", { cache: "no-store" });
-      const data = await res.json();
-      if (data?.products) {
-        setProducts(data.products);
-        setProductsLoaded(true);
-        setProductsError(null);
-      } else {
-          setProductsError("Ürün listesi boş geldi.");
-      }
-    } catch {
-        setProductsError("Ürün listesi yüklenemedi.");
-    } finally {
-      setProductsLoading(false);
-    }
-  }, [productsLoaded, productsLoading]);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void loadProducts();
-    }, 1200);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [loadProducts]);
-
-  const addProduct = (id: number) => {
-    if (selected.length < 3 && !selected.includes(id)) {
-      setSelected([...selected, id]);
-    }
-  };
-
-  const removeProduct = (id: number) => {
-    setSelected(selected.filter((s) => s !== id));
-    setResults(null);
-  };
-
-  const runCompare = async () => {
-    if (selected.length < 2) return;
-    setComparing(true);
-    setCompareError(null);
-    try {
-      const params = selected.map((id) => `id=${id}`).join("&");
-      const res = await fetch(`/api/products/compare?${params}`, { cache: "no-store" });
-      const data = await res.json();
-      if (data?.success) {
-        setResults(data.products);
-      } else {
-        setResults(null);
-        setCompareError(data?.error || "Karşılaştırma sonuçları alınamadı.");
-      }
-    } catch {
-      setResults(null);
-        setCompareError("Karşılaştırma sonuçları alınamadı.");
-    } finally {
-      setComparing(false);
-    }
-  };
-
-  return (
-    <GlassCard>
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="space-y-1">
-          <h3 className="font-heading text-base font-bold text-foreground">Benchmark Analizi</h3>
-          <p className="text-xs font-medium text-muted/60">Seçili ürünlerin platformlar arası kârlılığı.</p>
-        </div>
-        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto">
-          <select
-            value=""
-            onFocus={() => { void loadProducts(); }}
-            onChange={(e) => { if (e.target.value) addProduct(Number(e.target.value)); }}
-              className="w-full rounded-md border border-border bg-surface-container px-3 py-2 text-sm font-medium text-foreground outline-none transition-[border-color,box-shadow] duration-200 focus:border-primary/40 focus:ring-1 focus:ring-primary/20 sm:w-[260px]"
-          >
-            <option value="" disabled className="text-muted">
-              {productsLoading && !productsLoaded ? "Ürünler yükleniyor..." : "Ürün seçin..."}
-            </option>
-            {products.filter((p) => !selected.includes(p.id)).map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-          <button
-            onClick={runCompare}
-            disabled={selected.length < 2 || comparing}
-            className="w-full rounded-md bg-primary px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-primary-foreground transition-colors duration-200 hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-30 sm:w-auto"
-          >
-            {comparing ? "ANALİZ EDİLİYOR..." : "KIYASLA"}
-          </button>
-        </div>
-        {productsError && (
-          <p className="text-[10px] font-medium text-danger/80">
-            {productsError}
-          </p>
-        )}
-        {compareError && (
-          <p className="text-[10px] font-medium text-danger/80">
-            {compareError}
-          </p>
-        )}
-      </div>
-
-      {selected.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-2">
-          {selected.map((id) => {
-            const name = products.find((p) => p.id === id)?.name ?? String(id);
-            return (
-              <span key={id} className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-container px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-primary transition-colors duration-200 hover:bg-surface-soft">
-                {name}
-                <button onClick={() => removeProduct(id)} className="text-base font-semibold leading-none text-muted/60 transition-colors duration-200 hover:text-danger">&times;</button>
-              </span>
-            );
-          })}
-        </div>
-      )}
-
-      {results && results.length >= 2 && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-border/50 text-[9px] font-semibold uppercase tracking-[0.1em] text-muted/60">
-                  <th className="pb-2">Urun Spesifikasyonu</th>
-                  <th className="pb-2 text-right">Baz Maliyet</th>
-                  {results[0]?.channels.map((ch) => (
-                    <th key={ch.channelName} className="pb-2 text-right">{ch.channelName}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/20">
-                {results.map((p) => (
-                  <tr key={p.id} className="group transition-colors duration-200 hover:bg-surface-subtle">
-                    <td className="py-3">
-                      <p className="text-sm font-medium text-foreground">{p.name}</p>
-                      <p className="mt-0.5 text-[10px] text-muted/60">{p.sku}</p>
-                    </td>
-                    <td className="py-3 text-right text-xs font-semibold text-muted">
-                      {formatCurrency(p.cost + p.packagingCost)}
-                    </td>
-                    {p.channels.map((ch) => (
-                      <td key={ch.channelName} className="py-3 text-right">
-                        <div className="space-y-1">
-                          <p className={cn("text-sm font-semibold tracking-tight", ch.margin > 30 ? "text-primary" : ch.margin > 15 ? "text-warning" : "text-danger")}>
-                            {formatCurrency(ch.netProfit)}
-                          </p>
-                          <div className="flex flex-col gap-0.5 items-end">
-                            <span className="text-[9px] font-medium uppercase tracking-tight text-muted/60">%{Math.round(ch.margin)} Marj</span>
-                            <span className="text-[8px] font-medium uppercase tracking-tight text-muted/60">{formatCurrency(ch.totalCost)} Gider</span>
-                          </div>
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <MobileCardList
-            className="space-y-3 md:hidden"
-            data={results}
-            renderItem={(p) => {
-              const totalCost = p.cost + p.packagingCost;
-              const peakProfit = Math.max(...p.channels.map((ch) => ch.netProfit), 1);
-              const bestChannel = p.channels.length > 0
-                ? p.channels.reduce((best, ch) => (ch.netProfit > best.netProfit ? ch : best), p.channels[0])
-                : null;
-
-              return (
-                <GlassCard key={p.id} className="p-3 sm:p-3">
-                  <div className="mb-4 flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">{p.name}</p>
-                      <p className="mt-0.5 text-[10px] text-muted/60">{p.sku}</p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <p className="text-[9px] font-medium uppercase tracking-wide text-muted/60">Baz Maliyet</p>
-                      <p className="text-sm font-semibold text-foreground">{formatCurrency(totalCost)}</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    {p.channels.map((ch) => {
-                      const isBest = bestChannel?.channelName === ch.channelName;
-                      const barWidth = Math.max(8, (Math.max(ch.netProfit, 0) / peakProfit) * 100);
-
-                      return (
-                        <div
-                          key={ch.channelName}
-                          className={cn(
-                            "rounded-lg border p-3 transition-all duration-200",
-                            isBest ? "border-border bg-primary-soft/40" : "border-border bg-surface-soft"
-                          )}
-                        >
-                          <div className="mb-3 flex items-start justify-between gap-3">
-                            <div>
-                              <p className="text-sm font-medium text-foreground">{ch.channelName}</p>
-                              <p className="mt-0.5 text-[9px] uppercase tracking-wide text-muted/60">Fiyat {formatCurrency(ch.salePrice)}</p>
-                            </div>
-                            <span
-                              className={cn(
-                                "rounded-md border px-2 py-0.5 text-[8px] font-medium uppercase tracking-wide",
-                                isBest ? "bg-primary-soft text-primary border-border" : "bg-surface-soft text-muted border-border"
-                              )}
-                            >
-                              {isBest ? "En iyi" : "Alt"}
-                            </span>
-                          </div>
-
-                          <div className="mb-3 grid grid-cols-2 gap-3">
-                            <div>
-                              <p className="mb-1 text-[9px] font-medium uppercase tracking-wide text-muted/60">Net Kar</p>
-                              <p className={cn("text-lg font-semibold tracking-tight", ch.margin > 30 ? "text-primary" : ch.margin > 15 ? "text-warning" : "text-danger")}>
-                                {formatCurrency(ch.netProfit)}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="mb-1 text-[9px] font-medium uppercase tracking-wide text-muted/60">Marj</p>
-                              <p className={cn("text-lg font-semibold tracking-tight", isBest ? "text-primary" : "text-foreground/80")}>
-                                %{Math.round(ch.margin)}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="mb-2 h-1 overflow-hidden rounded-full bg-surface-container">
-                            <div
-                              className={cn("h-full rounded-full transition-[width] duration-300", isBest ? "bg-primary" : "bg-border")}
-                              style={{ width: `${barWidth}%` }}
-                            />
-                          </div>
-
-                          <div className="flex justify-between text-[8px] font-medium uppercase tracking-wide text-muted/60">
-                            <span>Masraflar dahil</span>
-                            <span>{formatCurrency(ch.totalCost)} maliyet</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </GlassCard>
-              );
-            }}
-          />
-        </div>
-      )}
-    </GlassCard>
   );
 }

@@ -269,6 +269,7 @@ export async function initializePgSchema(sql: postgres.Sql) {
   await sql.unsafe(`
     CREATE TABLE IF NOT EXISTS profit_pricing_runs (
       run_id TEXT PRIMARY KEY,
+      user_id UUID NOT NULL REFERENCES auth.users(id),
       product_id INTEGER NOT NULL,
       channel TEXT NOT NULL,
       marketplace_id INTEGER,
@@ -328,7 +329,8 @@ export async function initializePgSchema(sql: postgres.Sql) {
   await sql.unsafe(`
     CREATE TABLE IF NOT EXISTS marketplace_credentials (
       credential_id SERIAL PRIMARY KEY,
-      marketplace_id INTEGER NOT NULL UNIQUE,
+      user_id UUID NOT NULL REFERENCES auth.users(id),
+      marketplace_id INTEGER NOT NULL,
       merchant_id TEXT NOT NULL,
       encrypted_api_key TEXT NOT NULL,
       encrypted_api_secret TEXT NOT NULL,
@@ -337,7 +339,8 @@ export async function initializePgSchema(sql: postgres.Sql) {
       last_sync_scope TEXT,
       last_error TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (user_id, marketplace_id)
     )
   `);
 
@@ -497,6 +500,7 @@ export async function initializePgSchema(sql: postgres.Sql) {
   await sql.unsafe(`
     CREATE TABLE IF NOT EXISTS seo_audits (
       id SERIAL PRIMARY KEY,
+      user_id UUID NOT NULL REFERENCES auth.users(id),
       audit_type TEXT NOT NULL,
       target_type TEXT NOT NULL,
       target_id TEXT NOT NULL,
@@ -544,6 +548,7 @@ export async function initializePgSchema(sql: postgres.Sql) {
   await sql.unsafe(`
     CREATE TABLE IF NOT EXISTS seo_keyword_research (
       id SERIAL PRIMARY KEY,
+      user_id UUID NOT NULL REFERENCES auth.users(id),
       audit_id INTEGER NOT NULL,
       target_type TEXT NOT NULL,
       target_id TEXT NOT NULL,
@@ -554,13 +559,15 @@ export async function initializePgSchema(sql: postgres.Sql) {
       cpc DOUBLE PRECISION,
       opportunity_score DOUBLE PRECISION DEFAULT 0,
       source TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (audit_id) REFERENCES seo_audits(id) ON DELETE CASCADE
     )
   `);
 
   await sql.unsafe(`
     CREATE TABLE IF NOT EXISTS seo_ai_recommendations (
       id SERIAL PRIMARY KEY,
+      user_id UUID NOT NULL REFERENCES auth.users(id),
       audit_id INTEGER NOT NULL,
       target_type TEXT NOT NULL,
       target_id TEXT NOT NULL,
@@ -576,7 +583,8 @@ export async function initializePgSchema(sql: postgres.Sql) {
       priority_score DOUBLE PRECISION DEFAULT 0,
       status TEXT DEFAULT 'draft',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      applied_at TIMESTAMP
+      applied_at TIMESTAMP,
+      FOREIGN KEY (audit_id) REFERENCES seo_audits(id) ON DELETE CASCADE
     )
   `);
 
@@ -739,6 +747,8 @@ export async function initializePgSchema(sql: postgres.Sql) {
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_price_optimization_runs_product ON price_optimization_runs(product_id)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_price_optimization_runs_marketplace ON price_optimization_runs(marketplace_id)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_price_optimization_runs_created_at ON price_optimization_runs(created_at DESC)`);
+  await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_profit_pricing_runs_user_id ON profit_pricing_runs(user_id)`);
+  await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_profit_pricing_runs_user_product ON profit_pricing_runs(user_id, product_id)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_profit_pricing_runs_product ON profit_pricing_runs(product_id)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_profit_pricing_runs_created_at ON profit_pricing_runs(created_at DESC)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_profit_pricing_runs_channel ON profit_pricing_runs(channel, created_at DESC)`);
@@ -746,6 +756,8 @@ export async function initializePgSchema(sql: postgres.Sql) {
   await sql.unsafe(`CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_external_unique ON orders(marketplace_id, external_order_number, external_line_item_id)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_orders_marketplace_status ON orders(marketplace_id, status)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_orders_external_package ON orders(external_package_number)`);
+  await sql.unsafe(`CREATE UNIQUE INDEX IF NOT EXISTS idx_marketplace_credentials_user_marketplace ON marketplace_credentials(user_id, marketplace_id)`);
+  await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_marketplace_credentials_user_marketplace_active ON marketplace_credentials(user_id, marketplace_id, is_active)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_marketplace_credentials_marketplace ON marketplace_credentials(marketplace_id)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_marketplace_credentials_marketplace_active ON marketplace_credentials(marketplace_id, is_active)`);
   await sql.unsafe(`CREATE UNIQUE INDEX IF NOT EXISTS idx_order_items_external_unique ON order_items(marketplace_order_number, external_order_line_id)`);
@@ -760,10 +772,16 @@ export async function initializePgSchema(sql: postgres.Sql) {
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_inventory_daily_product_marketplace_date ON inventory_daily(product_id, marketplace_id, inventory_date)`);
   await sql.unsafe(`CREATE UNIQUE INDEX IF NOT EXISTS idx_demand_forecasts_product_marketplace_date_horizon ON demand_forecasts(product_id, marketplace_id, forecast_date, horizon_days)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_generations_product_created_at ON seo_generations(product_id, created_at DESC)`);
+  await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_audits_user_id ON seo_audits(user_id)`);
+  await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_audits_user_created_at ON seo_audits(user_id, created_at DESC)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_audits_target_source ON seo_audits(target_type, target_id, audit_type, source_hash)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_audits_created_at ON seo_audits(created_at DESC)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_audit_issues_audit ON seo_audit_issues(audit_id, severity, priority_score DESC)`);
+  await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_keyword_research_user_id ON seo_keyword_research(user_id)`);
+  await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_keyword_research_user_audit ON seo_keyword_research(user_id, audit_id, opportunity_score DESC)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_keyword_research_audit ON seo_keyword_research(audit_id, opportunity_score DESC)`);
+  await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_ai_recommendations_user_id ON seo_ai_recommendations(user_id)`);
+  await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_ai_recommendations_user_audit ON seo_ai_recommendations(user_id, audit_id, priority_score DESC)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_ai_recommendations_audit ON seo_ai_recommendations(audit_id, priority_score DESC)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_schema_suggestions_audit ON seo_schema_suggestions(audit_id)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_internal_link_suggestions_audit ON seo_internal_link_suggestions(audit_id, priority_score DESC)`);

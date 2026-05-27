@@ -1,16 +1,21 @@
 import { NextResponse } from 'next/server';
 import { buildAdAnalysis } from '@/lib/ad-analysis';
 import { buildScopedCacheKey, getCachedValue } from '@/lib/server-cache';
-import { requireAuth } from "@/lib/api-auth";
+import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  const authUserId = session.authUserId?.trim() || "";
+  if (!authUserId) {
+    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
+  primeRequestContextFromApiContext(session);
   try {
     const data = await getCachedValue(
-      buildScopedCacheKey("ad-analysis", session.authUserId ?? session.userId),
+      buildScopedCacheKey("ad-analysis", authUserId),
       30_000,
       buildAdAnalysis,
     );

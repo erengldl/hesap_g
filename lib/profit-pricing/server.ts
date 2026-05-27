@@ -17,6 +17,7 @@ import {
 import { getDb, getOne, query } from "@/lib/db";
 import { getProductSalesVelocity } from "@/lib/product-history";
 import { buildReturnRiskContextForProduct } from "@/lib/return-risk/repository";
+import { requireCurrentAuthUserId } from "@/lib/tenant";
 import type { Marketplace, Product } from "@/lib/types";
 
 import { buildChannelComparison } from "./channel-comparison";
@@ -565,6 +566,14 @@ export async function resolveProfitPricingRequest(
 }
 
 export async function listProfitPricingRuns(limit = 8, productId?: number) {
+  const authUserId = requireCurrentAuthUserId();
+  const params: Array<string | number> = [authUserId];
+  const filters = ["r.user_id = ?"];
+  if (productId) {
+    filters.push("r.product_id = ?");
+    params.push(productId);
+  }
+
   const rows = await query<
     ProfitPricingRunRow & {
       product_name: string | null;
@@ -590,12 +599,14 @@ export async function listProfitPricingRuns(limit = 8, productId?: number) {
         r.created_at,
         p.name AS product_name
       FROM profit_pricing_runs r
-      LEFT JOIN products p ON p.product_id = r.product_id
-      ${productId ? "WHERE r.product_id = ?" : ""}
+      LEFT JOIN products p
+        ON p.product_id = r.product_id
+       AND p.user_id = r.user_id
+      WHERE ${filters.join(" AND ")}
       ORDER BY r.created_at DESC, r.run_id DESC
       LIMIT ${Math.max(1, Math.min(limit, 25))}
     `,
-    productId ? [productId] : []
+    params
   );
 
   return rows.map<ProfitPricingRunSummary>((row) => ({
@@ -621,6 +632,7 @@ export async function saveProfitPricingRun(payload: {
   }
 
   const resolved = await resolveProfitPricingRequest(payload.input);
+  const authUserId = requireCurrentAuthUserId();
   const runId = randomUUID();
   const productId = Number(resolved.result.input.productId ?? 0);
   const marketplaceId =
@@ -629,6 +641,7 @@ export async function saveProfitPricingRun(payload: {
   await db.prepare(
     `
       INSERT INTO profit_pricing_runs (
+        user_id,
         run_id,
         product_id,
         channel,
@@ -641,9 +654,10 @@ export async function saveProfitPricingRun(payload: {
         recommended_min,
         recommended_max,
         recommended_preferred
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
   ).run(
+    authUserId,
     runId,
     productId,
     resolved.result.input.channel,
@@ -665,6 +679,7 @@ export async function saveProfitPricingRun(payload: {
 }
 
 async function getProfitPricingRun(runId: string) {
+  const authUserId = requireCurrentAuthUserId();
   return await getOne<ProfitPricingRunRow>(
     `
       SELECT
@@ -686,9 +701,10 @@ async function getProfitPricingRun(runId: string) {
         created_at
       FROM profit_pricing_runs
       WHERE run_id = ?
+        AND user_id = ?
       LIMIT 1
     `,
-    [runId]
+    [runId, authUserId]
   );
 }
 
@@ -737,6 +753,7 @@ export async function applyProfitPricingRun(payload: {
     throw new Error("Kanal ayarı bulunamadı.");
   }
 
+  const authUserId = requireCurrentAuthUserId();
   const productId = Number(resolved.result.input.productId ?? run.product_id);
   const currentSetting = await getProductMarketplaceSetting(productId, marketplace.id);
   const oldPrice = roundCurrency(toFiniteNumber(currentSetting?.sale_price, 0));
@@ -746,9 +763,9 @@ export async function applyProfitPricingRun(payload: {
       `
         UPDATE product_marketplace_settings
         SET sale_price = ?
-        WHERE product_id = ? AND marketplace_id = ?
+        WHERE product_id = ? AND marketplace_id = ? AND user_id = ?
       `
-    ).run(targetPrice, productId, marketplace.id);
+    ).run(targetPrice, productId, marketplace.id, authUserId);
 
     await db.prepare(
       `
@@ -758,8 +775,9 @@ export async function applyProfitPricingRun(payload: {
             applied_new_price = ?,
             result_json = ?
         WHERE run_id = ?
+          AND user_id = ?
       `
-    ).run(oldPrice, targetPrice, JSON.stringify(resolved.result), payload.runId);
+    ).run(oldPrice, targetPrice, JSON.stringify(resolved.result), payload.runId, authUserId);
 
     await db.prepare(
       `

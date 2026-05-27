@@ -1,6 +1,7 @@
 import { calculateChannelCost } from "./cost-engine";
 import { getOwnWebsiteGatewayRule, getProductMarketplaceSetting, getProducts } from "./database-readers";
 import { getDb, query } from "./db";
+import { requireCurrentAuthUserId } from "./tenant";
 import type { Product } from "./types";
 
 export type CampaignPlatformId = "meta" | "google_ads" | "tiktok";
@@ -329,6 +330,7 @@ async function getBaselineTrafficCpa(
 }
 
 async function getOwnWebsiteCostResult(product: Product) {
+  const authUserId = requireCurrentAuthUserId();
   const row = (await query<CostResultRow>(
     `
       SELECT
@@ -342,10 +344,10 @@ async function getOwnWebsiteCostResult(product: Product) {
         platform_fee_cost,
         payment_gateway_cost
       FROM cost_results
-      WHERE product_id = ? AND marketplace_id = 3
+      WHERE product_id = ? AND marketplace_id = 3 AND user_id = ?
       LIMIT 1
     `,
-    [product.id]
+    [product.id, authUserId]
   ))[0];
 
   if (row) {
@@ -389,6 +391,7 @@ async function getOwnWebsiteCostResult(product: Product) {
 }
 
 async function getProductSettingMap() {
+  const authUserId = requireCurrentAuthUserId();
   const rows = await query<ProductSettingRow>(
     `
       SELECT
@@ -400,8 +403,10 @@ async function getProductSettingMap() {
         payment_gateway_rule_id,
         shipping_mode
       FROM product_marketplace_settings
-      WHERE marketplace_id = 3
+      WHERE marketplace_id = 3 AND user_id = ?
     `
+    ,
+    [authUserId]
   );
 
   return new Map(rows.map((row) => [row.product_id, row]));
@@ -548,9 +553,11 @@ function buildCampaignMetric(accumulator: CampaignAccumulator, windowStart: stri
 async function persistCampaignMetrics(rows: CampaignProfitMetric[]) {
   const db = getDb();
   if (!db) return false;
+  const authUserId = requireCurrentAuthUserId();
 
   const insert = db.prepare(`
     INSERT INTO campaign_profit_metrics (
+      user_id,
       campaign_id,
       campaign_name,
       platform_slug,
@@ -581,19 +588,20 @@ async function persistCampaignMetrics(rows: CampaignProfitMetric[]) {
       efficiency_gap,
       data_source,
       last_calculated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   await db.transaction(async () => {
-    await db.prepare("DELETE FROM campaign_profit_metrics").run();
+    await db.prepare("DELETE FROM campaign_profit_metrics WHERE user_id = ?").run(authUserId);
     for (const row of rows) {
       await insert.run(
+        authUserId,
         row.campaign_id,
-      row.campaign_name,
-      row.platform_slug,
-      row.platform_label,
-      row.utm_source,
-      row.utm_campaign,
+        row.campaign_name,
+        row.platform_slug,
+        row.platform_label,
+        row.utm_source,
+        row.utm_campaign,
         row.window_start,
         row.window_end,
         row.spend,
@@ -629,6 +637,7 @@ async function buildFallbackCostResult(product: Product) {
 }
 
 async function collectCampaignRows(windowStart: string, windowEnd: string) {
+  const authUserId = requireCurrentAuthUserId();
   const productMap = await getProductMap();
   const settingMap = await getProductSettingMap();
   const websiteGateway = await getOwnWebsiteGatewayRule();
@@ -650,8 +659,10 @@ async function collectCampaignRows(windowStart: string, windowEnd: string) {
         platform_fee_cost,
         payment_gateway_cost
       FROM cost_results
-      WHERE marketplace_id = 3
+      WHERE marketplace_id = 3 AND user_id = ?
     `
+    ,
+    [authUserId]
   );
 
   for (const row of costRows) {
@@ -681,17 +692,18 @@ async function collectCampaignRows(windowStart: string, windowEnd: string) {
         o.platform_reported_revenue,
         o.platform_reported_roas
       FROM orders o
-      JOIN order_items oi ON oi.order_id = o.order_id
-      JOIN products p ON p.product_id = COALESCE(oi.product_id, o.product_id)
+      JOIN order_items oi ON oi.order_id = o.order_id AND oi.user_id = o.user_id
+      JOIN products p ON p.product_id = COALESCE(oi.product_id, o.product_id) AND p.user_id = o.user_id
       LEFT JOIN categories c ON c.category_id = p.category_id
       JOIN marketplaces m ON m.marketplace_id = o.marketplace_id
-      WHERE o.status = 'completed'
+      WHERE o.user_id = ?
+        AND o.status = 'completed'
         AND m.slug = 'own_website'
         AND o.order_date >= ?
         AND o.order_date <= ?
       ORDER BY o.order_date ASC, o.order_id ASC
     `,
-    [windowStart, windowEnd]
+    [authUserId, windowStart, windowEnd]
   );
 
   const accumulators = new Map<string, CampaignAccumulator>();
@@ -788,8 +800,9 @@ async function collectCampaignRows(windowStart: string, windowEnd: string) {
 export async function buildAdAnalysis(windowDays = 30): Promise<AdAnalysisResponse | null> {
   const db = getDb();
   if (!db) return null;
+  const authUserId = requireCurrentAuthUserId();
 
-  const productCountRow = await db.prepare("SELECT COUNT(*) AS count FROM products").get() as { count: number };
+  const productCountRow = await db.prepare("SELECT COUNT(*) AS count FROM products WHERE user_id = ?").get(authUserId) as { count: number };
   if ((productCountRow?.count ?? 0) === 0) {
     return null;
   }
@@ -886,6 +899,7 @@ export async function buildAdAnalysis(windowDays = 30): Promise<AdAnalysisRespon
 export async function buildAdAnalysisSummary(): Promise<AdAnalysisSummary | null> {
   const db = getDb();
   if (!db) return null;
+  const authUserId = requireCurrentAuthUserId();
 
   const summary = await db.prepare(`
     SELECT
@@ -899,7 +913,8 @@ export async function buildAdAnalysisSummary(): Promise<AdAnalysisSummary | null
       COUNT(*) FILTER (WHERE health_status = 'scale')::int AS scale_count,
       MAX(last_calculated_at) AS last_synced_at
     FROM campaign_profit_metrics
-  `).get() as {
+    WHERE user_id = ?
+  `).get(authUserId) as {
     total_campaigns: number | null;
     imported_campaigns: number | null;
     total_spend: number | null;

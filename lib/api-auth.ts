@@ -59,3 +59,14 @@ export async function requireAuth(request?: Request): Promise<ApiContext | NextR
     plan: user.plan,
   };
 }
+
+export function primeRequestContextFromApiContext(context: ApiContext) {
+  setRequestContext({
+    userId: context.userId,
+    authUserId: context.authUserId ?? null,
+    email: context.email,
+    name: context.name,
+    plan: context.plan,
+    requestId: randomUUID(),
+  });
+}

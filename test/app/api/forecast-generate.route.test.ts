@@ -27,6 +27,7 @@ vi.mock("@/lib/database-readers", () => ({
 
 vi.mock("@/lib/api-auth", () => ({
   requireAuth: requireAuthMock,
+  primeRequestContextFromApiContext: vi.fn(),
 }));
 
 import { POST } from "@/app/api/v1/forecast/generate/route";
@@ -51,6 +52,7 @@ describe("forecast generate route", () => {
 
     requireAuthMock.mockResolvedValue({
       userId: 1,
+      authUserId: "test-auth-user",
       email: "demo@example.com",
       name: "Demo User",
       plan: "Premium Plan",

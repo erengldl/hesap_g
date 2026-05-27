@@ -33,6 +33,7 @@ vi.mock("@/lib/demo-product-detail", () => ({
 
 vi.mock("@/lib/api-auth", () => ({
   requireAuth: requireAuthMock,
+  primeRequestContextFromApiContext: vi.fn(),
 }));
 
 vi.mock("@/lib/tenant", () => ({

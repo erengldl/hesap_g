@@ -1,5 +1,6 @@
 import { getOwnWebsiteGatewayRule } from "./database-readers";
 import { getOne, query } from "./db";
+import { requireCurrentAuthUserId } from "./tenant";
 import type { Product } from "./types";
 
 type ChannelType = "marketplace" | "own_website";
@@ -136,6 +137,7 @@ function getShippingPrior(product: NetCostMlInput["product"]) {
 }
 
 async function getReturnStats(whereClause: string, params: unknown[]) {
+  const authUserId = requireCurrentAuthUserId();
   const row = await getOne<ReturnStatsRow>(
     `
       SELECT
@@ -143,9 +145,10 @@ async function getReturnStats(whereClause: string, params: unknown[]) {
         SUM(CASE WHEN status = 'returned' THEN 1 ELSE 0 END) AS returned_orders
       FROM orders
       ${whereClause}
+        AND user_id = ?
         AND COALESCE(status, 'completed') IN ('completed', 'returned')
     `,
-    params
+    [...params, authUserId]
   );
 
   const total = Math.max(0, safeNumber(row?.total_orders, 0));
@@ -211,6 +214,7 @@ async function getGlobalStats() {
 }
 
 async function getTrafficCandidateRows(productId: number) {
+  const authUserId = requireCurrentAuthUserId();
   const persistedRows = await query<TrafficCpaRow>(
     `
       SELECT
@@ -224,19 +228,21 @@ async function getTrafficCandidateRows(productId: number) {
         p.packaging_cost,
         cr.calculated_at
       FROM product_marketplace_settings pms
-      JOIN products p ON p.product_id = pms.product_id
+      JOIN products p ON p.product_id = pms.product_id AND p.user_id = pms.user_id
       LEFT JOIN categories c ON c.category_id = p.category_id
       LEFT JOIN cost_results cr
         ON cr.product_id = pms.product_id
        AND cr.marketplace_id = pms.marketplace_id
+       AND cr.user_id = pms.user_id
       WHERE pms.marketplace_id = 3
+        AND pms.user_id = ?
         AND pms.traffic_cpa IS NOT NULL
         AND pms.traffic_cpa > 0
         AND pms.product_id <> ?
       ORDER BY COALESCE(cr.calculated_at, CURRENT_TIMESTAMP) DESC, pms.product_id DESC
       LIMIT 300
     `,
-    [productId]
+    [authUserId, productId]
   );
 
   const adResultRows = await query<TrafficCpaRow>(
@@ -252,22 +258,24 @@ async function getTrafficCandidateRows(productId: number) {
         p.packaging_cost,
         cr.calculated_at
       FROM cost_results cr
-      JOIN products p ON p.product_id = cr.product_id
+      JOIN products p ON p.product_id = cr.product_id AND p.user_id = cr.user_id
       LEFT JOIN categories c ON c.category_id = p.category_id
       WHERE cr.marketplace_id = 3
+        AND cr.user_id = ?
         AND cr.unit_ad_cost IS NOT NULL
         AND cr.unit_ad_cost > 0
         AND cr.product_id <> ?
       ORDER BY COALESCE(cr.calculated_at, CURRENT_TIMESTAMP) DESC, cr.id DESC
       LIMIT 300
     `,
-    [productId]
+    [authUserId, productId]
   );
 
   return [...persistedRows, ...adResultRows];
 }
 
 async function getShippingHistoryRows(productId: number, marketplaceId: number) {
+  const authUserId = requireCurrentAuthUserId();
   const orderRows = await query<ShippingHistoryRow>(
     `
       SELECT
@@ -281,19 +289,21 @@ async function getShippingHistoryRows(productId: number, marketplaceId: number) 
         p.packaging_cost,
         COALESCE(o.last_synced_at, o.created_at, o.order_date) AS observed_at
       FROM orders o
-      JOIN products p ON p.product_id = o.product_id
+      JOIN products p ON p.product_id = o.product_id AND p.user_id = o.user_id
       LEFT JOIN product_marketplace_settings pms
         ON pms.product_id = o.product_id
        AND pms.marketplace_id = o.marketplace_id
+       AND pms.user_id = o.user_id
       LEFT JOIN categories c ON c.category_id = p.category_id
       WHERE o.marketplace_id = ?
         AND o.product_id <> ?
+        AND o.user_id = ?
         AND o.realized_shipping_cost IS NOT NULL
         AND o.realized_shipping_cost > 0
       ORDER BY o.order_date DESC, o.order_id DESC
       LIMIT 300
     `,
-    [marketplaceId, productId]
+    [marketplaceId, productId, authUserId]
   );
 
   const costRows = await query<ShippingHistoryRow>(
@@ -309,16 +319,17 @@ async function getShippingHistoryRows(productId: number, marketplaceId: number) 
         p.packaging_cost,
         cr.calculated_at AS observed_at
       FROM cost_results cr
-      JOIN products p ON p.product_id = cr.product_id
+      JOIN products p ON p.product_id = cr.product_id AND p.user_id = cr.user_id
       LEFT JOIN categories c ON c.category_id = p.category_id
       WHERE cr.marketplace_id = ?
         AND cr.product_id <> ?
+        AND cr.user_id = ?
         AND cr.realized_shipping_cost IS NOT NULL
         AND cr.realized_shipping_cost > 0
       ORDER BY cr.calculated_at DESC, cr.id DESC
       LIMIT 300
     `,
-    [marketplaceId, productId]
+    [marketplaceId, productId, authUserId]
   );
 
   return [...orderRows, ...costRows];

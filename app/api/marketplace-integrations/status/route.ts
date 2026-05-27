@@ -27,7 +27,7 @@ const SUPPORTED_MARKETPLACES: Array<{
   { marketplace_id: 2, marketplace_slug: "hepsiburada", marketplace_name: "Hepsiburada" },
 ];
 
-async function buildLocalFallbackStatus(serviceError?: string) {
+async function buildLocalFallbackStatus(authUserId: string, serviceError?: string) {
   const rows = await query<LocalMarketplaceStatusRow>(`
     SELECT
       m.marketplace_id,
@@ -40,14 +40,14 @@ async function buildLocalFallbackStatus(serviceError?: string) {
       mc.last_error,
       CASE WHEN mc.credential_id IS NOT NULL THEN 1 ELSE 0 END AS has_credentials
     FROM marketplaces m
-    LEFT JOIN marketplace_credentials mc ON mc.marketplace_id = m.marketplace_id
+    LEFT JOIN marketplace_credentials mc ON mc.marketplace_id = m.marketplace_id AND mc.user_id = ?
     WHERE m.slug IN ('trendyol', 'hepsiburada')
     ORDER BY CASE m.slug
       WHEN 'trendyol' THEN 1
       WHEN 'hepsiburada' THEN 2
       ELSE 99
     END
-  `);
+  `, [authUserId]);
 
   const rowBySlug = new Map(
     rows
@@ -104,8 +104,12 @@ async function buildLocalFallbackStatus(serviceError?: string) {
 export async function GET() {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  const authUserId = session.authUserId?.trim() || "";
+  if (!authUserId) {
+    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
 
-  const response = await proxyMarketplaceIntegrationRequest("/api/v1/integrations/status", { method: "GET" });
+  const response = await proxyMarketplaceIntegrationRequest("/api/v1/integrations/status", { method: "GET" }, undefined, authUserId);
 
   if (response.ok) {
     return response;
@@ -119,5 +123,5 @@ export async function GET() {
     serviceError = undefined;
   }
 
-  return await buildLocalFallbackStatus(serviceError);
+  return await buildLocalFallbackStatus(authUserId, serviceError);
 }

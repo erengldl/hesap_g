@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { buildAdAnalysis, buildAdAnalysisSummary } from "@/lib/ad-analysis";
-import { requireAuth } from "@/lib/api-auth";
+import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 import { getDb } from "@/lib/db";
 import { getProducts } from "@/lib/database-readers";
 import { buildAggregateDashboard, buildDashboardSnapshot } from "@/lib/portfolio-analytics";
@@ -195,8 +195,12 @@ function buildFallbackAggregate() {
 export async function GET(request: Request) {
   const session = await requireAuth(request);
   if (session instanceof NextResponse) return session;
-  const authUserId = session.authUserId ?? "";
-  const scopeKey = session.authUserId ?? session.userId;
+  const authUserId = session.authUserId?.trim() || "";
+  if (!authUserId) {
+    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
+  primeRequestContextFromApiContext(session);
+  const scopeKey = authUserId;
 
   try {
     const [aggregateState, snapshotState, adAnalysisState, dataSignalsState] = await Promise.all([

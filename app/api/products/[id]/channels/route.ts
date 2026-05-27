@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
+import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 
 import { recalculateCostResultsForProductFromDatabase } from "@/lib/cost-engine";
 import { getDb } from "@/lib/db";
@@ -66,6 +66,7 @@ async function getDefaultMarketplaceShippingCompanyId(db: NonNullable<ReturnType
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  primeRequestContextFromApiContext(session);
   try {
     const { id } = await params;
     const productId = parseProductId(id);
@@ -78,9 +79,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ success: false, error: "Database connection unavailable" }, { status: 500 });
     }
 
+    const authUserId = session.authUserId?.trim() || "";
+    if (!authUserId) {
+      return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+    }
+
     const existingProduct = await db
-      .prepare("SELECT product_id FROM products WHERE product_id = ? LIMIT 1")
-      .get(productId) as { product_id: number } | undefined;
+      .prepare("SELECT product_id FROM products WHERE product_id = ? AND user_id = ? LIMIT 1")
+      .get(productId, authUserId) as { product_id: number } | undefined;
     if (!existingProduct) {
       return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 });
     }
@@ -91,7 +97,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ success: false, error: "Channel settings are required" }, { status: 400 });
     }
 
-    const deleteSetting = db.prepare("DELETE FROM product_marketplace_settings WHERE product_id = ? AND marketplace_id = ?");
+    const deleteSetting = db.prepare("DELETE FROM product_marketplace_settings WHERE product_id = ? AND marketplace_id = ? AND user_id = ?");
     const insertSetting = db.prepare(`
       INSERT INTO product_marketplace_settings (
         product_id,
@@ -120,7 +126,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
         const isEnabled = Boolean(record.enabled);
         if (!isEnabled) {
-          await deleteSetting.run(productId, marketplace.id);
+          await deleteSetting.run(productId, marketplace.id, authUserId);
           continue;
         }
 
@@ -157,7 +163,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         const shippingMode = slug === "my_website" ? existingSetting?.shipping_mode ?? "manual" : existingSetting?.shipping_mode ?? "marketplace_rate";
         const trafficCpa = existingSetting?.traffic_cpa ?? null;
 
-        await deleteSetting.run(productId, marketplace.id);
+        await deleteSetting.run(productId, marketplace.id, authUserId);
         await insertSetting.run(
           productId,
           marketplace.id,

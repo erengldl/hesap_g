@@ -83,9 +83,9 @@ async def _save_product_image(file: UploadFile) -> ProductImageUploadResponse:
     return ProductImageUploadResponse(success=True, url=f"/uploads/products/{file_name}", fileName=file_name)
 
 
-async def _run_marketplace_sync_background(payload: MarketplaceSyncRequest) -> None:
+async def _run_marketplace_sync_background(payload: MarketplaceSyncRequest, auth_user_id: str) -> None:
     async with SessionLocal() as session:
-        engine = MarketplaceIntegrationEngine(session)
+        engine = MarketplaceIntegrationEngine(session, auth_user_id)
         try:
             result = await engine.sync_marketplace(payload)
             LOGGER.info(
@@ -116,9 +116,12 @@ async def upload_product_image(
 async def integrations_sync_background(
     payload: MarketplaceSyncRequest,
     background_tasks: BackgroundTasks,
-    _: None = Depends(require_trusted_service),
+    auth_user_id: str | None = Depends(require_trusted_service),
 ) -> MarketplaceSyncQueuedResponse:
-    background_tasks.add_task(_run_marketplace_sync_background, payload)
+    if not auth_user_id:
+        raise HTTPException(status_code=400, detail="Marketplace auth user id is required.")
+
+    background_tasks.add_task(_run_marketplace_sync_background, payload, auth_user_id)
     return MarketplaceSyncQueuedResponse(
         success=True,
         queued=True,
@@ -132,9 +135,12 @@ async def integrations_sync_background(
 @app.get("/api/v1/integrations/status", response_model=MarketplaceStatusResponse)
 async def integrations_status(
     session: AsyncSession = Depends(get_session),
-    _: None = Depends(require_trusted_service),
+    auth_user_id: str | None = Depends(require_trusted_service),
 ) -> MarketplaceStatusResponse:
-    engine = MarketplaceIntegrationEngine(session)
+    if not auth_user_id:
+        raise HTTPException(status_code=400, detail="Marketplace auth user id is required.")
+
+    engine = MarketplaceIntegrationEngine(session, auth_user_id)
     return await engine.list_status()
 
 
@@ -142,9 +148,12 @@ async def integrations_status(
 async def integrations_credentials(
     payload: MarketplaceCredentialUpsertRequest,
     session: AsyncSession = Depends(get_session),
-    _: None = Depends(require_trusted_service),
+    auth_user_id: str | None = Depends(require_trusted_service),
 ) -> MarketplaceStatusResponse:
-    engine = MarketplaceIntegrationEngine(session)
+    if not auth_user_id:
+        raise HTTPException(status_code=400, detail="Marketplace auth user id is required.")
+
+    engine = MarketplaceIntegrationEngine(session, auth_user_id)
     try:
         await engine.upsert_credentials(payload)
         return await engine.list_status()
@@ -156,9 +165,12 @@ async def integrations_credentials(
 async def integrations_sync(
     payload: MarketplaceSyncRequest,
     session: AsyncSession = Depends(get_session),
-    _: None = Depends(require_trusted_service),
+    auth_user_id: str | None = Depends(require_trusted_service),
 ) -> MarketplaceSyncResponse:
-    engine = MarketplaceIntegrationEngine(session)
+    if not auth_user_id:
+        raise HTTPException(status_code=400, detail="Marketplace auth user id is required.")
+
+    engine = MarketplaceIntegrationEngine(session, auth_user_id)
     try:
         return await engine.sync_marketplace(payload)
     except MarketplaceIntegrationError as error:
@@ -169,9 +181,12 @@ async def integrations_sync(
 async def integrations_prices(
     payload: MarketplacePricePushRequest,
     session: AsyncSession = Depends(get_session),
-    _: None = Depends(require_trusted_service),
+    auth_user_id: str | None = Depends(require_trusted_service),
 ) -> MarketplacePricePushResponse:
-    engine = MarketplaceIntegrationEngine(session)
+    if not auth_user_id:
+        raise HTTPException(status_code=400, detail="Marketplace auth user id is required.")
+
+    engine = MarketplaceIntegrationEngine(session, auth_user_id)
     try:
         return await engine.push_prices(payload)
     except MarketplaceIntegrationError as error:
@@ -182,9 +197,12 @@ async def integrations_prices(
 async def integrations_catalogs_import(
     payload: MarketplaceCatalogImportRequest,
     session: AsyncSession = Depends(get_session),
-    _: None = Depends(require_trusted_service),
+    auth_user_id: str | None = Depends(require_trusted_service),
 ) -> MarketplaceCatalogImportResponse:
-    engine = MarketplaceIntegrationEngine(session)
+    if not auth_user_id:
+        raise HTTPException(status_code=400, detail="Marketplace auth user id is required.")
+
+    engine = MarketplaceIntegrationEngine(session, auth_user_id)
     try:
         return await engine.import_catalogs(payload)
     except MarketplaceIntegrationError as error:

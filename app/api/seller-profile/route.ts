@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getOne, getDb } from "@/lib/db";
 import { recalculateCostResultsForProfile } from "@/lib/portfolio-analytics";
 import { getStoreExpenseMonthlyTotal } from "@/lib/database-readers";
-import { requireAuth } from "@/lib/api-auth";
+import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 import { DEFAULT_SELLER_PROFILE, getCurrentSellerProfileId } from "@/lib/seller-profile-helpers";
 
 export const dynamic = "force-dynamic";
@@ -52,10 +52,15 @@ async function getProfileWithUnitCost(authUserId: string) {
 export async function GET() {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  const authUserId = session.authUserId?.trim() || "";
+  if (!authUserId) {
+    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
+  primeRequestContextFromApiContext(session);
   try {
     return NextResponse.json({
       success: true,
-      profile: await getProfileWithUnitCost(session.authUserId ?? ""),
+      profile: await getProfileWithUnitCost(authUserId),
     });
   } catch (error) {
     console.error("Seller profile GET error:", error);
@@ -66,9 +71,13 @@ export async function GET() {
 export async function PUT(request: Request) {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  const authUserId = session.authUserId?.trim() || "";
+  if (!authUserId) {
+    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
+  primeRequestContextFromApiContext(session);
   try {
     const body = (await request.json()) as Partial<SellerProfilePayload>;
-    const authUserId = session.authUserId ?? "";
     const db = getDb();
     if (!db) {
       return NextResponse.json({ success: false, error: "Veritabanı bağlantısı kullanılamıyor." }, { status: 500 });

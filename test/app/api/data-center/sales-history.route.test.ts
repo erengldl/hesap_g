@@ -12,6 +12,7 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/lib/api-auth", () => ({
   requireAuth: requireAuthMock,
+  primeRequestContextFromApiContext: vi.fn(),
 }));
 
 import { GET } from "@/app/api/data-center/sales-history/route";
@@ -26,6 +27,7 @@ describe("sales history route", () => {
     requireAuthMock.mockReset();
     requireAuthMock.mockResolvedValue({
       userId: 1,
+      authUserId: "test-auth-user",
       email: "demo@example.com",
       name: "Demo User",
       plan: "Premium Plan",
@@ -85,9 +87,13 @@ describe("sales history route", () => {
     expect(response.status).toBe(200);
     expect(payload.success).toBe(true);
 
+    const summarySql = queryMock.mock.calls[0]?.[0] as string;
+    const summaryParams = queryMock.mock.calls[0]?.[1] as unknown[];
     const topMarketplaceSql = queryMock.mock.calls[1]?.[0] as string;
     const topProductSql = queryMock.mock.calls[2]?.[0] as string;
 
+    expect(summarySql).toContain("o.user_id = ?");
+    expect(summaryParams).toContain("test-auth-user");
     expect(topMarketplaceSql).toContain("GROUP BY o.marketplace_id, COALESCE(m.name, m.slug, 'Kanal'), COALESCE(m.slug, 'market')");
     expect(topProductSql).toContain("GROUP BY COALESCE(oi.product_id, o.product_id), COALESCE(p.name, oi.merchant_sku, 'Ürün'), COALESCE(p.sku, oi.merchant_sku)");
   });

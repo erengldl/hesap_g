@@ -8,6 +8,9 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  if (!session.authUserId) {
+    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
   try {
     const formData = await request.formData();
     const file = formData.get("file");
@@ -16,7 +19,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Dosya bulunamadı." }, { status: 400 });
     }
 
-    const saved = await saveProductImageUpload(file);
+    const saved = await saveProductImageUpload(file, session.authUserId);
 
     return NextResponse.json({
       success: true,

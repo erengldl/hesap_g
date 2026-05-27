@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDatabaseCounts, getStoreExpenseMonthlyTotal } from '@/lib/database-readers';
 import { query } from '@/lib/db';
 import { buildScopedCacheKey, getCachedValue } from '@/lib/server-cache';
-import { requireAuth } from "@/lib/api-auth";
+import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 import { getCurrentSellerProfileId } from "@/lib/seller-profile-helpers";
 
 export const dynamic = 'force-dynamic';
@@ -19,10 +19,14 @@ type StockAlertCountRow = {
 export async function GET() {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
-  const authUserId = session.authUserId ?? "";
+  const authUserId = session.authUserId?.trim() || "";
+  if (!authUserId) {
+    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
+  primeRequestContextFromApiContext(session);
   try {
     const payload = await getCachedValue(
-      buildScopedCacheKey("app-stats", session.authUserId ?? session.userId),
+      buildScopedCacheKey("app-stats", authUserId),
       15_000,
       async () => {
       const sellerProfileId = await getCurrentSellerProfileId();
@@ -42,7 +46,7 @@ export async function GET() {
             COALESCE(MAX(CASE WHEN COALESCE(p.status, 'draft') = 'active' THEN 1 ELSE 0 END), 0) AS is_active,
             COALESCE(AVG(pms.sale_price), 0) AS sale_price
           FROM products p
-          LEFT JOIN product_marketplace_settings pms ON p.product_id = pms.product_id
+          LEFT JOIN product_marketplace_settings pms ON p.product_id = pms.product_id AND pms.user_id = p.user_id
           WHERE p.user_id = ?
           GROUP BY p.product_id
         ) per_product

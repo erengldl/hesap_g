@@ -3,7 +3,7 @@ import { getDb } from "@/lib/db";
 import { getStoreExpenseById } from "@/lib/database-readers";
 import { recalculateAllCostResults } from "@/lib/portfolio-analytics";
 import type { StoreExpenseUpsertInput } from "@/lib/types";
-import { requireAuth } from "@/lib/api-auth";
+import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +19,11 @@ function normalizeStatus(status: string | undefined | null) {
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  const authUserId = session.authUserId?.trim() || "";
+  if (!authUserId) {
+    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
+  primeRequestContextFromApiContext(session);
   const { id } = await params;
   const expenseId = parseExpenseId(id);
   if (!expenseId) {
@@ -27,7 +32,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   try {
     const existing = await getStoreExpenseById(expenseId);
-    const authUserId = session.authUserId ?? "";
     if (!existing) {
       return NextResponse.json({ success: false, error: "Gider bulunamadı." }, { status: 404 });
     }
@@ -65,6 +69,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  const authUserId = session.authUserId?.trim() || "";
+  if (!authUserId) {
+    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
+  primeRequestContextFromApiContext(session);
   const { id } = await params;
   const expenseId = parseExpenseId(id);
   if (!expenseId) {
@@ -72,7 +81,6 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   }
 
   try {
-    const authUserId = session.authUserId ?? "";
     const db = getDb();
     if (!db) {
       return NextResponse.json({ success: false, error: "Veritabanı bağlantısı kullanılamıyor." }, { status: 500 });

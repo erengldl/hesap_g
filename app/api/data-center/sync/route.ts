@@ -2,13 +2,18 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getProducts } from "@/lib/database-readers";
 import { recalculateAllCostResults } from "@/lib/portfolio-analytics";
-import { requireAuth } from "@/lib/api-auth";
+import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function POST() {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  const authUserId = session.authUserId?.trim() || "";
+  if (!authUserId) {
+    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
+  primeRequestContextFromApiContext(session);
   try {
     const db = await getDb();
     if (!db) {

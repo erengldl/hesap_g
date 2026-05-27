@@ -47,6 +47,7 @@ vi.mock("@/lib/server-cache", () => ({
 
 vi.mock("@/lib/api-auth", () => ({
   requireAuth: requireAuthMock,
+  primeRequestContextFromApiContext: vi.fn(),
 }));
 
 import { GET } from "@/app/api/dashboard/route";

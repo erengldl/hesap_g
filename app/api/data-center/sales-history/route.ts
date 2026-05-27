@@ -73,6 +73,10 @@ function addDays(dateKey: string, days: number) {
 export async function GET(request: Request) {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  const authUserId = session.authUserId?.trim() || "";
+  if (!authUserId) {
+    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
   try {
     const url = new URL(request.url);
     const viewParam = url.searchParams.get("view") ?? "sales";
@@ -101,13 +105,14 @@ export async function GET(request: Request) {
     const productSkuExpr = "COALESCE(p.sku, oi.merchant_sku)";
     let baseWhere = `
       FROM orders o
-      JOIN order_items oi ON oi.order_id = o.order_id
+      JOIN order_items oi ON oi.order_id = o.order_id AND oi.user_id = o.user_id
       LEFT JOIN marketplaces m ON m.marketplace_id = o.marketplace_id
-      LEFT JOIN products p ON p.product_id = COALESCE(oi.product_id, o.product_id)
+      LEFT JOIN products p ON p.product_id = COALESCE(oi.product_id, o.product_id) AND p.user_id = o.user_id
       WHERE o.order_date >= CURRENT_DATE + CAST(? AS interval)
+        AND o.user_id = ?
         AND ${isReturnView ? "COALESCE(o.status, 'completed') = 'returned'" : "COALESCE(o.status, 'completed') NOT IN ('cancelled', 'returned', 'pending')"}
     `;
-    let whereParams: Array<string> = [`-${rangeDays - 1} days`];
+    let whereParams: Array<string> = [`-${rangeDays - 1} days`, authUserId];
 
     if (hasCustomRange) {
       const firstDate = fromParam as string;
@@ -119,18 +124,19 @@ export async function GET(request: Request) {
       rangeDays = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 86400000) + 1);
       baseWhere = `
         FROM orders o
-        JOIN order_items oi ON oi.order_id = o.order_id
+        JOIN order_items oi ON oi.order_id = o.order_id AND oi.user_id = o.user_id
         LEFT JOIN marketplaces m ON m.marketplace_id = o.marketplace_id
-        LEFT JOIN products p ON p.product_id = COALESCE(oi.product_id, o.product_id)
+        LEFT JOIN products p ON p.product_id = COALESCE(oi.product_id, o.product_id) AND p.user_id = o.user_id
         WHERE o.order_date >= ?
           AND o.order_date <= ?
+          AND o.user_id = ?
           AND ${isReturnView ? "COALESCE(o.status, 'completed') = 'returned'" : "COALESCE(o.status, 'completed') NOT IN ('cancelled', 'returned', 'pending')"}
       `;
-      whereParams = [rangeStart, rangeEnd];
+      whereParams = [rangeStart, rangeEnd, authUserId];
     } else if (Number.isFinite(daysParam) && daysParam > 0) {
       rangeDays = Math.min(Math.max(daysParam, 1), 3650);
       rangeStart = addDays(todayKey, -(rangeDays - 1));
-      whereParams = [`-${rangeDays - 1} days`];
+      whereParams = [`-${rangeDays - 1} days`, authUserId];
     }
 
     if (searchParam.length > 0) {

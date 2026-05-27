@@ -11,6 +11,7 @@ vi.mock("@/lib/return-risk/server", () => ({
 
 vi.mock("@/lib/api-auth", () => ({
   requireAuth: requireAuthMock,
+  primeRequestContextFromApiContext: vi.fn(),
 }));
 
 import { POST } from "@/app/api/return-risk/predict/route";
@@ -20,6 +21,7 @@ describe("return risk predict route", () => {
     predictReturnRiskFromDataCenter.mockReset();
     requireAuthMock.mockResolvedValue({
       userId: 1,
+      authUserId: "test-auth-user",
       email: "demo@example.com",
       name: "Demo User",
       plan: "Pro",

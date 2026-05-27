@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { buildDemandForecastBootstrap, generateDemandForecast } from "@/lib/demand-forecast";
 import { getMarketplaces, getProducts } from "@/lib/database-readers";
 import type { DemandForecastRunResponse, ForecastHorizon } from "@/lib/demand-forecast-types";
-import { requireAuth } from "@/lib/api-auth";
+import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -167,6 +167,11 @@ async function buildSafeBootstrap(input: {
 export async function GET(request: Request) {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  const authUserId = session.authUserId?.trim() || "";
+  if (!authUserId) {
+    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
+  primeRequestContextFromApiContext(session);
   try {
     const url = new URL(request.url);
     const bootstrap = await buildSafeBootstrap({
@@ -185,6 +190,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  const authUserId = session.authUserId?.trim() || "";
+  if (!authUserId) {
+    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
+  primeRequestContextFromApiContext(session);
   try {
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const input = {

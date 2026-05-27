@@ -123,7 +123,7 @@ export async function getProfitPricingProductOptions() {
       p.sku,
       m.slug AS marketplace_slug
     FROM products p
-    LEFT JOIN product_marketplace_settings ms ON ms.product_id = p.product_id
+    LEFT JOIN product_marketplace_settings ms ON ms.product_id = p.product_id AND ms.user_id = p.user_id
     LEFT JOIN marketplaces m ON m.marketplace_id = ms.marketplace_id
     WHERE p.user_id = ?
     ORDER BY p.product_id DESC, ms.marketplace_id ASC
@@ -267,7 +267,7 @@ export async function getProducts() {
       m.slug AS marketplace_slug,
       m.name AS marketplace_name
     FROM product_marketplace_settings ms
-    JOIN products p ON p.product_id = ms.product_id
+    JOIN products p ON p.product_id = ms.product_id AND p.user_id = ms.user_id
     LEFT JOIN marketplaces m ON m.marketplace_id = ms.marketplace_id
     WHERE p.user_id = ?
     ORDER BY ms.product_id, ms.marketplace_id
@@ -332,7 +332,7 @@ export async function getProductSnapshot(productId: number) {
       m.slug AS marketplace_slug,
       m.name AS marketplace_name
     FROM product_marketplace_settings ms
-    JOIN products p ON p.product_id = ms.product_id
+    JOIN products p ON p.product_id = ms.product_id AND p.user_id = ms.user_id
     LEFT JOIN marketplaces m ON m.marketplace_id = ms.marketplace_id
     WHERE ms.product_id = ? AND p.user_id = ?
     ORDER BY ms.marketplace_id ASC
@@ -513,7 +513,7 @@ export async function getProductMarketplaceSetting(productId: number, marketplac
       m.name AS marketplace_name,
       m.slug AS marketplace_slug
     FROM product_marketplace_settings ms
-    JOIN products p ON p.product_id = ms.product_id
+    JOIN products p ON p.product_id = ms.product_id AND p.user_id = ms.user_id
     LEFT JOIN marketplaces m ON m.marketplace_id = ms.marketplace_id
     WHERE ms.product_id = ? AND ms.marketplace_id = ? AND p.user_id = ?
     LIMIT 1

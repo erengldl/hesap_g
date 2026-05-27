@@ -201,7 +201,7 @@ async function getProductContext(productId?: number): Promise<ProductContext | n
       m.name AS marketplace_name,
       m.slug AS marketplace_slug
     FROM product_marketplace_settings ms
-    JOIN products p ON p.product_id = ms.product_id
+    JOIN products p ON p.product_id = ms.product_id AND p.user_id = ms.user_id
     LEFT JOIN marketplaces m ON m.marketplace_id = ms.marketplace_id
     WHERE ms.product_id = ? AND p.user_id = ?
     ORDER BY ms.marketplace_id ASC
@@ -834,7 +834,7 @@ export async function buildAggregateDashboard(): Promise<AggregateDashboard | nu
   const avgMarginFromProducts = await db.prepare(`
     SELECT AVG((pms.sale_price - p.cost - p.packaging_cost) / pms.sale_price) * 100 as avg_margin
     FROM products p
-    JOIN product_marketplace_settings pms ON p.product_id = pms.product_id
+    JOIN product_marketplace_settings pms ON p.product_id = pms.product_id AND pms.user_id = p.user_id
     WHERE p.user_id = ?
   `).get(authUserId) as { avg_margin: number } | undefined;
 

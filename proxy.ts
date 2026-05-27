@@ -4,13 +4,42 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { updateSupabaseSession } from "@/lib/supabase/proxy";
 
 const PUBLIC_ROUTES = new Set(["/login", "/register", "/auth/callback"]);
+const PUBLIC_API_ROUTES = new Set(["/api/auth/config"]);
+
+function buildAuthMisconfiguredResponse(nextUrl: URL, pathname: string, search: string) {
+  if (pathname.startsWith("/api")) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Supabase auth configuration is missing.",
+      },
+      {
+        status: 503,
+        headers: {
+          "Cache-Control": "no-store, max-age=0",
+        },
+      }
+    );
+  }
+
+  const loginUrl = new URL(nextUrl.toString());
+  loginUrl.pathname = "/login";
+  loginUrl.search = "";
+  loginUrl.searchParams.set("authError", "config");
+  loginUrl.searchParams.set("redirect", `${pathname}${search}`);
+  return NextResponse.redirect(loginUrl);
+}
 
 export async function proxy(request: NextRequest) {
   const { nextUrl } = request;
   const { pathname, search } = nextUrl;
 
   if (!isSupabaseConfigured()) {
-    return NextResponse.next();
+    if (PUBLIC_ROUTES.has(pathname) || PUBLIC_API_ROUTES.has(pathname)) {
+      return NextResponse.next();
+    }
+
+    return buildAuthMisconfiguredResponse(nextUrl, pathname, search);
   }
 
   const { response, user } = await updateSupabaseSession(request);

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { BadgePercent, CircleCheckBig, CircleX, CloudDownload, Database, DollarSign, FileSpreadsheet, Plus, RotateCw, TriangleAlert, Upload } from "lucide-react";
+import { CircleCheckBig, CircleX, RotateCw, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   COMMAND_ACTION_EVENT,
@@ -11,13 +11,12 @@ import {
   popQueuedCommandAction,
 } from "@/lib/command-actions";
 import { exportProductsToExcel } from "@/lib/excel";
-import { formatCurrency } from "@/lib/formatters";
-import { SeedDemoButton, triggerSeedDemo } from "@/components/demo/SeedDemoButton";
+import { triggerSeedDemo } from "@/components/demo/SeedDemoButton";
 import type { Product, ProductUpsertInput } from "@/lib/types";
 import type { SeedDemoResponse } from "@/lib/seed-demo-contract";
-import { EmptyState, ErrorStateCard, KpiCard, SkeletonCard, SkeletonTable } from "@/components/ui-custom/GlassComponents";
+import { ErrorStateCard, SkeletonCard, SkeletonTable } from "@/components/ui-custom/GlassComponents";
 
-import ProductDataTable from "./ProductDataTable";
+import { DataCenterProductsPane } from "./DataCenterProductsPane";
 import { ProductExcelImportModal } from "./ProductExcelImportModal";
 import ProductDataForm from "./ProductDataForm";
 import SalesHistorySection from "./SalesHistorySection";
@@ -44,6 +43,9 @@ type AppStats = {
 };
 
 type DataCenterTab = "products" | "sales" | "settings";
+
+const DEMO_SEED_CONFIRM_MESSAGE =
+  "Demo verisi çalışma alanınıza yüklenecek. Mevcut kişisel verileriniz yenilenecek. Devam edilsin mi?";
 
 function formatRelativeTime(value?: string | null) {
   if (!value) return "Henüz işlem yapılmadı";
@@ -387,7 +389,7 @@ export function DataCenterTabs() {
     setDemoSeeding(true);
     try {
       await triggerSeedDemo({
-        confirmMessage: "Demo verisi çalışma alanınıza yüklenecek. Mevcut kişisel verileriniz yenilenecek. Devam edilsin mi?",
+        confirmMessage: DEMO_SEED_CONFIRM_MESSAGE,
         onSeeded: handleSeedDemoSuccess,
         onError: (text) => showMessage({ text, type: "error" }),
       });
@@ -538,208 +540,50 @@ export function DataCenterTabs() {
       )}
 
       {activeTab === "products" && (
-        <div className="space-y-5">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <KpiCard title="Ürün Sayısı" value={String(productCount)} subValue="Toplam katalog" icon={Database} />
-            <KpiCard title="Aktif Ürün Sayısı" value={String(activeProductCount)} subValue="Satışa açık" icon={CircleCheckBig} tone="success" />
-            <KpiCard title="Ortalama Fiyat" value={formatCurrency(averagePrice)} subValue="Liste ortalaması" icon={DollarSign} tone="primary" />
-            <KpiCard title="Ortalama Kâr Marjı" value={`%${Number(averageProfitMargin).toFixed(1)}`} subValue="Kanal sonuçlarına göre" icon={BadgePercent} tone="warning" />
-          </div>
-
-          <div className="rounded-lg border border-border/70 bg-panel/70 p-4 shadow-[var(--shadow-card)] sm:p-5">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="space-y-2">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">Son toplu yükleme</span>
-                <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
-                  <span className="font-semibold text-foreground">{lastBulkSyncSummary}</span>
-                  <span>· {lastBulkSyncScope}</span>
-                  {stats?.last_bulk_sync_message && (
-                    <span>· {stats.last_bulk_sync_message}</span>
-                  )}
-                </div>
-                <div>
-                  <h3 className="font-heading text-lg font-semibold text-foreground">Ürünler</h3>
-                  <p className="mt-1 text-sm text-soft">Ürünleri seç, düzenle ve satış kanallarını tek yerden yönet.</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-                <SeedDemoButton
-                  confirmMessage="Demo veriler yüklenecek. Mevcut veriler silinecek. Devam edilsin mi?"
-                  onSeeded={handleSeedDemoSuccess}
-                  onError={(text) => showMessage({ text, type: "error" })}
-                  className="px-3.5 py-2.5"
-                />
-                <button
-                  type="button"
-                  onClick={() => setIsExcelImportOpen(true)}
-                  disabled={submitting || bulkSyncing || loading}
-                  className="flex items-center gap-2 rounded-md border border-border/70 bg-surface-container/70 px-3.5 py-2.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-primary/25 hover:bg-card disabled:opacity-60"
-                >
-                  <Upload className="h-4 w-4" />
-                  Excel İçe Aktar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleProductExcelExport}
-                  disabled={products.length === 0 || submitting || bulkSyncing || loading}
-                  className="flex items-center gap-2 rounded-md border border-success/20 bg-success/10 px-3.5 py-2.5 text-sm font-semibold text-success transition-colors duration-200 hover:bg-success/15 disabled:opacity-60"
-                >
-                  <FileSpreadsheet className="h-4 w-4" />
-                  Excel Dışa Aktar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCatalogImport}
-                  disabled={catalogImporting || submitting || bulkSyncing || loading}
-                  className="flex items-center gap-2 rounded-md border border-border/70 bg-surface-container/70 px-3.5 py-2.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-primary/25 hover:bg-card disabled:opacity-60"
-                >
-                  <CloudDownload className={cn("h-4 w-4", catalogImporting && "animate-bounce")} />
-                  {catalogImporting ? "Katalog alınıyor..." : "Kataloğu İçe Al"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBulkUpload}
-                  disabled={bulkSyncing || submitting || loading}
-                  className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3.5 py-2.5 text-sm font-semibold text-primary transition-colors duration-200 hover:border-primary/35 hover:bg-primary/15 disabled:opacity-60"
-                >
-                  <Database className={cn("h-4 w-4", bulkSyncing && "animate-pulse")} />
-                  {bulkSyncing ? "Yeniden hesaplanıyor..." : "Yeniden Hesapla"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingProduct(null);
-                    setIsProductFormOpen(true);
-                  }}
-                  className="btn-primary px-3.5 py-2.5 text-sm"
-                >
-                  <Plus className="h-4 w-4" />
-                  Ürün Ekle
-                </button>
-              </div>
-            </div>
-
-            {selectedIds.length > 0 && (
-              <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-surface-container/60 px-3 py-2.5">
-                <span className="text-xs font-semibold text-muted">{selectedIds.length} ürün seçili</span>
-                <button
-                  type="button"
-                  onClick={handleProductExcelExport}
-                  disabled={submitting}
-                  className="rounded-md border border-success/20 bg-success/10 px-3 py-1.5 text-xs font-semibold text-success transition-colors duration-200 hover:bg-success/15 disabled:opacity-60"
-                >
-                  Excel'e Aktar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleBulkStatusChange("active")}
-                  disabled={submitting}
-                  className="rounded-md bg-success/10 px-3 py-1.5 text-xs font-semibold text-success transition-colors duration-200 hover:bg-success/15 disabled:opacity-60"
-                >
-                  Aktif Yap
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleBulkStatusChange("passive")}
-                  disabled={submitting}
-                  className="rounded-md border border-border/70 bg-surface-container/70 px-3 py-1.5 text-xs font-semibold text-muted transition-colors duration-200 hover:border-primary/20 hover:bg-card hover:text-foreground disabled:opacity-60"
-                >
-                  Pasif Yap
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleBulkStatusChange("draft")}
-                  disabled={submitting}
-                  className="rounded-md bg-info/10 px-3 py-1.5 text-xs font-semibold text-info transition-colors duration-200 hover:bg-info/15 disabled:opacity-60"
-                >
-                  Taslağa Al
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBulkDelete}
-                  disabled={submitting}
-                  className="rounded-md bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger transition-colors duration-200 hover:bg-danger/15 disabled:opacity-60"
-                >
-                  Sil
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedIds([])}
-                  disabled={submitting}
-                  className="rounded-md px-3 py-1.5 text-xs font-semibold text-muted transition-colors duration-200 hover:bg-surface-soft hover:text-foreground disabled:opacity-60"
-                >
-                  Temizle
-                </button>
-              </div>
-            )}
-          </div>
-
-          {products.length === 0 && !loadError ? (
-            <EmptyState
-              icon={Database}
-              title="Henüz ürün eklemediniz"
-              description="Ürünleri Veri Merkezi'ne ekleyin ya da kataloğu içe aktarın. Ürünler olmadan kârlılık ve tahmin hesapları başlamaz."
-              className="mx-auto max-w-md"
-              action={
-                <div className="flex flex-wrap justify-center gap-2">
-                  <SeedDemoButton
-                    onSeeded={handleSeedDemoSuccess}
-                    onError={(text) => showMessage({ text, type: "error" })}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setIsExcelImportOpen(true)}
-                    className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-container px-4 py-2.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-border-strong hover:bg-surface-container"
-                  >
-                    <Upload className="h-4 w-4" />
-                    Excel İçe Aktar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingProduct(null);
-                      setIsProductFormOpen(true);
-                    }}
-                    className="btn-primary px-4 py-2.5 text-sm"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Ürün Ekle
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCatalogImport}
-                    disabled={catalogImporting || submitting || bulkSyncing || loading}
-                    className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-container px-4 py-2.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-border-strong hover:bg-surface-container disabled:opacity-60"
-                  >
-                    <CloudDownload className={cn("h-4 w-4", catalogImporting && "animate-bounce")} />
-                    Kataloğu İçe Al
-                  </button>
-                </div>
-              }
-            />
-          ) : (
-            <div className="overflow-hidden rounded-lg border border-border/70 bg-panel/55 shadow-[var(--shadow-card)]">
-              <ProductDataTable
-                products={products}
-                onDelete={handleDeleteProduct}
-                onEdit={(product) => {
-                  setEditingProduct(product);
-                  setIsProductFormOpen(true);
-                }}
-                selectedIds={selectedIds}
-                onToggleSelect={(id) => {
-                  setSelectedIds((current) =>
-                    current.includes(id) ? current.filter((itemId) => itemId !== id) : [...current, id]
-                  );
-                }}
-                onNotify={showMessage}
-                onRefresh={() => {
-                  void refreshData();
-                }}
-              />
-            </div>
-          )}
-        </div>
+        <DataCenterProductsPane
+          productCount={productCount}
+          activeProductCount={activeProductCount}
+          averagePrice={averagePrice}
+          averageProfitMargin={averageProfitMargin}
+          lastBulkSyncSummary={lastBulkSyncSummary}
+          lastBulkSyncScope={lastBulkSyncScope}
+          lastBulkSyncMessage={stats?.last_bulk_sync_message}
+          demoConfirmMessage={DEMO_SEED_CONFIRM_MESSAGE}
+          products={products}
+          selectedIds={selectedIds}
+          submitting={submitting}
+          bulkSyncing={bulkSyncing}
+          catalogImporting={catalogImporting}
+          loading={loading}
+          hasLoadError={Boolean(loadError)}
+          onSeeded={handleSeedDemoSuccess}
+          onSeedError={(text) => showMessage({ text, type: "error" })}
+          onOpenExcelImport={() => setIsExcelImportOpen(true)}
+          onExportProducts={handleProductExcelExport}
+          onCatalogImport={handleCatalogImport}
+          onBulkUpload={handleBulkUpload}
+          onOpenProductForm={() => {
+            setEditingProduct(null);
+            setIsProductFormOpen(true);
+          }}
+          onBulkStatusChange={handleBulkStatusChange}
+          onBulkDelete={handleBulkDelete}
+          onClearSelection={() => setSelectedIds([])}
+          onDeleteProduct={handleDeleteProduct}
+          onEditProduct={(product) => {
+            setEditingProduct(product);
+            setIsProductFormOpen(true);
+          }}
+          onToggleSelect={(id) => {
+            setSelectedIds((current) =>
+              current.includes(id) ? current.filter((itemId) => itemId !== id) : [...current, id]
+            );
+          }}
+          onNotify={showMessage}
+          onRefresh={() => {
+            void refreshData();
+          }}
+        />
       )}
 
       {activeTab === "sales" && (

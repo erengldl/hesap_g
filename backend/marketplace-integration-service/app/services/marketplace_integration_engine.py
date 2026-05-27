@@ -1163,8 +1163,9 @@ class HepsiburadaAdapter(BaseMarketplaceAdapter):
 
 
 class MarketplaceIntegrationEngine:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession, auth_user_id: str) -> None:
         self.session = session
+        self.auth_user_id = auth_user_id
 
     async def list_status(self) -> MarketplaceStatusResponse:
         rows = await fetch_all_mappings(
@@ -1182,10 +1183,13 @@ class MarketplaceIntegrationEngine:
               c.last_sync_scope,
               c.last_error
             FROM marketplaces m
-            LEFT JOIN marketplace_credentials c ON c.marketplace_id = m.marketplace_id
+            LEFT JOIN marketplace_credentials c
+              ON c.marketplace_id = m.marketplace_id
+             AND c.user_id = :user_id
             WHERE m.slug IN ('trendyol', 'hepsiburada')
             ORDER BY m.marketplace_id ASC
             """,
+            {"user_id": self.auth_user_id},
         )
 
         credentials: list[MarketplaceCredentialRead] = []
@@ -1233,8 +1237,11 @@ class MarketplaceIntegrationEngine:
 
         existing = await fetch_one_mapping(
             self.session,
-            "SELECT * FROM marketplace_credentials WHERE marketplace_id = :marketplace_id LIMIT 1",
-            {"marketplace_id": int(marketplace["marketplace_id"])},
+            "SELECT * FROM marketplace_credentials WHERE marketplace_id = :marketplace_id AND user_id = :user_id LIMIT 1",
+            {
+                "marketplace_id": int(marketplace["marketplace_id"]),
+                "user_id": self.auth_user_id,
+            },
         )
 
         api_key = payload.api_key or None
@@ -1262,6 +1269,7 @@ class MarketplaceIntegrationEngine:
                         is_active = :is_active,
                         updated_at = :updated_at
                     WHERE marketplace_id = :marketplace_id
+                      AND user_id = :user_id
                     """
                 ),
                 {
@@ -1271,6 +1279,7 @@ class MarketplaceIntegrationEngine:
                     "is_active": 1 if payload.is_active else 0,
                     "updated_at": now_value,
                     "marketplace_id": int(marketplace["marketplace_id"]),
+                    "user_id": self.auth_user_id,
                 },
             )
         else:
@@ -1278,6 +1287,7 @@ class MarketplaceIntegrationEngine:
                 text(
                     """
                     INSERT INTO marketplace_credentials (
+                      user_id,
                       marketplace_id,
                       merchant_id,
                       encrypted_api_key,
@@ -1285,10 +1295,11 @@ class MarketplaceIntegrationEngine:
                       is_active,
                       created_at,
                       updated_at
-                    ) VALUES (:marketplace_id, :merchant_id, :encrypted_api_key, :encrypted_api_secret, :is_active, :created_at, :updated_at)
+                    ) VALUES (:user_id, :marketplace_id, :merchant_id, :encrypted_api_key, :encrypted_api_secret, :is_active, :created_at, :updated_at)
                     """
                 ),
                 {
+                    "user_id": self.auth_user_id,
                     "marketplace_id": int(marketplace["marketplace_id"]),
                     "merchant_id": payload.merchant_id,
                     "encrypted_api_key": encrypted_api_key,
@@ -1315,11 +1326,16 @@ class MarketplaceIntegrationEngine:
               c.last_sync_scope,
               c.last_error
             FROM marketplaces m
-            LEFT JOIN marketplace_credentials c ON c.marketplace_id = m.marketplace_id
+            LEFT JOIN marketplace_credentials c
+              ON c.marketplace_id = m.marketplace_id
+             AND c.user_id = :user_id
             WHERE m.marketplace_id = :marketplace_id
             LIMIT 1
             """,
-            {"marketplace_id": int(marketplace["marketplace_id"])},
+            {
+                "marketplace_id": int(marketplace["marketplace_id"]),
+                "user_id": self.auth_user_id,
+            },
         )
         assert refreshed is not None
         return self._map_credential_row(refreshed)
@@ -1483,11 +1499,16 @@ class MarketplaceIntegrationEngine:
               c.last_sync_scope,
               c.last_error
             FROM marketplaces m
-            LEFT JOIN marketplace_credentials c ON c.marketplace_id = m.marketplace_id
+            LEFT JOIN marketplace_credentials c
+              ON c.marketplace_id = m.marketplace_id
+             AND c.user_id = :user_id
             WHERE m.slug = :slug
             LIMIT 1
             """,
-            {"slug": marketplace_slug},
+            {
+                "slug": marketplace_slug,
+                "user_id": self.auth_user_id,
+            },
         )
         if row is None:
             raise MarketplaceIntegrationError(f"Marketplace not found: {marketplace_slug}")
@@ -2299,10 +2320,12 @@ class MarketplaceIntegrationEngine:
                     last_error = :last_error,
                     updated_at = :updated_at
                 WHERE marketplace_id = :marketplace_id
+                  AND user_id = :user_id
                 """
             ),
             {
                 "marketplace_id": marketplace_id,
+                "user_id": self.auth_user_id,
                 "last_sync_time": now_utc().isoformat(),
                 "last_sync_scope": scope,
                 "last_error": " | ".join(warnings) if warnings else None,

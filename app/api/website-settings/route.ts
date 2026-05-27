@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getOwnWebsiteGatewayRule } from "@/lib/database-readers";
 import { recalculateAllCostResults } from "@/lib/portfolio-analytics";
-import { requireAuth } from "@/lib/api-auth";
+import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 import { getCurrentSellerProfileId, getOrCreateCurrentSellerProfileId } from "@/lib/seller-profile-helpers";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +58,11 @@ async function getSettings() {
 export async function GET() {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  const authUserId = session.authUserId?.trim() || "";
+  if (!authUserId) {
+    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
+  primeRequestContextFromApiContext(session);
   try {
     return NextResponse.json({
       success: true,
@@ -72,6 +77,11 @@ export async function GET() {
 export async function PUT(request: Request) {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  const authUserId = session.authUserId?.trim() || "";
+  if (!authUserId) {
+    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
+  primeRequestContextFromApiContext(session);
   try {
     const body = (await request.json()) as Partial<WebsiteSettingsPayload>;
     const sellerProfileId = await getOrCreateCurrentSellerProfileId();

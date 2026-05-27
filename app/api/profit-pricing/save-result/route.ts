@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
+import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 
 import type { ProfitPricingInput } from "@/lib/profit-pricing/types";
 import { saveProfitPricingRun } from "@/lib/profit-pricing/server";
@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const session = await requireAuth(request);
   if (session instanceof NextResponse) return session;
+  primeRequestContextFromApiContext(session);
   try {
     const body = (await request.json().catch(() => ({}))) as {
       input?: Partial<ProfitPricingInput>;

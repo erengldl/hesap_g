@@ -7,7 +7,7 @@ import { deleteProductImageUpload } from "@/lib/product-image-upload";
 import { requireCurrentAuthUserId } from "@/lib/tenant";
 import type { ProductUpsertInput } from "@/lib/types";
 import { deleteProductRecord, saveProductRecord } from "../service";
-import { requireAuth } from "@/lib/api-auth";
+import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -157,6 +157,7 @@ async function getExistingProduct(productId: number) {
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  primeRequestContextFromApiContext(session);
   let productId: number | null = null;
   try {
     const { id } = await params;
@@ -316,6 +317,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  primeRequestContextFromApiContext(session);
   try {
     const { id } = await params;
     const productId = parseProductId(id);
@@ -326,6 +328,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const existing = await getExistingProduct(productId);
     if (!existing) {
       return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 });
+    }
+
+    const authUserId = session.authUserId?.trim() || "";
+    if (!authUserId) {
+      return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
     }
 
     const channelState = await getExistingProductChannelState(productId);
@@ -340,7 +347,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     if (imageUrlProvided && previousImageUrl && previousImageUrl !== (payload.image_url ?? null)) {
       try {
-        await deleteProductImageUpload(previousImageUrl);
+        await deleteProductImageUpload(previousImageUrl, {
+          authUserId,
+          allowLegacyDeletion: true,
+        });
       } catch (cleanupError) {
         console.warn("Product image cleanup warning:", cleanupError);
       }
@@ -363,6 +373,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
+  primeRequestContextFromApiContext(session);
   try {
     const { id } = await params;
     const productId = parseProductId(id);
