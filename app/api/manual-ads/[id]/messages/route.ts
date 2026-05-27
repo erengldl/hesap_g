@@ -19,7 +19,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   try {
     const user = await getAuthenticatedUserFromRequest(request);
     if (!user) {
-      return NextResponse.json({ success: false, error: "Oturum bulunamadi." }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Oturum bulunamadı." }, { status: 401 });
     }
 
     const { id } = await params;
@@ -45,7 +45,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   try {
     const user = await getAuthenticatedUserFromRequest(request);
     if (!user) {
-      return NextResponse.json({ success: false, error: "Oturum bulunamadi." }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Oturum bulunamadı." }, { status: 401 });
     }
 
     const { id } = await params;

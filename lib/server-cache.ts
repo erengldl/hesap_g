@@ -5,6 +5,11 @@ type CacheEntry<T> = {
 
 const cache = new Map<string, CacheEntry<unknown>>();
 
+export function buildScopedCacheKey(baseKey: string, scopeKey: string | number | null | undefined) {
+  const normalizedScope = String(scopeKey ?? "anonymous").trim() || "anonymous";
+  return `${baseKey}:${normalizedScope}`;
+}
+
 export function getCachedValue<T>(key: string, ttlMs: number, factory: () => T): T;
 export async function getCachedValue<T>(key: string, ttlMs: number, factory: () => Promise<T>): Promise<T>;
 export function getCachedValue<T>(key: string, ttlMs: number, factory: () => T | Promise<T>): T | Promise<T> {
@@ -26,4 +31,3 @@ export function getCachedValue<T>(key: string, ttlMs: number, factory: () => T |
   cache.set(key, { value, expiresAt: now + ttlMs });
   return value;
 }
-

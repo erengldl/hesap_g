@@ -4,6 +4,7 @@ import { recalculateCostResultsForProductFromDatabase } from "@/lib/cost-engine"
 import { getProductMarginSnapshots, getProductOrderHistory, getProductSalesTrend, summarizeProductTrend, buildProductDescriptionFallback } from "@/lib/product-history";
 import { buildDemoProductDetailResponse } from "@/lib/demo-product-detail";
 import { deleteProductImageUpload } from "@/lib/product-image-upload";
+import { requireCurrentAuthUserId } from "@/lib/tenant";
 import type { ProductUpsertInput } from "@/lib/types";
 import { deleteProductRecord, saveProductRecord } from "../service";
 import { requireAuth } from "@/lib/api-auth";
@@ -50,6 +51,7 @@ async function getExistingProductChannelState(productId: number) {
       salePrice: undefined as number | undefined,
     };
   }
+  const authUserId = requireCurrentAuthUserId();
 
   const rows = await db.prepare(`
     SELECT
@@ -57,10 +59,11 @@ async function getExistingProductChannelState(productId: number) {
       pms.sale_price
       , pms.shipping_company_id
     FROM product_marketplace_settings pms
+    JOIN products p ON p.product_id = pms.product_id
     JOIN marketplaces m ON pms.marketplace_id = m.marketplace_id
-    WHERE pms.product_id = ?
+    WHERE pms.product_id = ? AND p.user_id = ?
     ORDER BY CASE WHEN m.slug = 'own_website' THEN 0 ELSE 1 END, pms.marketplace_id ASC
-  `).all(productId) as ExistingProductChannelRow[];
+  `).all(productId, authUserId) as ExistingProductChannelRow[];
 
   const activeChannels = rows
     .map((row) => (row.slug === "own_website" ? "my_website" : row.slug))
@@ -119,6 +122,7 @@ async function getExistingProduct(productId: number) {
   if (!db) {
     return null;
   }
+  const authUserId = requireCurrentAuthUserId();
 
   return await db.prepare(`
     SELECT
@@ -145,9 +149,9 @@ async function getExistingProduct(productId: number) {
           )
       ) AS stock_qty
     FROM products p
-    WHERE p.product_id = ?
+    WHERE p.product_id = ? AND p.user_id = ?
     LIMIT 1
-  `).get(productId) as ExistingProductRow | undefined ?? null;
+  `).get(productId, authUserId) as ExistingProductRow | undefined ?? null;
 }
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -198,9 +202,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         ) AS stock_qty
       FROM products p
       LEFT JOIN categories c ON c.category_id = p.category_id
-      WHERE p.product_id = ?
+      WHERE p.product_id = ? AND p.user_id = ?
       LIMIT 1
-    `).get(productId) as (ExistingProductRow & { category_name: string | null; category_path_full: string | null }) | undefined;
+    `).get(productId, requireCurrentAuthUserId()) as (ExistingProductRow & { category_name: string | null; category_path_full: string | null }) | undefined;
 
     if (!product) {
       if (shouldAllowDemoFallback()) {
@@ -221,10 +225,11 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         pms.manual_shipping_cost,
         pms.shipping_mode
       FROM product_marketplace_settings pms
+      JOIN products p ON p.product_id = pms.product_id
       JOIN marketplaces m ON m.marketplace_id = pms.marketplace_id
-      WHERE pms.product_id = ?
+      WHERE pms.product_id = ? AND p.user_id = ?
       ORDER BY CASE WHEN m.slug = 'own_website' THEN 0 ELSE 1 END, m.marketplace_id ASC
-    `).all(productId) as Array<{
+    `).all(productId, requireCurrentAuthUserId()) as Array<{
       marketplace_id: number;
       channel_name: string;
       slug: string;

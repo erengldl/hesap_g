@@ -35,6 +35,10 @@ vi.mock("@/lib/api-auth", () => ({
   requireAuth: requireAuthMock,
 }));
 
+vi.mock("@/lib/tenant", () => ({
+  requireCurrentAuthUserId: () => "test-auth-user",
+}));
+
 import { GET } from "@/app/api/products/[id]/route";
 
 describe("product detail route", () => {
@@ -44,6 +48,7 @@ describe("product detail route", () => {
     requireAuthMock.mockReset();
     requireAuthMock.mockResolvedValue({
       userId: 1,
+      authUserId: "test-auth-user",
       email: "demo@example.com",
       name: "Demo User",
       plan: "Premium Plan",

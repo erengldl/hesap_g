@@ -31,6 +31,9 @@ type DashboardPayload = {
   aggregate: AggregateDashboard;
   dataMode: DashboardDataMode;
   dataQuality: DashboardDataQuality;
+  partial?: boolean;
+  fallbackUsed?: boolean;
+  staleAt?: string | null;
   adAnalysis?: {
     totalSpend: number;
     totalNetProfit: number;
@@ -40,6 +43,10 @@ type DashboardPayload = {
     scaleCount: number;
     totalCampaigns: number;
     lastSyncedAt: string;
+    analysisMode?: "imported" | "simulated";
+    dataSource?: "imported" | "derived";
+    coverageRatio?: number;
+    fallbackUsed?: boolean;
   } | null;
   product?: Product;
   results?: ChannelCostResult[];
@@ -139,7 +146,6 @@ function getMarginConfidenceMeta(confidence: "exact" | "estimated") {
 
 export default function DashboardPage() {
   const [isClient, setIsClient] = useState(false);
-  const [chartsReady, setChartsReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [payload, setPayload] = useState<DashboardPayload | null>(null);
   const [seedDemoError, setSeedDemoError] = useState<string | null>(null);
@@ -161,20 +167,6 @@ export default function DashboardPage() {
 
   const agg = payload?.aggregate;
 
-  useEffect(() => {
-    if (!agg) {
-      setChartsReady(false);
-      return;
-    }
-
-    setChartsReady(false);
-    const timeoutId = window.setTimeout(() => {
-      setChartsReady(true);
-    }, 80);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [agg]);
-
   const results = payload?.results ?? [];
   const bestChannel = payload?.bestChannel;
   const bestChannelName = bestChannel?.channel_name ?? "Kanal";
@@ -189,6 +181,7 @@ export default function DashboardPage() {
   ].join(" ");
   const methodology = methodologyFootnote;
   const adSummary = payload?.adAnalysis ?? null;
+  const showCharts = Boolean(agg) && isClient;
   const dataMode = payload?.dataMode ?? "partial";
   const dataQuality = payload?.dataQuality ?? { score: 0, warnings: [], lastSyncAt: null };
   const dataModeMeta = getDataModeMeta(dataMode);
@@ -270,11 +263,27 @@ export default function DashboardPage() {
           <dataModeMeta.icon className="h-3.5 w-3.5" />
           {dataModeMeta.label}
         </EyebrowBadge>
-        <div className="flex items-center gap-1.5 rounded-md border border-border bg-surface-container px-2 py-0.5 text-[10px] font-medium text-muted">
+        <div className="flex items-center gap-1.5 rounded-md border border-border bg-surface-container px-2 py-0.5 text-xs font-medium text-muted">
           <Zap className="h-3 w-3 text-primary" />
           Canlı analiz
         </div>
       </PageHeader>
+
+      {payload?.fallbackUsed || adSummary?.analysisMode === "simulated" ? (
+        <GlassCard className="mb-4 border-warning/25 bg-warning/10">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-warning">Karar desteği kısmi veriyle gösteriliyor.</p>
+              <p className="text-sm leading-6 text-soft">
+                {adSummary?.analysisMode === "simulated"
+                  ? "Reklam özeti türetilmiş kampanya sinyallerinden hesaplanıyor; gerçek platform entegrasyonu yerine simülasyon kullanılıyor."
+                  : "Bazı dashboard kartları yedek görünüm veya kısmi veri ile oluşturuldu."}
+              </p>
+            </div>
+          </div>
+        </GlassCard>
+      ) : null}
 
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard title="Toplam Ciro" value={formatCurrency(agg.totalRevenue)} icon={DollarSign}
@@ -292,7 +301,7 @@ export default function DashboardPage() {
           <KpiCard
             title="Reklam Harcaması"
             value={formatCurrency(adSummary.totalSpend)}
-            subValue={`${formatNumber(adSummary.totalCampaigns)} kampanya`}
+            subValue={`${formatNumber(adSummary.totalCampaigns)} kampanya${adSummary.coverageRatio !== undefined ? ` · kapsama %${Math.round(adSummary.coverageRatio * 100)}` : ""}`}
             icon={Megaphone}
           />
           <KpiCard
@@ -305,7 +314,7 @@ export default function DashboardPage() {
           <KpiCard
             title="Kârlılık Oranı"
             value={`${adSummary.averagePoas.toFixed(2)}x`}
-            subValue="Kar / harcama"
+            subValue={adSummary.analysisMode === "simulated" ? "Simüle karar metriği" : "Kâr / harcama"}
             icon={TrendingUp}
           />
           <KpiCard
@@ -354,7 +363,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="h-[260px] min-w-0 w-full">
-            {chartsReady && isClient && agg.salesTrend.length > 0 ? (
+            {showCharts && agg.salesTrend.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} initialDimension={{ width: 1, height: 1 }}>
                 <AreaChart data={agg.salesTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
@@ -388,7 +397,7 @@ export default function DashboardPage() {
         <GlassCard>
           <h3 className="panel-title mb-3">Kanal Hacmi</h3>
           <div className="h-[200px] min-w-0">
-            {chartsReady && isClient && agg.channelBreakdown.length > 0 ? (
+            {showCharts && agg.channelBreakdown.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} initialDimension={{ width: 1, height: 1 }}>
                 <PieChart>
                   <Pie data={agg.channelBreakdown} cx="50%" cy="50%" innerRadius={52} outerRadius={78} isAnimationActive={true} animationDuration={400}
@@ -581,7 +590,7 @@ export default function DashboardPage() {
           <GlassCard>
             <h3 className="panel-title mb-3">Maliyet Kırılımı ({bestChannelName})</h3>
             <div className="h-[220px] min-w-0">
-              {chartsReady && isClient ? (
+              {showCharts ? (
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} initialDimension={{ width: 1, height: 1 }}>
                   <PieChart>
                     <Pie data={payload.costBreakdown} cx="50%" cy="50%" innerRadius={52} outerRadius={82} isAnimationActive={true} animationDuration={400}
@@ -682,7 +691,7 @@ export default function DashboardPage() {
                         isBest ? "bg-primary-soft text-primary border-border" : "bg-surface-soft text-muted border-border"
                       )}
                     >
-                      {isBest ? "En iyi" : "Diger"}
+                      {isBest ? "En iyi" : "Diğer"}
                     </span>
                   </div>
 
@@ -743,7 +752,7 @@ export default function DashboardPage() {
               <span className="text-sm font-semibold text-foreground">{dataQualityLabel}</span>
             </div>
             <div className="h-16">
-              {chartsReady && isClient ? (
+              {showCharts ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsBarChart data={dataQualityBarData} layout="vertical" margin={{ top: 8, right: 4, left: 4, bottom: 8 }}>
                     <XAxis type="number" domain={[0, 100]} hide />
@@ -795,7 +804,7 @@ export default function DashboardPage() {
           <div className="mb-3 flex items-center justify-between gap-3">
             <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">Uyarılar</span>
             <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted/60">
-              {dataQuality.warnings.length} kayit
+              {dataQuality.warnings.length} kayıt
             </span>
           </div>
 
@@ -862,10 +871,10 @@ function ProductComparison() {
         setProductsLoaded(true);
         setProductsError(null);
       } else {
-        setProductsError("Urun listesi bos geldi.");
+          setProductsError("Ürün listesi boş geldi.");
       }
     } catch {
-      setProductsError("Urun listesi yuklenemedi.");
+        setProductsError("Ürün listesi yüklenemedi.");
     } finally {
       setProductsLoading(false);
     }
@@ -902,11 +911,11 @@ function ProductComparison() {
         setResults(data.products);
       } else {
         setResults(null);
-        setCompareError(data?.error || "Karsilastirma sonuclari alinamadi.");
+        setCompareError(data?.error || "Karşılaştırma sonuçları alınamadı.");
       }
     } catch {
       setResults(null);
-      setCompareError("Karsilastirma sonuclari alinamadi.");
+        setCompareError("Karşılaştırma sonuçları alınamadı.");
     } finally {
       setComparing(false);
     }
@@ -917,7 +926,7 @@ function ProductComparison() {
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-1">
           <h3 className="font-heading text-base font-bold text-foreground">Benchmark Analizi</h3>
-          <p className="text-xs font-medium text-muted/60">Secili urunlerin platformlar arasi karliligi.</p>
+          <p className="text-xs font-medium text-muted/60">Seçili ürünlerin platformlar arası kârlılığı.</p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto">
           <select
@@ -927,7 +936,7 @@ function ProductComparison() {
               className="w-full rounded-md border border-border bg-surface-container px-3 py-2 text-sm font-medium text-foreground outline-none transition-[border-color,box-shadow] duration-200 focus:border-primary/40 focus:ring-1 focus:ring-primary/20 sm:w-[260px]"
           >
             <option value="" disabled className="text-muted">
-              {productsLoading && !productsLoaded ? "Urunler yukleniyor..." : "Urun secin..."}
+              {productsLoading && !productsLoaded ? "Ürünler yükleniyor..." : "Ürün seçin..."}
             </option>
             {products.filter((p) => !selected.includes(p.id)).map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
@@ -938,7 +947,7 @@ function ProductComparison() {
             disabled={selected.length < 2 || comparing}
             className="w-full rounded-md bg-primary px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-primary-foreground transition-colors duration-200 hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-30 sm:w-auto"
           >
-            {comparing ? "ANALIZ EDILIYOR..." : "KIYASLA"}
+            {comparing ? "ANALİZ EDİLİYOR..." : "KIYASLA"}
           </button>
         </div>
         {productsError && (

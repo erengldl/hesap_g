@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import { getOwnWebsiteGatewayRule } from "@/lib/database-readers";
 import { recalculateAllCostResults } from "@/lib/portfolio-analytics";
 import { requireAuth } from "@/lib/api-auth";
+import { getCurrentSellerProfileId, getOrCreateCurrentSellerProfileId } from "@/lib/seller-profile-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -29,12 +30,13 @@ function getDefaultSettings() {
 }
 
 async function getSettings() {
+  const sellerProfileId = await getCurrentSellerProfileId();
   const rule = await getOwnWebsiteGatewayRule();
   if (!rule) {
     return {
       payment_gateway_rule_id: null,
       marketplace_id: 3,
-      seller_profile_id: 1,
+      seller_profile_id: sellerProfileId,
       ...getDefaultSettings(),
     };
   }
@@ -42,7 +44,7 @@ async function getSettings() {
   return {
     payment_gateway_rule_id: rule.id,
     marketplace_id: rule.marketplace_id,
-    seller_profile_id: rule.seller_profile_id ?? 1,
+    seller_profile_id: rule.seller_profile_id ?? sellerProfileId,
     gateway_name: rule.gateway_name,
     commission_rate: Number(rule.fee_rate_percent ?? 0),
     fixed_fee: Number(rule.fixed_fee_per_order ?? 0),
@@ -72,9 +74,10 @@ export async function PUT(request: Request) {
   if (session instanceof NextResponse) return session;
   try {
     const body = (await request.json()) as Partial<WebsiteSettingsPayload>;
+    const sellerProfileId = await getOrCreateCurrentSellerProfileId();
     const db = await getDb();
     if (!db) {
-      return NextResponse.json({ success: false, error: "Database connection unavailable" }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Veritabanı bağlantısı kullanılamıyor." }, { status: 500 });
     }
 
     const payload = {
@@ -98,7 +101,7 @@ export async function PUT(request: Request) {
             manual_shipping_cost = ?,
             avg_ad_cost = ?,
             avg_conversion_rate = ?,
-            seller_profile_id = 1,
+            seller_profile_id = ?,
             marketplace_id = 3,
             is_active = 1
         WHERE id = ?
@@ -110,6 +113,7 @@ export async function PUT(request: Request) {
         payload.manual_shipping_cost,
         payload.avg_ad_cost,
         payload.avg_conversion_rate,
+        sellerProfileId,
         existing.id
       );
     } else {
@@ -126,8 +130,9 @@ export async function PUT(request: Request) {
           avg_ad_cost,
           avg_conversion_rate,
           is_active
-        ) VALUES (1, 3, ?, ?, ?, 20, ?, ?, ?, ?, 1)
+        ) VALUES (?, 3, ?, ?, ?, 20, ?, ?, ?, ?, 1)
       `).run(
+        sellerProfileId,
         payload.gateway_name,
         payload.commission_rate,
         payload.fixed_fee,

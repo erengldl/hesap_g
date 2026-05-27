@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     const category = readTextParam(searchParams.get("category")) ?? undefined;
     const status = statusParam && statusParam !== "all" ? (statusParam as ChannelSeoStatus) : undefined;
 
-    const products = listChannelSeoProducts({
+    const products = await listChannelSeoProducts({
       q,
       category,
       channel: channelInput,
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
       data: {
         ...products,
         facets: {
-          categories: listChannelSeoCategories(),
+          categories: await listChannelSeoCategories(),
         },
       },
     });

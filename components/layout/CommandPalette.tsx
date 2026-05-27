@@ -154,7 +154,7 @@ function getResultStyles(type: SearchResultType, selected: boolean) {
   return styles[type];
 }
 
-function buildActionResults(useDemoData: boolean): SearchResult[] {
+function buildActionResults(demoSeedAvailable: boolean): SearchResult[] {
   const actions: SearchResult[] = [
     {
       id: "action:open-product-form",
@@ -187,7 +187,7 @@ function buildActionResults(useDemoData: boolean): SearchResult[] {
     },
   ];
 
-  if (useDemoData) {
+  if (demoSeedAvailable) {
     actions.splice(2, 0, {
       id: "action:seed-demo-data",
       type: "action",
@@ -206,7 +206,7 @@ function buildActionResults(useDemoData: boolean): SearchResult[] {
 export default function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const useDemoData = process.env.NODE_ENV !== "production";
+  const demoSeedAvailable = true;
   const inputRef = useRef<HTMLInputElement>(null);
   const productCacheRef = useRef(new Map<string, SearchResult[]>());
   const orderCacheRef = useRef(new Map<string, SearchResult[]>());
@@ -220,7 +220,7 @@ export default function CommandPalette({ open, onOpenChange }: CommandPalettePro
 
   const normalizedQuery = useMemo(() => normalizeSearch(query), [query]);
   const normalizedDebouncedQuery = useMemo(() => normalizeSearch(debouncedQuery), [debouncedQuery]);
-  const actionResults = useMemo(() => buildActionResults(useDemoData), [useDemoData]);
+  const actionResults = useMemo(() => buildActionResults(demoSeedAvailable), [demoSeedAvailable]);
 
   useEffect(() => {
     if (!open) {

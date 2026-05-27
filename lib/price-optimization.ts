@@ -4,6 +4,7 @@ import { getMarketplaces, getProducts, getProductMarketplaceSetting } from "@/li
 import { calculateChannelCost } from "./cost-engine";
 import { getProductSalesVelocity } from "./product-history";
 import { recalculateCostResultsForProduct } from "./portfolio-analytics";
+import { requireCurrentAuthUserId } from "./tenant";
 import type { Marketplace, Product } from "@/lib/types";
 
 export type ConfidenceScore = "Low" | "Medium" | "High";
@@ -557,12 +558,14 @@ export async function savePriceOptimizationRun(result: PriceOptimizationResult) 
     return null;
   }
 
+  const authUserId = requireCurrentAuthUserId();
   const runId = result.run_id ?? randomUUID();
   const status: PriceOptimizationRunStatus = result.run_status ?? "DRAFT";
   const publishedAt = status === "PUBLISHED" ? new Date().toISOString() : null;
   await db.prepare(`
     INSERT INTO price_optimization_runs (
       run_id,
+      user_id,
       product_id,
       marketplace_id,
       current_price,
@@ -579,9 +582,10 @@ export async function savePriceOptimizationRun(result: PriceOptimizationResult) 
       stock,
       current_sales_volume,
       published_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     runId,
+    authUserId,
     result.product_id,
     result.marketplace_id,
     result.current_price,
@@ -604,6 +608,7 @@ export async function savePriceOptimizationRun(result: PriceOptimizationResult) 
 }
 
 export async function getPriceOptimizationRun(runId: string) {
+  const authUserId = requireCurrentAuthUserId();
   return await getOne<PriceOptimizationRunRecord>(`
     SELECT
       run_id,
@@ -625,9 +630,9 @@ export async function getPriceOptimizationRun(runId: string) {
       created_at,
       published_at
     FROM price_optimization_runs
-    WHERE run_id = ?
+    WHERE run_id = ? AND user_id = ?
     LIMIT 1
-  `, [runId]);
+  `, [runId, authUserId]);
 }
 
 export async function markPriceOptimizationRunPublished(runId: string) {
@@ -636,13 +641,14 @@ export async function markPriceOptimizationRunPublished(runId: string) {
     return false;
   }
 
+  const authUserId = requireCurrentAuthUserId();
   const publishedAt = new Date().toISOString();
   const result = await db.prepare(`
     UPDATE price_optimization_runs
     SET status = 'PUBLISHED',
         published_at = COALESCE(published_at, ?)
-    WHERE run_id = ?
-  `).run(publishedAt, runId);
+    WHERE run_id = ? AND user_id = ?
+  `).run(publishedAt, runId, authUserId);
 
   return result.changes > 0;
 }

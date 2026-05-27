@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Product image upload error:", error);
-    return NextResponse.json({ success: false, error: "GҶrsel yҼklenemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Görsel yüklenemedi." }, { status: 500 });
   }
 }
 
@@ -45,6 +45,6 @@ export async function DELETE(request: Request) {
     });
   } catch (error) {
     console.error("Product image delete error:", error);
-    return NextResponse.json({ success: false, error: "GҶrsel silinemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Görsel silinemedi." }, { status: 500 });
   }
 }

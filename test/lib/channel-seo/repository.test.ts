@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { clearRequestContext, setRequestContext } from "@/lib/request-context";
 
 // ── In-memory mock database (replaces better-sqlite3) ─────
 
@@ -443,6 +444,7 @@ async function createSchema(database: TestDatabase) {
   await database.exec(`
     CREATE TABLE products (
       product_id INTEGER PRIMARY KEY,
+      user_id TEXT,
       name TEXT NOT NULL,
       category_id INTEGER,
       profile_id INTEGER,
@@ -518,14 +520,14 @@ async function seedRows(database: TestDatabase) {
   await database.prepare("INSERT INTO marketplaces (marketplace_id, name, slug) VALUES (?, ?, ?)").run(3, "Kendi Websitem", "own_website");
   await database.prepare(`
     INSERT INTO products (
-      product_id, name, category_id, profile_id, cost, packaging_cost, desi, status, sku, image_url, category_path, barcode, description
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(101, "Deneme Ürün A", 1, 1, 100, 12, 1, "active", "SKU-101", null, "Elektronik", "8690000000001", "Mevcut açıklama A");
+      product_id, user_id, name, category_id, profile_id, cost, packaging_cost, desi, status, sku, image_url, category_path, barcode, description
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(101, "test-auth-user", "Deneme Ürün A", 1, 1, 100, 12, 1, "active", "SKU-101", null, "Elektronik", "8690000000001", "Mevcut açıklama A");
   await database.prepare(`
     INSERT INTO products (
-      product_id, name, category_id, profile_id, cost, packaging_cost, desi, status, sku, image_url, category_path, barcode, description
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(102, "Deneme Ürün B", 1, 1, 200, 15, 2, "active", "SKU-102", null, "Elektronik", "8690000000002", "Mevcut açıklama B");
+      product_id, user_id, name, category_id, profile_id, cost, packaging_cost, desi, status, sku, image_url, category_path, barcode, description
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(102, "test-auth-user", "Deneme Ürün B", 1, 1, 200, 15, 2, "active", "SKU-102", null, "Elektronik", "8690000000002", "Mevcut açıklama B");
   await database.prepare("INSERT INTO product_marketplace_settings (product_id, marketplace_id, sale_price) VALUES (?, ?, ?)").run(101, 3, 149.9);
   await database.prepare("INSERT INTO product_marketplace_settings (product_id, marketplace_id, sale_price) VALUES (?, ?, ?)").run(102, 3, 249.9);
   await database.prepare("INSERT INTO inventory_daily (product_id, marketplace_id, inventory_date, stock_qty, reserved_qty) VALUES (?, ?, ?, ?, ?)").run(101, 3, "2026-05-18", 30, 2);
@@ -533,12 +535,18 @@ async function seedRows(database: TestDatabase) {
 }
 
 beforeEach(async () => {
+  setRequestContext({
+    userId: "1",
+    authUserId: "test-auth-user",
+    requestId: "test-channel-seo",
+  });
   db = createTestDb();
   await createSchema(db);
   await seedRows(db);
 });
 
 afterEach(() => {
+  clearRequestContext();
   db.close();
 });
 

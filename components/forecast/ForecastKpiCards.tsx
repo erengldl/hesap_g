@@ -33,7 +33,7 @@ export default function ForecastKpiCards({ result }: ForecastKpiCardsProps) {
       <KpiCard
         title="Net kâr"
         value={formatCurrency(summary?.expectedNetProfit ?? 0)}
-        subValue={`Birim net kâr: ${formatCurrency(summary?.unitNetProfit ?? 0)}`}
+        subValue={`${summary?.modelName === "StatisticalBaselineModel" ? "İstatistiksel baseline" : "Model"} · Birim net kâr: ${formatCurrency(summary?.unitNetProfit ?? 0)}`}
         icon={AlertTriangle}
         tone={summary?.confidenceScore === "High" ? "success" : summary?.confidenceScore === "Medium" ? "warning" : "danger"}
       />

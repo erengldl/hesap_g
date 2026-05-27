@@ -1,7 +1,9 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 
 import { getAuthenticatedUserFromCookieHeader } from "./request-auth";
+import { clearRequestContext, setRequestContext } from "./request-context";
 
 export type ApiContext = {
   userId: number;
@@ -28,6 +30,7 @@ async function resolveCookieHeader(request?: Request) {
 }
 
 export async function requireAuth(request?: Request): Promise<ApiContext | NextResponse> {
+  clearRequestContext();
   const cookieHeader = await resolveCookieHeader(request);
 
   if (!cookieHeader.trim()) {
@@ -36,8 +39,17 @@ export async function requireAuth(request?: Request): Promise<ApiContext | NextR
 
   const user = await getAuthenticatedUserFromCookieHeader(cookieHeader);
   if (!user) {
-    return NextResponse.json({ success: false, error: "Oturum suresi dolmus." }, { status: 401 });
+    return NextResponse.json({ success: false, error: "Oturum süresi doldu." }, { status: 401 });
   }
+
+  setRequestContext({
+    userId: user.userId,
+    authUserId: user.authUserId ?? null,
+    email: user.email,
+    name: user.name,
+    plan: user.plan,
+    requestId: randomUUID(),
+  });
 
   return {
     userId: user.userId,

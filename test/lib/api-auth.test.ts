@@ -54,7 +54,7 @@ describe("requireAuth", () => {
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({
       success: false,
-      error: "Oturum suresi dolmus.",
+      error: "Oturum süresi doldu.",
     });
   });
 

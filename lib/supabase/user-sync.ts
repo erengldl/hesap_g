@@ -16,9 +16,6 @@ type AppUserRow = {
   auth_user_id?: string | null;
 };
 
-let authUserIdColumnReady = false;
-let authUserIdColumnPromise: Promise<void> | null = null;
-
 function resolveDisplayName(user: User, fallbackEmail: string) {
   const metadata = user.user_metadata ?? {};
   const metadataName =
@@ -30,7 +27,7 @@ function resolveDisplayName(user: User, fallbackEmail: string) {
           ? metadata.display_name.trim()
           : "";
 
-  return metadataName || fallbackEmail.split("@")[0] || "Kullanici";
+  return metadataName || fallbackEmail.split("@")[0] || "Kullanıcı";
 }
 
 function toAuthUser(row: AppUserRow, authUserId: string): AuthUser {
@@ -46,38 +43,6 @@ function toAuthUser(row: AppUserRow, authUserId: string): AuthUser {
   };
 }
 
-async function ensureAuthUserIdColumn() {
-  if (authUserIdColumnReady) {
-    return;
-  }
-
-  if (!authUserIdColumnPromise) {
-    authUserIdColumnPromise = (async () => {
-      const db = getDb();
-      const existing = (await db.prepare(`
-        SELECT EXISTS (
-          SELECT 1
-          FROM information_schema.columns
-          WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'auth_user_id'
-        ) AS exists
-      `).get()) as { exists?: boolean } | undefined;
-
-      if (!existing?.exists) {
-        await db.exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_user_id TEXT");
-        await db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_auth_user_id ON users(auth_user_id)");
-      }
-
-      authUserIdColumnReady = true;
-    })().finally(() => {
-      if (!authUserIdColumnReady) {
-        authUserIdColumnPromise = null;
-      }
-    });
-  }
-
-  await authUserIdColumnPromise;
-}
-
 export async function upsertSupabaseUser(user: User): Promise<AuthUser | null> {
   const authUserId = String(user.id || "").trim();
   const email = String(user.email || "").trim().toLowerCase();
@@ -85,8 +50,6 @@ export async function upsertSupabaseUser(user: User): Promise<AuthUser | null> {
   if (!authUserId || !email) {
     return null;
   }
-
-  await ensureAuthUserIdColumn();
 
   const db = getDb();
   const name = resolveDisplayName(user, email);

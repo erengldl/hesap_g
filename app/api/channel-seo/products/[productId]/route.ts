@@ -21,7 +21,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       );
     }
 
-    const detail = getChannelSeoProductDetail(normalizedProductId);
+    const detail = await getChannelSeoProductDetail(normalizedProductId);
     if (!detail) {
       return NextResponse.json(
         {

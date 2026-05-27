@@ -4,6 +4,7 @@ import { buildDemandForecast as buildDemandForecastEngine } from "./demand-forec
 import { recalculateAllCostResultsFromDatabase, recalculateCostResultsForProfileFromDatabase, recalculateCostResultsForProductFromDatabase } from "./cost-engine";
 import { getProductSalesVelocity } from "./product-history";
 import { calculateVatEstimate } from "./tax-calculator";
+import { requireCurrentAuthUserId } from "./tenant";
 import type { AdMetrics, ChannelCostResult, Product } from "./types";
 
 type ProductRow = {
@@ -163,6 +164,7 @@ async function getShippingCompanyName(shippingCompanyId: number | null) {
 }
 
 async function getProductContext(productId?: number): Promise<ProductContext | null> {
+  const authUserId = requireCurrentAuthUserId();
   const resolvedProductId = productId ?? await getDefaultProductId();
   if (!resolvedProductId) return null;
 
@@ -180,9 +182,9 @@ async function getProductContext(productId?: number): Promise<ProductContext | n
       p.status
     FROM products p
     LEFT JOIN categories c ON c.category_id = p.category_id
-    WHERE p.product_id = ?
+    WHERE p.product_id = ? AND p.user_id = ?
     LIMIT 1
-  `, [resolvedProductId]);
+  `, [resolvedProductId, authUserId]);
 
   if (!product) return null;
 
@@ -199,10 +201,11 @@ async function getProductContext(productId?: number): Promise<ProductContext | n
       m.name AS marketplace_name,
       m.slug AS marketplace_slug
     FROM product_marketplace_settings ms
+    JOIN products p ON p.product_id = ms.product_id
     LEFT JOIN marketplaces m ON m.marketplace_id = ms.marketplace_id
-    WHERE ms.product_id = ?
+    WHERE ms.product_id = ? AND p.user_id = ?
     ORDER BY ms.marketplace_id ASC
-  `, [resolvedProductId]);
+  `, [resolvedProductId, authUserId]);
 
   const sellerProfile = await getOne<SellerProfileRow>(`
     SELECT
@@ -214,9 +217,9 @@ async function getProductContext(productId?: number): Promise<ProductContext | n
       monthly_other_expenses,
       expected_monthly_order_count
     FROM seller_profiles
-    WHERE profile_id = ?
+    WHERE profile_id = ? AND user_id = ?
     LIMIT 1
-  `, [product.profile_id ?? 1]) ?? DEFAULT_SELLER_PROFILE;
+  `, [product.profile_id ?? 1, authUserId]) ?? DEFAULT_SELLER_PROFILE;
 
   const websiteGateway = await getOwnWebsiteGatewayRule() ?? DEFAULT_WEBSITE_GATEWAY;
 
@@ -695,6 +698,7 @@ export type AggregateDashboard = {
 };
 
 export async function buildAggregateDashboard(): Promise<AggregateDashboard | null> {
+  const authUserId = requireCurrentAuthUserId();
   const db = await getDb();
   if (!db) return null;
 
@@ -707,8 +711,8 @@ export async function buildAggregateDashboard(): Promise<AggregateDashboard | nu
     FROM orders o
     JOIN order_items oi ON o.order_id = oi.order_id
     JOIN products p ON o.product_id = p.product_id
-    WHERE o.status = 'completed'
-  `).get() as { total_revenue: number; total_orders: number; total_products: number };
+    WHERE o.status = 'completed' AND o.user_id = ?
+  `).get(authUserId) as { total_revenue: number; total_orders: number; total_products: number };
 
   // Channel breakdown
   const channelRows = await db.prepare(`
@@ -720,10 +724,10 @@ export async function buildAggregateDashboard(): Promise<AggregateDashboard | nu
     FROM orders o
     JOIN order_items oi ON o.order_id = oi.order_id
     JOIN marketplaces m ON o.marketplace_id = m.marketplace_id
-    WHERE o.status = 'completed'
+    WHERE o.status = 'completed' AND o.user_id = ?
     GROUP BY m.marketplace_id
     ORDER BY total_revenue DESC
-  `).all() as OrderAggregateRow[];
+  `).all(authUserId) as OrderAggregateRow[];
 
   const channelBreakdown = channelRows.map((row) => ({
     name: row.channel_name,
@@ -752,11 +756,11 @@ export async function buildAggregateDashboard(): Promise<AggregateDashboard | nu
     LEFT JOIN cost_results cr
       ON cr.product_id = p.product_id
       AND cr.marketplace_id = o.marketplace_id
-    WHERE o.status = 'completed'
+    WHERE o.status = 'completed' AND o.user_id = ?
     GROUP BY p.product_id
     ORDER BY total_revenue DESC
     LIMIT 5
-  `).all() as ProductProfitRow[];
+  `).all(authUserId) as ProductProfitRow[];
 
   const topProducts = topProductRows.map((row) => {
     const revenue = Number(row.total_revenue ?? 0);
@@ -789,10 +793,10 @@ export async function buildAggregateDashboard(): Promise<AggregateDashboard | nu
       COUNT(DISTINCT o.order_id) as order_count
     FROM orders o
     JOIN order_items oi ON o.order_id = oi.order_id
-    WHERE o.status = 'completed' AND o.order_date >= CURRENT_DATE - INTERVAL '30 days'
+    WHERE o.status = 'completed' AND o.user_id = ? AND o.order_date >= CURRENT_DATE - INTERVAL '30 days'
     GROUP BY o.order_date
     ORDER BY o.order_date
-  `).all() as DailySalesRow[];
+  `).all(authUserId) as DailySalesRow[];
 
   const salesTrend = trendRows.map((row) => ({
     date: row.order_date,
@@ -812,10 +816,11 @@ export async function buildAggregateDashboard(): Promise<AggregateDashboard | nu
     JOIN products p ON id.product_id = p.product_id
     JOIN marketplaces m ON id.marketplace_id = m.marketplace_id
     WHERE id.inventory_date = (SELECT MAX(inventory_date) FROM inventory_daily)
+      AND id.user_id = ?
       AND id.stock_qty < 20
     ORDER BY id.stock_qty ASC
     LIMIT 10
-  `).all() as StockAlertRow[];
+  `).all(authUserId) as StockAlertRow[];
 
   const stockAlerts = stockAlertRows.map((row) => ({
     id: row.product_id,
@@ -830,7 +835,8 @@ export async function buildAggregateDashboard(): Promise<AggregateDashboard | nu
     SELECT AVG((pms.sale_price - p.cost - p.packaging_cost) / pms.sale_price) * 100 as avg_margin
     FROM products p
     JOIN product_marketplace_settings pms ON p.product_id = pms.product_id
-  `).get() as { avg_margin: number } | undefined;
+    WHERE p.user_id = ?
+  `).get(authUserId) as { avg_margin: number } | undefined;
 
   const avgMargin = Math.round((avgMarginFromProducts?.avg_margin ?? 35) * 10) / 10;
   const totalProfit = Math.round(totals.total_revenue * (avgMargin / 100));

@@ -67,7 +67,7 @@ describe("AuthContext", () => {
 
     authMeRequest.resolve(
       new Response(
-        JSON.stringify({ success: false, error: "Oturum bulunamadi." }),
+        JSON.stringify({ success: false, error: "Oturum bulunamadı." }),
         {
           status: 401,
           headers: { "Content-Type": "application/json" },

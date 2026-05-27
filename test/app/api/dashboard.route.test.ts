@@ -4,17 +4,21 @@ const {
   buildAggregateDashboardMock,
   buildDashboardSnapshotMock,
   buildAdAnalysisMock,
+  buildAdAnalysisSummaryMock,
   getProductsMock,
   getDbMock,
   getCachedValueMock,
+  buildScopedCacheKeyMock,
   requireAuthMock,
 } = vi.hoisted(() => ({
   buildAggregateDashboardMock: vi.fn(),
   buildDashboardSnapshotMock: vi.fn(),
   buildAdAnalysisMock: vi.fn(),
+  buildAdAnalysisSummaryMock: vi.fn(),
   getProductsMock: vi.fn(),
   getDbMock: vi.fn(),
   getCachedValueMock: vi.fn(),
+  buildScopedCacheKeyMock: vi.fn((base: string, scope: string | number) => `${base}:${scope}`),
   requireAuthMock: vi.fn(),
 }));
 
@@ -25,6 +29,7 @@ vi.mock("@/lib/portfolio-analytics", () => ({
 
 vi.mock("@/lib/ad-analysis", () => ({
   buildAdAnalysis: buildAdAnalysisMock,
+  buildAdAnalysisSummary: buildAdAnalysisSummaryMock,
 }));
 
 vi.mock("@/lib/database-readers", () => ({
@@ -37,6 +42,7 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/lib/server-cache", () => ({
   getCachedValue: getCachedValueMock,
+  buildScopedCacheKey: buildScopedCacheKeyMock,
 }));
 
 vi.mock("@/lib/api-auth", () => ({
@@ -117,24 +123,28 @@ describe("dashboard route data signals", () => {
     buildAggregateDashboardMock.mockReset();
     buildDashboardSnapshotMock.mockReset();
     buildAdAnalysisMock.mockReset();
+    buildAdAnalysisSummaryMock.mockReset();
     getProductsMock.mockReset();
     getDbMock.mockReset();
     getCachedValueMock.mockReset();
+    buildScopedCacheKeyMock.mockClear();
     requireAuthMock.mockReset();
 
     buildAggregateDashboardMock.mockReturnValue(createAggregate());
     buildDashboardSnapshotMock.mockReturnValue(null);
     buildAdAnalysisMock.mockReturnValue(null);
+    buildAdAnalysisSummaryMock.mockReturnValue(null);
     getCachedValueMock.mockImplementation((_key: string, _ttl: number, loader: () => unknown) => loader());
     requireAuthMock.mockResolvedValue({
       userId: 1,
+      authUserId: "00000000-0000-0000-0000-000000000001",
       email: "demo@example.com",
       name: "Demo User",
       plan: "Premium Plan",
     });
   });
 
-  it("returns demo mode with a quality score between 65 and 70 for seeded demo data", async () => {
+  it("returns demo mode with a conservative quality score for seeded demo data", async () => {
     getProductsMock.mockReturnValue([{ sku: "DEMO-001" }]);
     getDbMock.mockReturnValue(
       createDb({
@@ -148,8 +158,9 @@ describe("dashboard route data signals", () => {
     const data = await response.json();
 
     expect(data.dataMode).toBe("demo");
-    expect(data.dataQuality.score).toBeGreaterThanOrEqual(65);
-    expect(data.dataQuality.score).toBeLessThanOrEqual(70);
+    expect(data.dataQuality.score).toBeGreaterThanOrEqual(35);
+    expect(data.dataQuality.score).toBeLessThanOrEqual(50);
+    expect(data.dataQuality.warnings).toContain("Demo verisi karar amaçlı kullanılmamalı.");
   });
 
   it("returns live mode when there are only live products and live orders", async () => {

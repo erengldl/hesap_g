@@ -21,20 +21,12 @@ type SeedDemoActionOptions = {
   onSeeded?: (result: SeedDemoResponse) => Promise<void> | void;
 };
 
-const DEMO_SEED_ENABLED = process.env.NODE_ENV !== "production";
-const DEMO_SEED_DISABLED_MESSAGE = "Demo verileri production ortamında kapalı.";
-
 export async function triggerSeedDemo({
   confirmMessage,
   onError,
   onStart,
   onSeeded,
 }: SeedDemoActionOptions) {
-  if (!DEMO_SEED_ENABLED) {
-    onError?.(DEMO_SEED_DISABLED_MESSAGE);
-    return;
-  }
-
   onStart?.();
 
   if (confirmMessage && !window.confirm(confirmMessage)) {
@@ -78,10 +70,6 @@ export function SeedDemoButton({
 }: SeedDemoButtonProps) {
   const [loading, setLoading] = useState(false);
 
-  if (!DEMO_SEED_ENABLED) {
-    return null;
-  }
-
   const handleClick = async () => {
     if (loading) return;
 
@@ -109,7 +97,7 @@ export function SeedDemoButton({
       className={cn("btn-primary px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60", className)}
     >
       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudDownload className="h-4 w-4" />}
-      {loading ? "Demo verileri yükleniyor..." : "Demo Verileri Yükle"}
+      {loading ? "Demo verisi yükleniyor..." : "Demo Verisi Yükle"}
     </button>
   );
 }

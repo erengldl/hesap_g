@@ -48,6 +48,9 @@ async function buildSafeBootstrap(input: {
     return {
       ...await buildDemandForecastBootstrap(input.productId, input.marketplaceId, input.horizonDays),
       success: true as const,
+      partial: false,
+      fallbackUsed: false,
+      staleAt: null,
     };
   } catch (error) {
     console.error("Forecast bootstrap fallback error:", error);
@@ -69,7 +72,7 @@ async function buildSafeBootstrap(input: {
     }));
     const fallbackProduct = products[0] ?? {
       id: 0,
-      name: "Demo ҼrҼn",
+      name: "Demo ürün",
       sku: "",
       barcode: "",
       image_url: "",
@@ -125,6 +128,7 @@ async function buildSafeBootstrap(input: {
         summary: {
           horizonDays: input.horizonDays,
           historyWindowDays: 0,
+          historyDays: 0,
           currentStock: 0,
           currentSalesVolume: 0,
           currentPrice: 0,
@@ -137,20 +141,25 @@ async function buildSafeBootstrap(input: {
           wmape: 1,
           confidenceScore: "Low",
           modelName: "FallbackBaseline",
+          confidenceMethod: "Yedek görünüm",
           forecastStartDate: new Date().toISOString().slice(0, 10),
           forecastEndDate: new Date().toISOString().slice(0, 10),
           stockWarning: "Veri bulunamadı.",
           dataSource: "synthetic",
+          isSyntheticHistory: true,
         },
         chartData: [],
         tableRows: [],
-        methodology: "Veri bulunamadığı için yedek tahmin üretildi.",
-        warnings: ["Tahmin verisi Ҽretilemedi, yedek gҶrҼnҼm gҶsteriliyor."],
+        methodology: "Veri bulunamadığı için istatistiksel baseline tabanlı yedek tahmin gösteriliyor.",
+        warnings: ["Tahmin verisi üretilemedi; yedek görünüm gösteriliyor."],
         generatedAt: new Date().toISOString(),
       },
       historyDepthDays: 0,
-      warnings: ["Tahmin verisi Ҽretilemedi, yedek gҶrҼnҼm gҶsteriliyor."],
-      methodology: "Veri bulunamadığı için yedek tahmin üretildi.",
+      warnings: ["Tahmin verisi üretilemedi; yedek görünüm gösteriliyor."],
+      methodology: "Veri bulunamadığı için istatistiksel baseline tabanlı yedek tahmin gösteriliyor.",
+      partial: true,
+      fallbackUsed: true,
+      staleAt: new Date().toISOString(),
     };
   }
 }
@@ -194,6 +203,9 @@ export async function POST(request: Request) {
       result,
       savedRows: input.persist === false ? 0 : result.tableRows.length,
       warnings: result.warnings,
+      partial: false,
+      fallbackUsed: false,
+      staleAt: null,
     };
 
     return NextResponse.json(response);
@@ -205,6 +217,9 @@ export async function POST(request: Request) {
       result: bootstrap.result,
       savedRows: 0,
       warnings: bootstrap.warnings,
+      partial: true,
+      fallbackUsed: true,
+      staleAt: new Date().toISOString(),
     });
   }
 }

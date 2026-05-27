@@ -126,6 +126,10 @@ export type CampaignPipelineStage = {
 
 export type AdAnalysisResponse = {
   success: true;
+  analysisMode: "imported" | "simulated";
+  dataSource: "imported" | "derived";
+  coverageRatio: number;
+  fallbackUsed: boolean;
   metricWindow: {
     start: string;
     end: string;
@@ -160,7 +164,7 @@ export type AdAnalysisResponse = {
 
 export type AdAnalysisSummary = Pick<
   AdAnalysisResponse,
-  "lastSyncedAt" | "totalCampaigns" | "totalSpend" | "totalNetProfit" | "averagePoas" | "lossMakingCount" | "watchCount" | "scaleCount"
+  "lastSyncedAt" | "totalCampaigns" | "totalSpend" | "totalNetProfit" | "averagePoas" | "lossMakingCount" | "watchCount" | "scaleCount" | "analysisMode" | "dataSource" | "coverageRatio" | "fallbackUsed"
 >;
 
 const PLATFORM_CONFIG: Record<CampaignPlatformId, CampaignPlatformConfig> = {
@@ -840,6 +844,10 @@ export async function buildAdAnalysis(windowDays = 30): Promise<AdAnalysisRespon
 
   return {
     success: true,
+    analysisMode: "simulated",
+    dataSource: "derived",
+    coverageRatio: 0,
+    fallbackUsed: false,
     metricWindow: {
       start: windowStart,
       end: windowEnd,
@@ -882,6 +890,7 @@ export async function buildAdAnalysisSummary(): Promise<AdAnalysisSummary | null
   const summary = await db.prepare(`
     SELECT
       COUNT(*)::int AS total_campaigns,
+      COUNT(*) FILTER (WHERE data_source = 'imported')::int AS imported_campaigns,
       COALESCE(SUM(spend), 0) AS total_spend,
       COALESCE(SUM(net_profit), 0) AS total_net_profit,
       COALESCE(AVG(poas), 0) AS average_poas,
@@ -892,6 +901,7 @@ export async function buildAdAnalysisSummary(): Promise<AdAnalysisSummary | null
     FROM campaign_profit_metrics
   `).get() as {
     total_campaigns: number | null;
+    imported_campaigns: number | null;
     total_spend: number | null;
     total_net_profit: number | null;
     average_poas: number | null;
@@ -914,6 +924,12 @@ export async function buildAdAnalysisSummary(): Promise<AdAnalysisSummary | null
     watchCount: Number(summary.watch_count ?? 0),
     scaleCount: Number(summary.scale_count ?? 0),
     lastSyncedAt: summary.last_synced_at ?? new Date().toISOString(),
+    analysisMode: Number(summary.imported_campaigns ?? 0) > 0 ? "imported" : "simulated",
+    dataSource: Number(summary.imported_campaigns ?? 0) > 0 ? "imported" : "derived",
+    coverageRatio: Number(summary.total_campaigns ?? 0) > 0
+      ? round2(Number(summary.imported_campaigns ?? 0) / Number(summary.total_campaigns ?? 0))
+      : 0,
+    fallbackUsed: false,
   };
 }
 

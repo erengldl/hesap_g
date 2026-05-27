@@ -34,13 +34,14 @@ export async function GET(request: Request) {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
   try {
+    const authUserId = session.authUserId ?? "";
     const url = new URL(request.url);
     const limit = clampLimit(parseNumeric(url.searchParams.get("limit"), 8));
     const productId = parseNumeric(url.searchParams.get("productId"), 0);
     const marketplaceId = parseNumeric(url.searchParams.get("marketplaceId"), 0);
 
-    const filters: string[] = [];
-    const params: Array<number> = [];
+    const filters: string[] = ["r.user_id = ?"];
+    const params: Array<number | string> = [authUserId];
 
     if (productId > 0) {
       filters.push("r.product_id = ?");

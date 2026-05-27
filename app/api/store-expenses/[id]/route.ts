@@ -26,9 +26,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   try {
-    const existing = getStoreExpenseById(expenseId);
+    const existing = await getStoreExpenseById(expenseId);
+    const authUserId = session.authUserId ?? "";
     if (!existing) {
-      return NextResponse.json({ success: false, error: "Expense not found" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Gider bulunamadı." }, { status: 404 });
     }
 
     const body = (await request.json()) as Partial<StoreExpenseUpsertInput>;
@@ -38,26 +39,26 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const status = normalizeStatus(body.status);
 
     if (!name) {
-      return NextResponse.json({ success: false, error: "Expense name is required" }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Gider adı zorunludur." }, { status: 400 });
     }
 
     const db = getDb();
     if (!db) {
-      return NextResponse.json({ success: false, error: "Database connection unavailable" }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Veritabanı bağlantısı kullanılamıyor." }, { status: 500 });
     }
 
     await db.prepare(`
       UPDATE store_expenses
       SET name = ?, monthly_amount = ?, note = ?, status = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE expense_id = ?
-    `).run(name, monthlyAmount, note || null, status, expenseId);
+      WHERE expense_id = ? AND user_id = ?
+    `).run(name, monthlyAmount, note || null, status, expenseId, authUserId);
 
-    recalculateAllCostResults();
+    await recalculateAllCostResults();
 
     return NextResponse.json({ success: true, expenseId });
   } catch (error) {
     console.error("Store expenses PUT error:", error);
-    return NextResponse.json({ success: false, error: "Gider gҼncellenemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Gider güncellenemedi." }, { status: 500 });
   }
 }
 
@@ -71,13 +72,14 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   }
 
   try {
+    const authUserId = session.authUserId ?? "";
     const db = getDb();
     if (!db) {
-      return NextResponse.json({ success: false, error: "Database connection unavailable" }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Veritabanı bağlantısı kullanılamıyor." }, { status: 500 });
     }
 
-    await db.prepare("DELETE FROM store_expenses WHERE expense_id = ?").run(expenseId);
-    recalculateAllCostResults();
+    await db.prepare("DELETE FROM store_expenses WHERE expense_id = ? AND user_id = ?").run(expenseId, authUserId);
+    await recalculateAllCostResults();
 
     return NextResponse.json({ success: true, expenseId });
   } catch (error) {

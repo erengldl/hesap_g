@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   try {
     const user = await getAuthenticatedUserFromRequest(request);
     if (!user) {
-      return NextResponse.json({ success: false, error: "Oturum bulunamadi." }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Oturum bulunamadı." }, { status: 401 });
     }
 
     const campaigns = await listManualAdCampaignSummaries(user.userId);
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   try {
     const user = await getAuthenticatedUserFromRequest(request);
     if (!user) {
-      return NextResponse.json({ success: false, error: "Oturum bulunamadi." }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Oturum bulunamadı." }, { status: 401 });
     }
 
     const body = (await request.json()) as unknown;

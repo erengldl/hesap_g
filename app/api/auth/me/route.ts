@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     const user = await getAuthenticatedUserFromCookieHeader(cookieHeader);
     if (!user) {
       return NextResponse.json(
-        { success: false, error: "Oturum bulunamadi." },
+        { success: false, error: "Oturum bulunamadı." },
         { status: 401 }
       );
     }

@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
     if (!input.productId || !input.marketplaceId || input.minPrice <= 0 || input.maxPrice <= 0) {
       return NextResponse.json(
-        { success: false, error: "productId, marketplaceId, minPrice and maxPrice are required" },
+        { success: false, error: "productId, marketplaceId, minPrice ve maxPrice alanları zorunludur." },
         { status: 400 }
       );
     }

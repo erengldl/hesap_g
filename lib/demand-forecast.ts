@@ -651,6 +651,7 @@ function buildForecastSeries(
   const summary: DemandForecastSummary = {
     horizonDays: selection.horizonDays,
     historyWindowDays: history.length,
+    historyDays: history.length,
     currentStock,
     currentSalesVolume: round2(currentSalesVolume),
     currentPrice: round2(currentPrice),
@@ -663,10 +664,12 @@ function buildForecastSeries(
     wmape,
     confidenceScore,
     modelName: "StatisticalBaselineModel",
+    confidenceMethod: "WMAPE bantları ve veri kapsama oranı",
     forecastStartDate: futureRows[0]?.date ?? toDateKey(addDays(new Date(), 1)),
     forecastEndDate: futureRows[futureRows.length - 1]?.date ?? toDateKey(addDays(new Date(), selection.horizonDays)),
     stockWarning,
     dataSource: historyQuality.dataSource,
+    isSyntheticHistory: historyQuality.syntheticShare > 0,
   };
 
   return {
@@ -951,12 +954,12 @@ export class DemandForecastEngine {
   private getMethodology(forecast: ReturnType<typeof buildForecastSeries>) {
     const source = forecast.summary.dataSource;
     const base = source === "real"
-      ? "Gerçek order ve inventory verileri kullanılarak"
+      ? "Gerçek sipariş ve stok verileri kullanılarak"
       : source === "mixed"
         ? "Kısmi gerçek veri, kısmi istatistiksel tamamlamayla"
         : "Gerçek veri bulunamadığı için sentetik baz seri ile";
 
-    return `${base} StatisticalBaselineModel, censored demand düzeltmesi, lag/rolling feature seti ve kısa vadeli sezonluk baseline ile tahmin üretildi.`;
+    return `${base} istatistiksel baseline modeli, censored demand düzeltmesi, lag/rolling feature seti ve kısa vadeli sezonluk sinyaller ile tahmin üretildi.`;
   }
 
   private buildResult(

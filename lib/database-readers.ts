@@ -1,5 +1,6 @@
 import { query, getOne } from './db';
 import type { Marketplace, Product } from './types';
+import { requireCurrentAuthUserId } from './tenant';
 
 type RawMarketplaceRow = {
   id: number;
@@ -114,6 +115,7 @@ function toProduct(row: RawProductRow, productSettings: ProductMarketplaceSettin
 }
 
 export async function getProfitPricingProductOptions() {
+  const authUserId = requireCurrentAuthUserId();
   const rows = await query<ProfitPricingProductOptionRow>(`
     SELECT
       p.product_id AS id,
@@ -123,8 +125,9 @@ export async function getProfitPricingProductOptions() {
     FROM products p
     LEFT JOIN product_marketplace_settings ms ON ms.product_id = p.product_id
     LEFT JOIN marketplaces m ON m.marketplace_id = ms.marketplace_id
+    WHERE p.user_id = ?
     ORDER BY p.product_id DESC, ms.marketplace_id ASC
-  `);
+  `, [authUserId]);
 
   const optionsByProduct = new Map<number, { id: number; name: string; sku?: string; active_channels: string[] }>();
 
@@ -215,10 +218,11 @@ export async function getPaymentGatewayRules() {
 }
 
 export async function getSellerProfiles() {
-  return await query('SELECT * FROM seller_profiles');
+  return await query('SELECT * FROM seller_profiles WHERE user_id = ?', [requireCurrentAuthUserId()]);
 }
 
 export async function getProducts() {
+  const authUserId = requireCurrentAuthUserId();
   const rows = await query<RawProductRow>(`
     SELECT
       p.product_id AS id,
@@ -247,8 +251,9 @@ export async function getProducts() {
       ) AS stock_qty
     FROM products p
     LEFT JOIN categories c ON c.category_id = p.category_id
+    WHERE p.user_id = ?
     ORDER BY p.product_id DESC
-  `);
+  `, [authUserId]);
 
   if (rows.length === 0) {
     return [];
@@ -262,9 +267,11 @@ export async function getProducts() {
       m.slug AS marketplace_slug,
       m.name AS marketplace_name
     FROM product_marketplace_settings ms
+    JOIN products p ON p.product_id = ms.product_id
     LEFT JOIN marketplaces m ON m.marketplace_id = ms.marketplace_id
+    WHERE p.user_id = ?
     ORDER BY ms.product_id, ms.marketplace_id
-  `);
+  `, [authUserId]);
 
   const settingsByProduct = new Map<number, ProductMarketplaceSettingRow[]>();
   for (const row of settingsRows) {
@@ -277,6 +284,7 @@ export async function getProducts() {
 }
 
 export async function getProductById(productId: number) {
+  const authUserId = requireCurrentAuthUserId();
   return await getOne<RawProductRow>(`
     SELECT
       p.product_id AS id,
@@ -305,9 +313,9 @@ export async function getProductById(productId: number) {
       ) AS stock_qty
     FROM products p
     LEFT JOIN categories c ON c.category_id = p.category_id
-    WHERE p.product_id = ?
+    WHERE p.product_id = ? AND p.user_id = ?
     LIMIT 1
-  `, [productId]);
+  `, [productId, authUserId]);
 }
 
 export async function getProductSnapshot(productId: number) {
@@ -324,20 +332,25 @@ export async function getProductSnapshot(productId: number) {
       m.slug AS marketplace_slug,
       m.name AS marketplace_name
     FROM product_marketplace_settings ms
+    JOIN products p ON p.product_id = ms.product_id
     LEFT JOIN marketplaces m ON m.marketplace_id = ms.marketplace_id
-    WHERE ms.product_id = ?
+    WHERE ms.product_id = ? AND p.user_id = ?
     ORDER BY ms.marketplace_id ASC
-  `, [productId]);
+  `, [productId, requireCurrentAuthUserId()]);
 
   return toProduct(row, productSettings);
 }
 
 export async function getDefaultProductId() {
-  const product = await getOne<{ product_id: number }>('SELECT product_id FROM products ORDER BY product_id ASC LIMIT 1');
+  const product = await getOne<{ product_id: number }>(
+    'SELECT product_id FROM products WHERE user_id = ? ORDER BY product_id ASC LIMIT 1',
+    [requireCurrentAuthUserId()],
+  );
   return product?.product_id ?? null;
 }
 
 export async function getStoreExpenses(profileId = 1) {
+  const authUserId = requireCurrentAuthUserId();
   return await query<StoreExpenseRow>(`
     SELECT
       expense_id,
@@ -347,21 +360,23 @@ export async function getStoreExpenses(profileId = 1) {
       note,
       status
     FROM store_expenses
-    WHERE profile_id = ?
+    WHERE profile_id = ? AND user_id = ?
     ORDER BY expense_id ASC
-  `, [profileId]);
+  `, [profileId, authUserId]);
 }
 
 export async function getStoreExpenseMonthlyTotal(profileId = 1) {
+  const authUserId = requireCurrentAuthUserId();
   const row = await getOne<{ total: number | null }>(`
     SELECT SUM(monthly_amount) AS total
     FROM store_expenses
-    WHERE profile_id = ? AND COALESCE(status, 'active') = 'active'
-  `, [profileId]);
+    WHERE profile_id = ? AND user_id = ? AND COALESCE(status, 'active') = 'active'
+  `, [profileId, authUserId]);
   return Number(row?.total ?? 0);
 }
 
 export async function getStoreExpenseById(expenseId: number) {
+  const authUserId = requireCurrentAuthUserId();
   return await getOne<StoreExpenseRow>(`
     SELECT
       expense_id,
@@ -371,16 +386,20 @@ export async function getStoreExpenseById(expenseId: number) {
       note,
       status
     FROM store_expenses
-    WHERE expense_id = ?
+    WHERE expense_id = ? AND user_id = ?
     LIMIT 1
-  `, [expenseId]);
+  `, [expenseId, authUserId]);
 }
 
 export async function getSellerProfileById(profileId = 1) {
-  return await getOne<Record<string, unknown>>('SELECT * FROM seller_profiles WHERE profile_id = ? LIMIT 1', [profileId]);
+  return await getOne<Record<string, unknown>>(
+    'SELECT * FROM seller_profiles WHERE profile_id = ? AND user_id = ? LIMIT 1',
+    [profileId, requireCurrentAuthUserId()],
+  );
 }
 
 export async function getOwnWebsiteGatewayRule() {
+  const authUserId = requireCurrentAuthUserId();
   return await getOne<{
     id: number;
     seller_profile_id: number | null;
@@ -400,18 +419,23 @@ export async function getOwnWebsiteGatewayRule() {
       m.name AS marketplace_name,
       m.slug AS marketplace_slug
     FROM payment_gateway_rules pgr
+    JOIN seller_profiles sp ON sp.profile_id = pgr.seller_profile_id
     LEFT JOIN marketplaces m ON m.marketplace_id = pgr.marketplace_id
-    WHERE m.slug = 'own_website'
+    WHERE m.slug = 'own_website' AND sp.user_id = ?
     ORDER BY pgr.id ASC
     LIMIT 1
-  `);
+  `, [authUserId]);
 }
 
 export async function getProductMarketplaceSettings(productId: number) {
-  return await query('SELECT * FROM product_marketplace_settings WHERE product_id = ?', [productId]);
+  return await query(
+    'SELECT * FROM product_marketplace_settings WHERE product_id = ? AND user_id = ?',
+    [productId, requireCurrentAuthUserId()],
+  );
 }
 
 export async function getDatabaseCounts() {
+  const authUserId = requireCurrentAuthUserId();
   const tables = [
     'categories',
     'marketplaces',
@@ -431,7 +455,16 @@ export async function getDatabaseCounts() {
   const counts: Record<string, number | null> = {};
   
   for (const table of tables) {
-    const result = await getOne<{ count: number }>(`SELECT COUNT(*) as count FROM ${table}`);
+    const scopedBusinessTables = new Set([
+      'products',
+      'price_optimization_runs',
+      'store_expenses',
+      'seller_profiles',
+      'data_center_sync_runs',
+    ]);
+    const result = scopedBusinessTables.has(table)
+      ? await getOne<{ count: number }>(`SELECT COUNT(*) as count FROM ${table} WHERE user_id = ?`, [authUserId])
+      : await getOne<{ count: number }>(`SELECT COUNT(*) as count FROM ${table}`);
     counts[table] = result ? result.count : null;
   }
   
@@ -451,6 +484,7 @@ export async function getMarketplaceById(marketplaceId: number) {
 }
 
 export async function getProductMarketplaceSetting(productId: number, marketplaceId: number) {
+  const authUserId = requireCurrentAuthUserId();
   return await getOne<{
     setting_id: number;
     product_id: number;
@@ -479,10 +513,11 @@ export async function getProductMarketplaceSetting(productId: number, marketplac
       m.name AS marketplace_name,
       m.slug AS marketplace_slug
     FROM product_marketplace_settings ms
+    JOIN products p ON p.product_id = ms.product_id
     LEFT JOIN marketplaces m ON m.marketplace_id = ms.marketplace_id
-    WHERE ms.product_id = ? AND ms.marketplace_id = ?
+    WHERE ms.product_id = ? AND ms.marketplace_id = ? AND p.user_id = ?
     LIMIT 1
-  `, [productId, marketplaceId]);
+  `, [productId, marketplaceId, authUserId]);
 }
 
 export async function getPlatformFeeRulesByMarketplaceId(marketplaceId: number) {
@@ -495,6 +530,7 @@ export async function getPlatformFeeRulesByMarketplaceId(marketplaceId: number) 
 }
 
 export async function getPaymentGatewayRuleById(ruleId: number) {
+  const authUserId = requireCurrentAuthUserId();
   return await getOne<{
     id: number;
     seller_profile_id: number | null;
@@ -508,7 +544,13 @@ export async function getPaymentGatewayRuleById(ruleId: number) {
     avg_ad_cost: number | null;
     avg_conversion_rate: number | null;
     is_active: number | null;
-  }>('SELECT * FROM payment_gateway_rules WHERE id = ? LIMIT 1', [ruleId]);
+  }>(`
+    SELECT pgr.*
+    FROM payment_gateway_rules pgr
+    JOIN seller_profiles sp ON sp.profile_id = pgr.seller_profile_id
+    WHERE pgr.id = ? AND sp.user_id = ?
+    LIMIT 1
+  `, [ruleId, authUserId]);
 }
 
 // Tariff Readers

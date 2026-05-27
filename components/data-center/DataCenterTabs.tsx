@@ -14,7 +14,6 @@ import { exportProductsToExcel } from "@/lib/excel";
 import { formatCurrency } from "@/lib/formatters";
 import { SeedDemoButton, triggerSeedDemo } from "@/components/demo/SeedDemoButton";
 import type { Product, ProductUpsertInput } from "@/lib/types";
-import { DEMO_PRODUCTS } from "@/lib/demo-data";
 import type { SeedDemoResponse } from "@/lib/seed-demo-contract";
 import { EmptyState, ErrorStateCard, KpiCard, SkeletonCard, SkeletonTable } from "@/components/ui-custom/GlassComponents";
 
@@ -64,7 +63,6 @@ function formatRelativeTime(value?: string | null) {
 }
 
 export function DataCenterTabs() {
-  const useDemoData = process.env.NODE_ENV !== "production";
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -98,9 +96,7 @@ export function DataCenterTabs() {
       const nextProducts: Product[] =
         Array.isArray(productsData?.products) && productsData.products.length > 0
           ? (productsData.products as Product[])
-          : useDemoData
-            ? DEMO_PRODUCTS
-            : [];
+          : [];
       setLoadError(null);
       setProducts(nextProducts);
       setSelectedIds((current) => current.filter((id) => nextProducts.some((product) => product.id === id)));
@@ -109,13 +105,13 @@ export function DataCenterTabs() {
       console.error("Failed to refresh data", error);
       setStats(null);
       setLoadError("Veri Merkezi yüklenemedi. Sunucu bağlantısı kesildi. İnternet bağlantınızı kontrol edip tekrar deneyin.");
-      setProducts(useDemoData ? DEMO_PRODUCTS : []);
+      setProducts([]);
       setSelectedIds([]);
-      return useDemoData ? DEMO_PRODUCTS : [];
+      return [];
     } finally {
       setLoading(false);
     }
-  }, [useDemoData]);
+  }, []);
 
   useEffect(() => {
     void refreshData();
@@ -391,7 +387,7 @@ export function DataCenterTabs() {
     setDemoSeeding(true);
     try {
       await triggerSeedDemo({
-        confirmMessage: "Demo veriler yuklenecek. Mevcut veriler silinecek. Devam edilsin mi?",
+        confirmMessage: "Demo verisi çalışma alanınıza yüklenecek. Mevcut kişisel verileriniz yenilenecek. Devam edilsin mi?",
         onSeeded: handleSeedDemoSuccess,
         onError: (text) => showMessage({ text, type: "error" }),
       });

@@ -1,27 +1,26 @@
 import { NextResponse } from "next/server";
 import { getDb, getDatabaseMode } from "@/lib/db";
-import { classifyDatabaseError } from "@/lib/database-error";
 import { hasDatabaseUrl } from "@/lib/database-url";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const geminiApiKey = process.env.GEMINI_API_KEY?.trim() ?? "";
-  const geminiModel = process.env.GEMINI_MODEL?.trim() || null;
   const supabaseConfigured = isSupabaseConfigured();
+  const aiConfigured = Boolean(process.env.GEMINI_API_KEY?.trim());
+  const forecastServiceConfigured = Boolean(process.env.FORECAST_SERVICE_URL?.trim());
 
   if (!hasDatabaseUrl()) {
     return NextResponse.json({
       success: false,
       status: "degraded",
-      database_mode: getDatabaseMode(),
-      db_configured: false,
-      db_error_code: "missing_database_url",
-      db_error_message: "Supabase PostgreSQL bağlantı değişkeni eksik.",
-      supabase_configured: supabaseConfigured,
-      gemini_configured: geminiApiKey.length > 0,
-      gemini_model: geminiModel,
+      services: {
+        database: "down",
+        auth: supabaseConfigured ? "ok" : "misconfigured",
+        ai: aiConfigured ? "ok" : "misconfigured",
+        forecast: forecastServiceConfigured ? "ok" : "misconfigured",
+      },
+      databaseMode: getDatabaseMode(),
       timestamp: new Date().toISOString(),
     });
   }
@@ -34,25 +33,26 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       status: "ok",
-      database_mode: getDatabaseMode(),
-      db_configured: true,
-      supabase_configured: supabaseConfigured,
-      gemini_configured: geminiApiKey.length > 0,
-      gemini_model: geminiModel,
+      services: {
+        database: "ok",
+        auth: supabaseConfigured ? "ok" : "misconfigured",
+        ai: aiConfigured ? "ok" : "misconfigured",
+        forecast: forecastServiceConfigured ? "ok" : "misconfigured",
+      },
+      databaseMode: getDatabaseMode(),
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    const dbError = classifyDatabaseError(error);
     return NextResponse.json({
       success: false,
       status: "degraded",
-      database_mode: getDatabaseMode(),
-      db_configured: true,
-      db_error_code: dbError.code,
-      db_error_message: dbError.message,
-      supabase_configured: supabaseConfigured,
-      gemini_configured: geminiApiKey.length > 0,
-      gemini_model: geminiModel,
+      services: {
+        database: "degraded",
+        auth: supabaseConfigured ? "ok" : "misconfigured",
+        ai: aiConfigured ? "ok" : "misconfigured",
+        forecast: forecastServiceConfigured ? "ok" : "misconfigured",
+      },
+      databaseMode: getDatabaseMode(),
       timestamp: new Date().toISOString(),
     });
   }

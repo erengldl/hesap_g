@@ -1,5 +1,5 @@
 export const SEED_DEMO_WARNING_MESSAGE =
-  "Bu işlem mevcut tüm ürün ve sipariş verilerini SİLİP yerine demo veri yazar.";
+  "Bu işlem yalnızca mevcut çalışma alanınızdaki ürün ve sipariş verilerini demo veriyle yeniler.";
 
 export type SeedDemoResponse = {
   success: boolean;

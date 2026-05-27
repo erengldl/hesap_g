@@ -57,6 +57,7 @@ export interface DemandForecastTableRow {
 export interface DemandForecastSummary {
   horizonDays: ForecastHorizon;
   historyWindowDays: number;
+  historyDays: number;
   currentStock: number;
   currentSalesVolume: number;
   currentPrice: number;
@@ -69,10 +70,12 @@ export interface DemandForecastSummary {
   wmape: number;
   confidenceScore: "Low" | "Medium" | "High";
   modelName: string;
+  confidenceMethod: string;
   forecastStartDate: string;
   forecastEndDate: string;
   stockWarning: string;
   dataSource: ForecastDataSource;
+  isSyntheticHistory: boolean;
 }
 
 export interface DemandForecastResult {
@@ -108,6 +111,9 @@ export interface DemandForecastRequest extends DemandForecastSelection {
 
 export interface DemandForecastApiResponse extends DemandForecastBootstrapResponse {
   success: true;
+  partial?: boolean;
+  fallbackUsed?: boolean;
+  staleAt?: string | null;
 }
 
 export interface DemandForecastRunResponse {
@@ -115,4 +121,7 @@ export interface DemandForecastRunResponse {
   result: DemandForecastResult;
   savedRows: number;
   warnings: string[];
+  partial?: boolean;
+  fallbackUsed?: boolean;
+  staleAt?: string | null;
 }

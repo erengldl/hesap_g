@@ -4,6 +4,7 @@ import { getStoreExpenseMonthlyTotal } from "@/lib/database-readers";
 import { recalculateAllCostResults } from "@/lib/portfolio-analytics";
 import type { StoreExpenseUpsertInput } from "@/lib/types";
 import { requireAuth } from "@/lib/api-auth";
+import { getCurrentSellerProfileId, getOrCreateCurrentSellerProfileId } from "@/lib/seller-profile-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,17 @@ export async function GET() {
   const session = await requireAuth();
   if (session instanceof NextResponse) return session;
   try {
+    const profileId = await getCurrentSellerProfileId();
+    if (!profileId) {
+      return NextResponse.json({
+        success: true,
+        expenses: [],
+        count: 0,
+        active_count: 0,
+        total_active_monthly_amount: 0,
+      });
+    }
+
     const expenses = await query<{
       expense_id: number;
       profile_id: number | null;
@@ -25,9 +37,9 @@ export async function GET() {
     }>(`
       SELECT expense_id, profile_id, name, monthly_amount, note, status
       FROM store_expenses
-      WHERE profile_id = 1
+      WHERE profile_id = ? AND user_id = ?
       ORDER BY expense_id ASC
-    `);
+    `, [profileId, session.authUserId ?? ""]);
 
     const activeExpenses = expenses.filter((expense) => (expense.status ?? "active") === "active");
 
@@ -36,11 +48,11 @@ export async function GET() {
       expenses,
       count: expenses.length,
       active_count: activeExpenses.length,
-      total_active_monthly_amount: Number((await getStoreExpenseMonthlyTotal(1)).toFixed(2)),
+      total_active_monthly_amount: Number((await getStoreExpenseMonthlyTotal(profileId)).toFixed(2)),
     });
   } catch (error) {
     console.error("Store expenses GET error:", error);
-    return NextResponse.json({ success: false, error: "Giderler yҼklenemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Giderler yüklenemedi." }, { status: 500 });
   }
 }
 
@@ -63,10 +75,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Veritabanı bağlantısı kullanılamıyor." }, { status: 500 });
     }
 
+    const profileId = await getOrCreateCurrentSellerProfileId();
+
     await db.prepare(`
-      INSERT INTO store_expenses (profile_id, name, monthly_amount, note, status)
-      VALUES (1, ?, ?, ?, ?)
-    `).run(name, monthlyAmount, note || null, status);
+      INSERT INTO store_expenses (profile_id, user_id, name, monthly_amount, note, status)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(profileId, session.authUserId ?? "", name, monthlyAmount, note || null, status);
 
     await recalculateAllCostResults();
 

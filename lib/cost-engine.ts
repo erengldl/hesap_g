@@ -14,6 +14,7 @@ import {
 import { resolveProductMarketplaceDefaults } from "./net-cost-defaults";
 import { clearNetCostMlSignalCache, predictNetCostSignals } from "./net-cost-ml";
 import { getProductSalesVelocity } from "./product-history";
+import { requireCurrentAuthUserId } from "./tenant";
 import type { ChannelCostResult, Marketplace, Product } from "./types";
 
 /** Traffic cost calculation mode for "Kendi Websitem" */
@@ -282,6 +283,7 @@ async function getShippingCompanyNameById(shippingCompanyId: number | null | und
 }
 
 async function getSellerFixedCostPerUnit(productId: number, profileId: number) {
+  const authUserId = requireCurrentAuthUserId();
   const profile = await getOne<SellerProfileRow>(
     `
       SELECT
@@ -294,10 +296,10 @@ async function getSellerFixedCostPerUnit(productId: number, profileId: number) {
         expected_monthly_order_count,
         tax_bracket
       FROM seller_profiles
-      WHERE profile_id = ?
+      WHERE profile_id = ? AND user_id = ?
       LIMIT 1
     `,
-    [profileId]
+    [profileId, authUserId]
   );
 
   const totalMonthlyFixedCost = await getStoreExpenseMonthlyTotal(profileId);

@@ -40,7 +40,7 @@ export async function GET(request: Request) {
     return await buildResponse(productId, marketplaceId);
   } catch (error) {
     console.error("Price optimization GET error:", error);
-    return NextResponse.json({ success: false, error: "Optimizasyon verisi yҼklenemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Optimizasyon verisi yüklenemedi." }, { status: 500 });
   }
 }
 

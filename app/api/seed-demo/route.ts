@@ -7,25 +7,12 @@ import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = 'force-dynamic';
 
-const DEMO_SEED_DISABLED_MESSAGE = "Demo verileri production ortamında kapalı.";
-
 export async function POST(request: Request) {
   const session = await requireAuth(request);
   if (session instanceof NextResponse) return session;
 
-  if (process.env.NODE_ENV === "production") {
-    return NextResponse.json({
-      success: false,
-      productsInserted: 0,
-      productsSkipped: 0,
-      settingsInserted: 0,
-      message: DEMO_SEED_DISABLED_MESSAGE,
-      warning: SEED_DEMO_WARNING_MESSAGE,
-    }, { status: 403 });
-  }
-
   try {
-    const result = await ensureDemoData();
+    const result = await ensureDemoData(session.authUserId ?? undefined);
     await Promise.all([
       recalculateAllCostResults(),
       refreshCampaignProfitMetrics(),
@@ -39,7 +26,7 @@ export async function POST(request: Request) {
       productsInserted: 0,
       productsSkipped: 0,
       settingsInserted: 0,
-      message: "Beklenmeyen bir hata oluştu.",
+      message: "Demo verisi yüklenemedi.",
       warning: SEED_DEMO_WARNING_MESSAGE,
     }, { status: 500 });
   }

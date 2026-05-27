@@ -47,6 +47,6 @@ export async function POST() {
     });
   } catch (error) {
     console.error("Data center sync error:", error);
-    return NextResponse.json({ success: false, error: "TҼm ҼrҼnler veri merkezine yҼklenemedi." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Tüm ürünler veri merkezine yüklenemedi." }, { status: 500 });
   }
 }

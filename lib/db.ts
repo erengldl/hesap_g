@@ -1,28 +1,12 @@
 import postgres from "postgres";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { resolveDatabaseUrl } from "./database-url";
-import { initializePgSchema } from "./pg-schema";
+import { getRequestContext } from "./request-context";
 
 // Transaction context — all queries inside db.transaction() use the transactional client
 const txStore = new AsyncLocalStorage<postgres.Sql | postgres.TransactionSql>();
 
 let sqlClient: postgres.Sql | null = null;
-let schemaEnsured = false;
-let schemaEnsurePromise: Promise<void> | null = null;
-
-function shouldAutoInitializeSchema() {
-  const rawValue = process.env.DB_AUTO_INIT?.trim().toLowerCase();
-
-  if (rawValue === "true") {
-    return true;
-  }
-
-  if (rawValue === "false") {
-    return false;
-  }
-
-  return process.env.NODE_ENV !== "production";
-}
 
 function getOrCreateClient(): postgres.Sql {
   if (sqlClient) return sqlClient;
@@ -40,6 +24,21 @@ function getOrCreateClient(): postgres.Sql {
 
 function getSql(): postgres.Sql {
   return (txStore.getStore() as postgres.Sql | undefined) ?? getOrCreateClient();
+}
+
+async function applySessionConfig(client: postgres.Sql | postgres.TransactionSql) {
+  const context = getRequestContext();
+  if (!context) {
+    return;
+  }
+
+  await client.unsafe(
+    "SELECT set_config('app.current_auth_user_id', $1, true), set_config('app.current_app_user_id', $2, true)",
+    [
+      context.authUserId ?? "",
+      String(context.userId),
+    ] as postgres.ParameterOrJSON<never>[],
+  );
 }
 
 // SQL translation: ? → $1, $2, ...
@@ -114,19 +113,6 @@ function ensureReturningStar(sql: string): string {
   return sql.replace(/;\s*$/, "") + " RETURNING *";
 }
 
-function preprocessSql(raw: string): string {
-  let sql = raw;
-
-  // datetime('now') → CURRENT_TIMESTAMP
-  sql = sql.replace(/\bdatetime\s*\(\s*'now'\s*\)/gi, "CURRENT_TIMESTAMP");
-
-  // INSERT OR IGNORE → INSERT ... ON CONFLICT DO NOTHING
-  // (handled on a best-effort basis; most schemas use ON CONFLICT already)
-  sql = sql.replace(/\bINSERT\s+OR\s+IGNORE\s+INTO\b/gi, "INSERT INTO");
-
-  return sql;
-}
-
 function isFiniteNumber(value: unknown): boolean {
   return typeof value === "number" && Number.isFinite(value);
 }
@@ -168,11 +154,10 @@ class PgStatement<T = Record<string, unknown>> {
   constructor(private rawSql: string) {}
 
   private async execute(mode: "all" | "get" | "run", params: unknown[]) {
-    await ensureSchema();
     const client = getSql();
+    await applySessionConfig(client);
     const safeParams = normalizeParams(params);
-    let sql = preprocessSql(this.rawSql);
-    sql = translatePlaceholders(sql);
+    let sql = translatePlaceholders(this.rawSql);
 
     if (mode === "run") {
       sql = ensureReturningStar(sql);
@@ -227,16 +212,16 @@ class PgDatabase implements AppDatabase {
   }
 
   async exec(sql: string): Promise<void> {
-    await ensureSchema();
     const client = getSql();
-    const processed = preprocessSql(sql);
-    const translated = translatePlaceholders(processed);
+    await applySessionConfig(client);
+    const translated = translatePlaceholders(sql);
     await client.unsafe(translated);
   }
 
   async transaction<T>(fn: () => Promise<T>): Promise<T> {
     const client = getSql();
     return client.begin(async (tx) => {
+      await applySessionConfig(tx);
       return txStore.run(tx, fn);
     }) as Promise<T>;
   }
@@ -248,27 +233,6 @@ export function getDb(): PgDatabase {
   if (db) return db;
   db = new PgDatabase();
   return db;
-}
-
-async function ensureSchema() {
-  if (schemaEnsured) return;
-  if (!shouldAutoInitializeSchema()) {
-    schemaEnsured = true;
-    return;
-  }
-  if (!schemaEnsurePromise) {
-    schemaEnsurePromise = initializePgSchema(getSql())
-      .then(() => {
-        schemaEnsured = true;
-      })
-      .finally(() => {
-        if (!schemaEnsured) {
-          schemaEnsurePromise = null;
-        }
-      });
-  }
-
-  await schemaEnsurePromise;
 }
 
 export async function query<T = Record<string, unknown>>(
