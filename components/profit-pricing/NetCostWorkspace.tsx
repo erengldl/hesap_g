@@ -32,9 +32,25 @@ export default function NetCostWorkspace({
 
   if (error) {
     return (
-      <section className="rounded-[24px] border border-warning/20 bg-warning/10 px-5 py-4 text-warning">
-        <p className="text-sm font-semibold">Net maliyet katmanı şu anda yanıt vermedi.</p>
-        <p className="mt-2 text-sm leading-6">{error}</p>
+      <section className="app-surface-strong max-w-4xl rounded-[32px] p-8">
+        <span className="app-chip border-warning/20 bg-warning/10 text-warning">Veri bağlantısı sorunu</span>
+        <h2 className="mt-5 text-3xl font-semibold tracking-[-0.05em] text-foreground">
+          Net maliyet verisi şu anda yüklenemedi.
+        </h2>
+        <p className="mt-4 max-w-2xl text-base leading-7 text-soft">
+          Sayfa bomboş kalmamalıydı. Hata durumunu da bir çalışma yüzeyi gibi ele alıyorum.
+        </p>
+        <div className="mt-6 rounded-[24px] border border-warning/20 bg-warning/10 px-5 py-4 text-sm leading-6 text-warning">
+          {error}
+        </div>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link href="/veri-merkezi" className="btn-secondary px-5 py-3 text-sm">
+            Veri merkezine git
+          </Link>
+          <Link href="/net-maliyet-motoru" className="btn-primary px-5 py-3 text-sm">
+            Tekrar dene
+          </Link>
+        </div>
       </section>
     );
   }

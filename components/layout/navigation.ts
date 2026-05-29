@@ -2,6 +2,7 @@ import {
   ArrowRightLeft,
   Database,
   LayoutDashboard,
+  Link2,
   Megaphone,
   Sparkles,
   TrendingUp,
@@ -30,6 +31,7 @@ export const primaryNavigationItems: NavigationItem[] = [
 export const advancedNavigationItems: NavigationItem[] = [
   { name: "Reklam", href: "/reklam-analizi", icon: Megaphone, description: "Reklam performansı" },
   { name: "SEO", href: "/channel-seo", icon: Sparkles, description: "Kanal bazlı SEO içerikleri" },
+  { name: "Entegrasyonlar", href: "/integrations", icon: Link2, description: "Bağlantı ve servis yönetimi" },
 ];
 
 export const navigationItems: NavigationItem[] = [...primaryNavigationItems, ...advancedNavigationItems];
