@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-import { buildAdAnalysis, buildAdAnalysisSummary } from "@/lib/ad-analysis";
 import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 import { getDb } from "@/lib/db";
 import { getProducts } from "@/lib/database-readers";
@@ -56,7 +55,7 @@ async function buildDashboardDataSignals(authUserId: string): Promise<{ dataMode
     };
   }
 
-  const orderSignalRow = await db.prepare(`
+  const orderSignalRowPromise = db.prepare(`
     SELECT
       SUM(
         CASE
@@ -78,36 +77,44 @@ async function buildDashboardDataSignals(authUserId: string): Promise<{ dataMode
       ) AS live_orders
     FROM orders o
     WHERE o.status = 'completed' AND o.user_id = ?
-  `).get(authUserId) as { demo_orders: number | null; live_orders: number | null } | undefined;
+  `).get(authUserId) as Promise<{ demo_orders: number | null; live_orders: number | null } | undefined>;
 
-  const latestSyncRow = await db.prepare(`
+  const latestSyncRowPromise = db.prepare(`
     SELECT created_at
     FROM data_center_sync_runs
     WHERE user_id = ?
     ORDER BY created_at DESC, sync_id DESC
     LIMIT 1
-  `).get(authUserId) as { created_at: string | null } | undefined;
+  `).get(authUserId) as Promise<{ created_at: string | null } | undefined>;
 
-  const latestOrderSyncRow = await db.prepare(`
+  const latestOrderSyncRowPromise = db.prepare(`
     SELECT COALESCE(last_synced_at, updated_at, created_at) AS sync_at
     FROM orders
     WHERE user_id = ?
     ORDER BY COALESCE(last_synced_at, updated_at, created_at) DESC, order_id DESC
     LIMIT 1
-  `).get(authUserId) as { sync_at: string | null } | undefined;
+  `).get(authUserId) as Promise<{ sync_at: string | null } | undefined>;
 
-  const warningRows = await db.prepare(`
+  const warningRowsPromise = db.prepare(`
     SELECT warning_notes
     FROM cost_results
     WHERE user_id = ? AND warning_notes IS NOT NULL AND TRIM(warning_notes) <> ''
     LIMIT 100
-  `).all(authUserId) as Array<{ warning_notes: string }>;
+  `).all(authUserId) as Promise<Array<{ warning_notes: string }>>;
 
-  const missingCategoryRow = await db.prepare(`
+  const missingCategoryRowPromise = db.prepare(`
     SELECT COUNT(*) AS missing_count
     FROM products
     WHERE user_id = ? AND (category_id IS NULL OR TRIM(COALESCE(category_path, '')) = '')
-  `).get(authUserId) as { missing_count: number | null } | undefined;
+  `).get(authUserId) as Promise<{ missing_count: number | null } | undefined>;
+
+  const [orderSignalRow, latestSyncRow, latestOrderSyncRow, warningRows, missingCategoryRow] = await Promise.all([
+    orderSignalRowPromise,
+    latestSyncRowPromise,
+    latestOrderSyncRowPromise,
+    warningRowsPromise,
+    missingCategoryRowPromise,
+  ]);
 
   const demoOrderCount = Number(orderSignalRow?.demo_orders ?? 0);
   const liveOrderCount = Number(orderSignalRow?.live_orders ?? 0);
@@ -203,7 +210,7 @@ export async function GET(request: Request) {
   const scopeKey = authUserId;
 
   try {
-    const [aggregateState, snapshotState, adAnalysisState, dataSignalsState] = await Promise.all([
+    const [aggregateState, snapshotState, dataSignalsState] = await Promise.all([
       getCachedValue(buildScopedCacheKey("dashboard:aggregate", scopeKey), 15_000, async () => {
         try {
           return { value: await buildAggregateDashboard() ?? buildFallbackAggregate(), fallbackUsed: false };
@@ -217,40 +224,6 @@ export async function GET(request: Request) {
           return { value: await buildDashboardSnapshot(), fallbackUsed: false };
         } catch (error) {
           console.error("Dashboard snapshot fallback:", error);
-          return { value: null, fallbackUsed: true };
-        }
-      }),
-      getCachedValue(buildScopedCacheKey("dashboard:ad-analysis", scopeKey), 15_000, async () => {
-        try {
-          const cachedSummary = await buildAdAnalysisSummary();
-          if (cachedSummary) {
-            return { value: cachedSummary, fallbackUsed: false };
-          }
-
-          const computed = await buildAdAnalysis();
-          if (!computed) {
-            return { value: null, fallbackUsed: true };
-          }
-
-          return {
-            value: {
-              totalSpend: computed.totalSpend,
-              totalNetProfit: computed.totalNetProfit,
-              averagePoas: computed.averagePoas,
-              lossMakingCount: computed.lossMakingCount,
-              watchCount: computed.watchCount,
-              scaleCount: computed.scaleCount,
-              totalCampaigns: computed.totalCampaigns,
-              lastSyncedAt: computed.lastSyncedAt,
-              analysisMode: computed.analysisMode,
-              dataSource: computed.dataSource,
-              coverageRatio: computed.coverageRatio,
-              fallbackUsed: computed.fallbackUsed,
-            },
-            fallbackUsed: false,
-          };
-        } catch (error) {
-          console.error("Dashboard ad-analysis fallback:", error);
           return { value: null, fallbackUsed: true };
         }
       }),
@@ -276,9 +249,8 @@ export async function GET(request: Request) {
 
     const aggregate = aggregateState.value;
     const snapshot = snapshotState.value;
-    const adAnalysis = adAnalysisState.value;
     const dataSignals = dataSignalsState.value;
-    const fallbackUsed = aggregateState.fallbackUsed || snapshotState.fallbackUsed || adAnalysisState.fallbackUsed || dataSignalsState.fallbackUsed;
+    const fallbackUsed = aggregateState.fallbackUsed || snapshotState.fallbackUsed || dataSignalsState.fallbackUsed;
     const partial = fallbackUsed || dataSignals.dataMode !== "live";
     const staleAt = fallbackUsed ? new Date().toISOString() : null;
 
@@ -303,41 +275,9 @@ export async function GET(request: Request) {
             averageMargin: snapshot.averageMargin,
             costBreakdown: snapshot.costBreakdown,
             methodology: aggregate.methodology,
-            adAnalysis: adAnalysis
-              ? {
-                  totalSpend: adAnalysis.totalSpend,
-                  totalNetProfit: adAnalysis.totalNetProfit,
-                  averagePoas: adAnalysis.averagePoas,
-                  lossMakingCount: adAnalysis.lossMakingCount,
-                  watchCount: adAnalysis.watchCount,
-                  scaleCount: adAnalysis.scaleCount,
-                  totalCampaigns: adAnalysis.totalCampaigns,
-                  lastSyncedAt: adAnalysis.lastSyncedAt,
-                  analysisMode: adAnalysis.analysisMode,
-                  dataSource: adAnalysis.dataSource,
-                  coverageRatio: adAnalysis.coverageRatio,
-                  fallbackUsed: adAnalysis.fallbackUsed,
-                }
-              : null,
           }
         : {
             methodology: aggregate.methodology,
-            adAnalysis: adAnalysis
-              ? {
-                  totalSpend: adAnalysis.totalSpend,
-                  totalNetProfit: adAnalysis.totalNetProfit,
-                  averagePoas: adAnalysis.averagePoas,
-                  lossMakingCount: adAnalysis.lossMakingCount,
-                  watchCount: adAnalysis.watchCount,
-                  scaleCount: adAnalysis.scaleCount,
-                  totalCampaigns: adAnalysis.totalCampaigns,
-                  lastSyncedAt: adAnalysis.lastSyncedAt,
-                  analysisMode: adAnalysis.analysisMode,
-                  dataSource: adAnalysis.dataSource,
-                  coverageRatio: adAnalysis.coverageRatio,
-                  fallbackUsed: adAnalysis.fallbackUsed,
-                }
-              : null,
           }),
     });
   } catch (error) {

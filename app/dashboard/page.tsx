@@ -36,20 +36,6 @@ type DashboardPayload = {
   partial?: boolean;
   fallbackUsed?: boolean;
   staleAt?: string | null;
-  adAnalysis?: {
-    totalSpend: number;
-    totalNetProfit: number;
-    averagePoas: number;
-    lossMakingCount: number;
-    watchCount: number;
-    scaleCount: number;
-    totalCampaigns: number;
-    lastSyncedAt: string;
-    analysisMode?: "imported" | "simulated";
-    dataSource?: "imported" | "derived";
-    coverageRatio?: number;
-    fallbackUsed?: boolean;
-  } | null;
   product?: Product;
   results?: ChannelCostResult[];
   bestChannel?: ChannelCostResult;
@@ -198,7 +184,6 @@ export default function DashboardPage() {
     "Toplam kâr ve ortalama marj göstergeleri, hızlı karar desteği için hazırlanmış yönetim özetidir.",
   ].join(" ");
   const methodology = methodologyFootnote;
-  const adSummary = payload?.adAnalysis ?? null;
   const showCharts = Boolean(agg) && isClient;
   const dataMode = payload?.dataMode ?? "partial";
   const dataQuality = payload?.dataQuality ?? { score: 0, warnings: [], lastSyncAt: null };
@@ -272,7 +257,6 @@ export default function DashboardPage() {
     );
   }
 
-  const trendMax = Math.max(...agg.salesTrend.map((d) => d.revenue), 1);
   const trendChartData = agg.salesTrend.map((row) => ({
     ...row,
     profit: row.revenue * (agg.avgMargin / 100),
@@ -295,17 +279,13 @@ export default function DashboardPage() {
         </div>
       </PageHeader>
 
-      {payload?.fallbackUsed || adSummary?.analysisMode === "simulated" ? (
+      {payload?.fallbackUsed ? (
         <GlassCard className="mb-4 border-warning/25 bg-warning/10">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
             <div className="space-y-1">
               <p className="text-sm font-semibold text-warning">Karar desteği kısmi veriyle gösteriliyor.</p>
-              <p className="text-sm leading-6 text-soft">
-                {adSummary?.analysisMode === "simulated"
-                  ? "Reklam özeti türetilmiş kampanya sinyallerinden hesaplanıyor; gerçek platform entegrasyonu yerine simülasyon kullanılıyor."
-                  : "Bazı dashboard kartları yedek görünüm veya kısmi veri ile oluşturuldu."}
-              </p>
+              <p className="text-sm leading-6 text-soft">Bazı dashboard kartları yedek görünüm veya kısmi veri ile oluşturuldu.</p>
             </div>
           </div>
         </GlassCard>
@@ -317,33 +297,53 @@ export default function DashboardPage() {
           Hızlı Başlangıç
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="glass-panel p-5 rounded-lg flex gap-4 items-start relative overflow-hidden group hover:border-primary/20 transition-all duration-200">
-            <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0 border border-primary/20">
+          <Link
+            href="/integrations"
+            className="glass-panel p-5 rounded-lg flex gap-4 items-start relative overflow-hidden group hover:border-primary/20 transition-all duration-200 cursor-pointer block"
+          >
+            <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0 border border-primary/20 transition-colors duration-200 group-hover:bg-primary/20">
               <span className="material-symbols-outlined text-[20px]">storefront</span>
             </div>
             <div>
-              <h3 className="font-sans text-[11px] font-bold text-foreground uppercase tracking-wider mb-1">1. Mağaza Bağlantısı</h3>
+              <h3 className="font-sans text-[11px] font-bold text-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                1. Mağaza Bağlantısı
+                <ChevronRight className="h-3 w-3 opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 text-primary" />
+              </h3>
               <p className="font-sans text-[13px] text-muted-foreground leading-relaxed">Pazaryeri hesaplarınızı entegre ederek verileri anında çekin.</p>
             </div>
-          </div>
-          <div className="glass-panel p-5 rounded-lg flex gap-4 items-start relative overflow-hidden group hover:border-secondary/20 transition-all duration-200">
-            <div className="w-10 h-10 rounded bg-secondary/10 flex items-center justify-center text-secondary shrink-0 border border-secondary/20">
+          </Link>
+
+          <Link
+            href="/veri-merkezi"
+            className="glass-panel p-5 rounded-lg flex gap-4 items-start relative overflow-hidden group hover:border-secondary/20 transition-all duration-200 cursor-pointer block"
+          >
+            <div className="w-10 h-10 rounded bg-secondary/10 flex items-center justify-center text-secondary shrink-0 border border-secondary/20 transition-colors duration-200 group-hover:bg-secondary/20">
               <span className="material-symbols-outlined text-[20px]">upload_file</span>
             </div>
             <div>
-              <h3 className="font-sans text-[11px] font-bold text-foreground uppercase tracking-wider mb-1">2. Maliyet Girişi</h3>
+              <h3 className="font-sans text-[11px] font-bold text-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                2. Maliyet Girişi
+                <ChevronRight className="h-3 w-3 opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 text-secondary" />
+              </h3>
               <p className="font-sans text-[13px] text-muted-foreground leading-relaxed">Ürün maliyetlerinizi yükleyerek net kar hesaplamalarını başlatın.</p>
             </div>
-          </div>
-          <div className="glass-panel p-5 rounded-lg flex gap-4 items-start relative overflow-hidden group hover:border-white/10 transition-all duration-200">
-            <div className="w-10 h-10 rounded bg-white/5 flex items-center justify-center text-muted-foreground shrink-0 border border-white/10">
+          </Link>
+
+          <Link
+            href="/profit-pricing"
+            className="glass-panel p-5 rounded-lg flex gap-4 items-start relative overflow-hidden group hover:border-white/10 transition-all duration-200 cursor-pointer block"
+          >
+            <div className="w-10 h-10 rounded bg-white/5 flex items-center justify-center text-muted-foreground shrink-0 border border-white/10 transition-colors duration-200 group-hover:bg-white/10">
               <span className="material-symbols-outlined text-[20px]">insights</span>
             </div>
             <div>
-              <h3 className="font-sans text-[11px] font-bold text-foreground uppercase tracking-wider mb-1">3. Analiz Bekliyor</h3>
+              <h3 className="font-sans text-[11px] font-bold text-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                3. Analiz Bekliyor
+                <ChevronRight className="h-3 w-3 opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 text-muted-foreground" />
+              </h3>
               <p className="font-sans text-[13px] text-muted-foreground leading-relaxed">Veriler işlendikten sonra karlı büyüme stratejileri oluşturun.</p>
             </div>
-          </div>
+          </Link>
         </div>
       </section>
 
@@ -394,37 +394,6 @@ export default function DashboardPage() {
           className="border-l-2 border-l-danger"
         />
       </div>
-
-      {adSummary && (
-        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <KpiCard
-            title="Reklam Harcaması"
-            value={formatCurrency(adSummary.totalSpend)}
-            subValue={`${formatNumber(adSummary.totalCampaigns)} kampanya${adSummary.coverageRatio !== undefined ? ` · kapsama %${Math.round(adSummary.coverageRatio * 100)}` : ""}`}
-            icon={Megaphone}
-          />
-          <KpiCard
-            title="Reklam Net Kârı"
-            value={formatCurrency(adSummary.totalNetProfit)}
-            subValue={`Senkron: ${new Intl.DateTimeFormat("tr-TR", { dateStyle: "short" }).format(new Date(adSummary.lastSyncedAt))}`}
-            icon={Wallet}
-            className="border-border/80 bg-surface-container"
-          />
-          <KpiCard
-            title="Kârlılık Oranı"
-            value={`${adSummary.averagePoas.toFixed(2)}x`}
-            subValue={adSummary.analysisMode === "simulated" ? "Simüle karar metriği" : "Kâr / harcama"}
-            icon={TrendingUp}
-          />
-          <KpiCard
-            title="Kritik Kampanyalar"
-            value={formatNumber(adSummary.lossMakingCount)}
-            subValue={`${adSummary.watchCount} takip | ${adSummary.scaleCount} ölçek`}
-            icon={AlertTriangle}
-            className="border-danger/20 bg-danger/5"
-          />
-        </div>
-      )}
 
       <GlassCard className="mb-4">
         <div className="mb-3 flex items-center justify-between gap-3">

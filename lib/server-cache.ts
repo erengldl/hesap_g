@@ -1,9 +1,10 @@
 type CacheEntry<T> = {
-  value: T;
+  value: T | Promise<T>;
   expiresAt: number;
 };
 
 const cache = new Map<string, CacheEntry<unknown>>();
+const PENDING_ENTRY_TTL_MS = 5 * 60_000;
 
 export function buildScopedCacheKey(baseKey: string, scopeKey: string | number | null | undefined) {
   const normalizedScope = String(scopeKey ?? "anonymous").trim() || "anonymous";
@@ -22,10 +23,24 @@ export function getCachedValue<T>(key: string, ttlMs: number, factory: () => T |
 
   const value = factory();
   if (value instanceof Promise) {
-    return value.then((resolved) => {
-      cache.set(key, { value: resolved, expiresAt: now + ttlMs });
-      return resolved;
-    });
+    const pending: Promise<T> = value.then(
+      (resolved) => {
+        const current = cache.get(key);
+        if (current?.value === pending) {
+          cache.set(key, { value: resolved, expiresAt: Date.now() + ttlMs });
+        }
+        return resolved;
+      },
+      (error) => {
+        const current = cache.get(key);
+        if (current?.value === pending) {
+          cache.delete(key);
+        }
+        throw error;
+      }
+    );
+    cache.set(key, { value: pending, expiresAt: now + PENDING_ENTRY_TTL_MS });
+    return pending;
   }
 
   cache.set(key, { value, expiresAt: now + ttlMs });
