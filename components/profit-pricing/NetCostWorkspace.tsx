@@ -10,6 +10,7 @@ type NetCostWorkspaceProps = {
   bootstrap: NetCostBootstrap | null;
   results: ChannelCostResult[] | null;
   selectedProductId?: number;
+  error?: string | null;
 };
 
 function formatMaybeCurrency(value: number | null | undefined) {
@@ -20,6 +21,7 @@ export default function NetCostWorkspace({
   bootstrap,
   results,
   selectedProductId,
+  error,
 }: NetCostWorkspaceProps) {
   const selectedProduct = bootstrap?.selectedProduct ?? null;
   const productList = bootstrap?.products ?? [];
@@ -27,28 +29,32 @@ export default function NetCostWorkspace({
   const computedResults = results ?? [];
   const bestResult = [...computedResults].sort((left, right) => right.net_profit - left.net_profit)[0] ?? null;
 
+  if (error) {
+    return (
+      <GlassCard className="border-warning/20 bg-warning/10">
+        <p className="text-sm font-semibold text-warning">Uyarı</p>
+        <p className="mt-2 text-sm leading-6 text-soft">{error}</p>
+      </GlassCard>
+    );
+  }
+
   if (!bootstrap || !selectedProduct) {
     return (
       <div className="space-y-4">
         <PageHeader
           eyebrow="Net Maliyet"
           title="Net maliyet motoru"
-          description="Ürün ve kanal verisi hazır değil. Önce Veri Merkezi'nden yükle ya da ana panele dön."
+          description="Ürün seçimi ve hesaplama verisi hazır olduğunda tek sayfada üç kanalın toplam maliyetini görürsün."
         />
         <EmptyState
           icon={Calculator}
-          title="Veri hazır değil"
-          description="Ürün listesi olmadan net maliyet sonucu üretilemiyor."
-          action={
-            <div className="flex flex-wrap justify-center gap-2">
-              <Link href="/veri-merkezi" className="btn-primary">
-                Veri Merkezi
-              </Link>
-              <Link href="/dashboard" className="btn-secondary">
-                Ana Panele Dön
-              </Link>
-            </div>
-          }
+          title="Net maliyet verisi hazır değil"
+          description="Önce ürün listesinin yüklenmesi gerekiyor."
+          action={(
+            <Link href="/net-maliyet-motoru" className="btn-primary">
+              Sayfayı yenile
+            </Link>
+          )}
         />
       </div>
     );

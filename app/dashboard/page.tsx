@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import { PageHeader, KpiCard, GlassCard, MobileCardList, WarningBadge, SkeletonCard, EmptyState, EyebrowBadge } from "@/components/ui-custom/GlassComponents";
@@ -45,6 +46,20 @@ type DashboardPayload = {
   costBreakdown?: { label: string; value: number }[];
   methodology?: string;
 };
+
+const ProductComparisonSection = dynamic(
+  () => import("@/components/dashboard/ProductComparison"),
+  {
+    loading: () => (
+      <GlassCard className="p-5">
+        <div className="space-y-2">
+          <h3 className="font-heading text-base font-bold text-foreground">Benchmark Analizi</h3>
+          <p className="text-sm text-muted/70">Ürün karşılaştırma paneli hazırlanıyor...</p>
+        </div>
+      </GlassCard>
+    ),
+  }
+);
 
 function getDataModeMeta(mode: DashboardDataMode) {
   if (mode === "demo") {
@@ -697,6 +712,8 @@ export default function DashboardPage() {
           </div>
         </GlassCard>
       )}
+
+      <ProductComparisonSection />
 
       <GlassCard className="mt-4">
         <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Menu,
   Bell,
@@ -18,7 +18,7 @@ import { NotificationBadge } from "@/components/ui-custom/GlassComponents";
 import { useDashboardStats } from "./DashboardStatsProvider";
 import { useAuth } from "./AuthContext";
 import { cn } from "@/lib/utils";
-import { findBestMatchingNavigationItem } from "./navigation";
+import { navigationItems } from "./navigation";
 
 interface TopbarProps {
   onOpenMobileNavigation: () => void;
@@ -31,69 +31,37 @@ type TopbarMeta = {
   description: string;
 };
 
-const routeMeta: Array<{ match: (pathname: string, searchQuery: string) => boolean; meta: TopbarMeta }> = [
+const routeMeta: Array<{ match: (pathname: string) => boolean; meta: TopbarMeta }> = [
   {
     match: (pathname) => pathname === "/dashboard",
     meta: {
       eyebrow: "Başlangıç",
-      title: "Anasayfa",
-      description: "Kısa genel bakış.",
-    },
-  },
-  {
-    match: (pathname, searchQuery) => pathname.startsWith("/veri-merkezi") && new URLSearchParams(searchQuery).get("tab") === "sales",
-    meta: {
-      eyebrow: "Veri Merkezi",
-      title: "Satış Geçmişi",
-      description: "Geçmiş siparişleri incele.",
-    },
-  },
-  {
-    match: (pathname, searchQuery) => pathname.startsWith("/veri-merkezi") && new URLSearchParams(searchQuery).get("tab") === "settings",
-    meta: {
-      eyebrow: "Veri Merkezi",
-      title: "Mağaza Ayarları",
-      description: "Mağaza ve operasyon ayarlarını düzenle.",
+      title: "Kontrol Merkezi",
+      description: "Önce veri kalitesi, sonra kârlılık ve stok uyarıları.",
     },
   },
   {
     match: (pathname) => pathname.startsWith("/veri-merkezi"),
     meta: {
-      eyebrow: "Veri Merkezi",
+      eyebrow: "Katalog",
       title: "Ürünler",
-      description: "Ürün listesi, stok ve temel ayarlar.",
+      description: "Ürün verileri, kanal eşleşmeleri ve operasyon ayarları.",
     },
   },
   {
     match: (pathname) => pathname.startsWith("/forecast"),
     meta: {
       eyebrow: "Tahmin",
-      title: "Tahmin",
-      description: "Satış öngörüsü ve trend görünümü.",
+      title: "Talep Tahmini",
+      description: "Satış öngörüleri, senaryolar ve trend kırılımları.",
     },
   },
   {
     match: (pathname) => pathname.startsWith("/profit-pricing"),
     meta: {
       eyebrow: "Kârlılık",
-      title: "Fiyat Optimizasyonu",
-      description: "Fiyat ve marjı sade biçimde ayarla.",
-    },
-  },
-  {
-    match: (pathname) => pathname.startsWith("/net-maliyet-motoru"),
-    meta: {
-      eyebrow: "Kârlılık",
-      title: "Net Maliyet",
-      description: "Kanal bazlı gerçek toplam maliyet.",
-    },
-  },
-  {
-    match: (pathname) => pathname.startsWith("/integrations"),
-    meta: {
-      eyebrow: "Entegrasyon",
-      title: "Bağlantılar",
-      description: "Servis ve kanal bağlantılarını yönet.",
+      title: "Kârlılık",
+      description: "Fiyat Optimizasyonu ve Net Maliyet, aynı karar alanında.",
     },
   },
   {
@@ -137,6 +105,14 @@ const routeMeta: Array<{ match: (pathname: string, searchQuery: string) => boole
     },
   },
   {
+    match: (pathname) => pathname.startsWith("/integrations"),
+    meta: {
+      eyebrow: "Entegrasyon",
+      title: "Bağlantılar",
+      description: "Servis, kanal ve reklam platformu bağlantılarını yönet.",
+    },
+  },
+  {
     match: (pathname) => pathname.startsWith("/ayarlar"),
     meta: {
       eyebrow: "Hesap",
@@ -154,14 +130,14 @@ const routeMeta: Array<{ match: (pathname: string, searchQuery: string) => boole
   },
 ];
 
-function getTopbarMeta(pathname: string, searchQuery: string): TopbarMeta {
-  const explicitMatch = routeMeta.find((item) => item.match(pathname, searchQuery));
+function getTopbarMeta(pathname: string): TopbarMeta {
+  const explicitMatch = routeMeta.find((item) => item.match(pathname));
   if (explicitMatch) return explicitMatch.meta;
 
-  const navMatch = findBestMatchingNavigationItem(pathname, searchQuery);
+  const navMatch = navigationItems.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
   if (navMatch) {
     return {
-      eyebrow: "Panel",
+      eyebrow: "Kontrol Merkezi",
       title: navMatch.name,
       description: navMatch.description,
     };
@@ -176,14 +152,12 @@ function getTopbarMeta(pathname: string, searchQuery: string): TopbarMeta {
 
 export default function Topbar({ onOpenMobileNavigation, onOpenCommandPalette }: TopbarProps) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchQuery = searchParams.toString();
   const router = useRouter();
   const { stats } = useDashboardStats();
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const meta = getTopbarMeta(pathname, searchQuery);
+  const meta = getTopbarMeta(pathname);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
