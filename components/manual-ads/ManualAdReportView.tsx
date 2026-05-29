@@ -75,7 +75,7 @@ function formatMaybeNumber(value: number | null) {
 export function ManualAdReportView({ campaign, report, className }: ManualAdReportViewProps) {
   return (
     <div className={cn("space-y-6", className)}>
-      <GlassCard className="border border-primary/20 bg-primary/5">
+      <GlassCard className="border border-primary/20 bg-primary/[0.04]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -199,11 +199,11 @@ export function ManualAdReportView({ campaign, report, className }: ManualAdRepo
         </div>
 
         <div className="mt-4 grid gap-4 xl:grid-cols-2">
-          <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
+          <div className="rounded-2xl border border-primary/15 bg-primary/[0.05] p-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">Test edilecek 3 kreatif açısı</p>
             <div className="mt-2">{renderList(report.recommendations.creativeAngles)}</div>
           </div>
-          <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
+          <div className="rounded-2xl border border-primary/15 bg-primary/[0.05] p-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">Test edilecek 3 reklam metni açısı</p>
             <div className="mt-2">{renderList(report.recommendations.copyAngles)}</div>
           </div>

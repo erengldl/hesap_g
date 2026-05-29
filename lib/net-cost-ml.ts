@@ -1,6 +1,5 @@
 import { getOwnWebsiteGatewayRule } from "./database-readers";
 import { getOne, query } from "./db";
-import { requireCurrentAuthUserId } from "./tenant";
 import type { Product } from "./types";
 
 type ChannelType = "marketplace" | "own_website";
@@ -136,19 +135,17 @@ function getShippingPrior(product: NetCostMlInput["product"]) {
   return clamp(1 + Math.max(0, (desi - 1.5) * 0.012), 1, 1.15);
 }
 
-async function getReturnStats(whereClause: string, params: unknown[]) {
-  const authUserId = requireCurrentAuthUserId();
-  const row = await getOne<ReturnStatsRow>(
+function getReturnStats(whereClause: string, params: unknown[]) {
+  const row = getOne<ReturnStatsRow>(
     `
       SELECT
         COUNT(*) AS total_orders,
         SUM(CASE WHEN status = 'returned' THEN 1 ELSE 0 END) AS returned_orders
       FROM orders
       ${whereClause}
-        AND user_id = ?
         AND COALESCE(status, 'completed') IN ('completed', 'returned')
     `,
-    [...params, authUserId]
+    params
   );
 
   const total = Math.max(0, safeNumber(row?.total_orders, 0));
@@ -158,17 +155,17 @@ async function getReturnStats(whereClause: string, params: unknown[]) {
   return { total, returned, rate };
 }
 
-async function getMarketplaceStats(marketplaceId: number) {
-  return await getReturnStats("WHERE marketplace_id = ?", [marketplaceId]);
+function getMarketplaceStats(marketplaceId: number) {
+  return getReturnStats("WHERE marketplace_id = ?", [marketplaceId]);
 }
 
-async function getProductStats(productId: number, marketplaceId: number) {
-  return await getReturnStats("WHERE product_id = ? AND marketplace_id = ?", [productId, marketplaceId]);
+function getProductStats(productId: number, marketplaceId: number) {
+  return getReturnStats("WHERE product_id = ? AND marketplace_id = ?", [productId, marketplaceId]);
 }
 
-async function getCategoryStats(categoryId: number | null | undefined) {
+function getCategoryStats(categoryId: number | null | undefined) {
   if (!categoryId) return { total: 0, returned: 0, rate: 0 };
-  return await getReturnStats(
+  return getReturnStats(
     `
       WHERE product_id IN (
         SELECT product_id
@@ -180,9 +177,9 @@ async function getCategoryStats(categoryId: number | null | undefined) {
   );
 }
 
-async function getCategoryMarketplaceStats(categoryId: number | null | undefined, marketplaceId: number) {
+function getCategoryMarketplaceStats(categoryId: number | null | undefined, marketplaceId: number) {
   if (!categoryId) return { total: 0, returned: 0, rate: 0 };
-  return await getReturnStats(
+  return getReturnStats(
     `
       WHERE product_id IN (
         SELECT product_id
@@ -195,9 +192,9 @@ async function getCategoryMarketplaceStats(categoryId: number | null | undefined
   );
 }
 
-async function getProfileStats(profileId: number | null | undefined) {
+function getProfileStats(profileId: number | null | undefined) {
   if (!profileId) return { total: 0, returned: 0, rate: 0 };
-  return await getReturnStats(
+  return getReturnStats(
     `
       WHERE product_id IN (
         SELECT product_id
@@ -209,13 +206,12 @@ async function getProfileStats(profileId: number | null | undefined) {
   );
 }
 
-async function getGlobalStats() {
-  return await getReturnStats("WHERE 1 = 1", []);
+function getGlobalStats() {
+  return getReturnStats("WHERE 1 = 1", []);
 }
 
-async function getTrafficCandidateRows(productId: number) {
-  const authUserId = requireCurrentAuthUserId();
-  const persistedRows = await query<TrafficCpaRow>(
+function getTrafficCandidateRows(productId: number) {
+  const persistedRows = query<TrafficCpaRow>(
     `
       SELECT
         pms.traffic_cpa,
@@ -228,24 +224,22 @@ async function getTrafficCandidateRows(productId: number) {
         p.packaging_cost,
         cr.calculated_at
       FROM product_marketplace_settings pms
-      JOIN products p ON p.product_id = pms.product_id AND p.user_id = pms.user_id
+      JOIN products p ON p.product_id = pms.product_id
       LEFT JOIN categories c ON c.category_id = p.category_id
       LEFT JOIN cost_results cr
         ON cr.product_id = pms.product_id
        AND cr.marketplace_id = pms.marketplace_id
-       AND cr.user_id = pms.user_id
       WHERE pms.marketplace_id = 3
-        AND pms.user_id = ?
         AND pms.traffic_cpa IS NOT NULL
         AND pms.traffic_cpa > 0
         AND pms.product_id <> ?
       ORDER BY COALESCE(cr.calculated_at, CURRENT_TIMESTAMP) DESC, pms.product_id DESC
       LIMIT 300
     `,
-    [authUserId, productId]
+    [productId]
   );
 
-  const adResultRows = await query<TrafficCpaRow>(
+  const adResultRows = query<TrafficCpaRow>(
     `
       SELECT
         cr.unit_ad_cost AS traffic_cpa,
@@ -258,25 +252,23 @@ async function getTrafficCandidateRows(productId: number) {
         p.packaging_cost,
         cr.calculated_at
       FROM cost_results cr
-      JOIN products p ON p.product_id = cr.product_id AND p.user_id = cr.user_id
+      JOIN products p ON p.product_id = cr.product_id
       LEFT JOIN categories c ON c.category_id = p.category_id
       WHERE cr.marketplace_id = 3
-        AND cr.user_id = ?
         AND cr.unit_ad_cost IS NOT NULL
         AND cr.unit_ad_cost > 0
         AND cr.product_id <> ?
       ORDER BY COALESCE(cr.calculated_at, CURRENT_TIMESTAMP) DESC, cr.id DESC
       LIMIT 300
     `,
-    [authUserId, productId]
+    [productId]
   );
 
   return [...persistedRows, ...adResultRows];
 }
 
-async function getShippingHistoryRows(productId: number, marketplaceId: number) {
-  const authUserId = requireCurrentAuthUserId();
-  const orderRows = await query<ShippingHistoryRow>(
+function getShippingHistoryRows(productId: number, marketplaceId: number) {
+  const orderRows = query<ShippingHistoryRow>(
     `
       SELECT
         o.realized_shipping_cost AS observed_shipping_cost,
@@ -289,24 +281,22 @@ async function getShippingHistoryRows(productId: number, marketplaceId: number) 
         p.packaging_cost,
         COALESCE(o.last_synced_at, o.created_at, o.order_date) AS observed_at
       FROM orders o
-      JOIN products p ON p.product_id = o.product_id AND p.user_id = o.user_id
+      JOIN products p ON p.product_id = o.product_id
       LEFT JOIN product_marketplace_settings pms
         ON pms.product_id = o.product_id
        AND pms.marketplace_id = o.marketplace_id
-       AND pms.user_id = o.user_id
       LEFT JOIN categories c ON c.category_id = p.category_id
       WHERE o.marketplace_id = ?
         AND o.product_id <> ?
-        AND o.user_id = ?
         AND o.realized_shipping_cost IS NOT NULL
         AND o.realized_shipping_cost > 0
       ORDER BY o.order_date DESC, o.order_id DESC
       LIMIT 300
     `,
-    [marketplaceId, productId, authUserId]
+    [marketplaceId, productId]
   );
 
-  const costRows = await query<ShippingHistoryRow>(
+  const costRows = query<ShippingHistoryRow>(
     `
       SELECT
         cr.realized_shipping_cost AS observed_shipping_cost,
@@ -319,17 +309,16 @@ async function getShippingHistoryRows(productId: number, marketplaceId: number) 
         p.packaging_cost,
         cr.calculated_at AS observed_at
       FROM cost_results cr
-      JOIN products p ON p.product_id = cr.product_id AND p.user_id = cr.user_id
+      JOIN products p ON p.product_id = cr.product_id
       LEFT JOIN categories c ON c.category_id = p.category_id
       WHERE cr.marketplace_id = ?
         AND cr.product_id <> ?
-        AND cr.user_id = ?
         AND cr.realized_shipping_cost IS NOT NULL
         AND cr.realized_shipping_cost > 0
       ORDER BY cr.calculated_at DESC, cr.id DESC
       LIMIT 300
     `,
-    [marketplaceId, productId, authUserId]
+    [marketplaceId, productId]
   );
 
   return [...orderRows, ...costRows];
@@ -357,13 +346,13 @@ function resolveConfidenceScore(sampleSize: number, agreementScore: number, hasR
   return "Low" as const;
 }
 
-async function resolveReturnRate(product: NetCostMlInput["product"], marketplaceId: number) {
-  const productStats = await getProductStats(product.id, marketplaceId);
-  const categoryStats = await getCategoryStats(product.category_id);
-  const categoryMarketplaceStats = await getCategoryMarketplaceStats(product.category_id, marketplaceId);
-  const profileStats = await getProfileStats(product.profile_id);
-  const marketplaceStats = await getMarketplaceStats(marketplaceId);
-  const globalStats = await getGlobalStats();
+function resolveReturnRate(product: NetCostMlInput["product"], marketplaceId: number) {
+  const productStats = getProductStats(product.id, marketplaceId);
+  const categoryStats = getCategoryStats(product.category_id);
+  const categoryMarketplaceStats = getCategoryMarketplaceStats(product.category_id, marketplaceId);
+  const profileStats = getProfileStats(product.profile_id);
+  const marketplaceStats = getMarketplaceStats(marketplaceId);
+  const globalStats = getGlobalStats();
 
   const prior = getReturnPrior(product);
   const candidates = [
@@ -407,9 +396,9 @@ async function resolveReturnRate(product: NetCostMlInput["product"], marketplace
   };
 }
 
-async function resolveTrafficCpa(product: NetCostMlInput["product"], salePrice: number, currentTrafficCpa?: number | null) {
-  const candidateRows = await getTrafficCandidateRows(product.id);
-  const gateway = await getOwnWebsiteGatewayRule();
+function resolveTrafficCpa(product: NetCostMlInput["product"], salePrice: number, currentTrafficCpa?: number | null) {
+  const candidateRows = getTrafficCandidateRows(product.id);
+  const gateway = getOwnWebsiteGatewayRule();
   const fallback = round2(safeNumber(gateway?.avg_ad_cost, 56.2));
   const basePrior = currentTrafficCpa && currentTrafficCpa > 0 ? round2(currentTrafficCpa) : fallback;
   const categoryRoot = toRootCategory(product.category_path ?? product.category_name);
@@ -469,14 +458,14 @@ async function resolveTrafficCpa(product: NetCostMlInput["product"], salePrice: 
   };
 }
 
-async function resolveShippingMultiplier(
+function resolveShippingMultiplier(
   product: NetCostMlInput["product"],
   marketplaceId: number,
   baseShippingCost: number,
   shippingCompanyId?: number | null
 ) {
-  const historyRows = await getShippingHistoryRows(product.id, marketplaceId);
-  const shippingRates = await query<{
+  const historyRows = getShippingHistoryRows(product.id, marketplaceId);
+  const shippingRates = query<{
     marketplace_id: number;
     shipping_company_id: number;
     desi_min: number;
@@ -589,7 +578,7 @@ function buildReturnCost(
   return round2((returnRate / 100) * lossPerReturn);
 }
 
-export async function predictNetCostSignals(input: NetCostMlInput): Promise<NetCostMlSignals> {
+export function predictNetCostSignals(input: NetCostMlInput): NetCostMlSignals {
   const cacheKey = [
     input.product.id,
     input.marketplaceId,
@@ -608,9 +597,9 @@ export async function predictNetCostSignals(input: NetCostMlInput): Promise<NetC
     return cached.value;
   }
 
-  const returnSignals = await resolveReturnRate(input.product, input.marketplaceId);
+  const returnSignals = resolveReturnRate(input.product, input.marketplaceId);
   const cpaSignals = input.channelType === "own_website"
-    ? await resolveTrafficCpa(input.product, input.salePrice, input.currentTrafficCpa)
+    ? resolveTrafficCpa(input.product, input.salePrice, input.currentTrafficCpa)
     : {
         cpa: 0,
         confidence: "Low" as const,
@@ -618,7 +607,7 @@ export async function predictNetCostSignals(input: NetCostMlInput): Promise<NetC
         note: "Pazaryeri kanalında CPA modeli kullanılmaz.",
         source: "n/a",
       };
-  const shippingSignals = await resolveShippingMultiplier(
+  const shippingSignals = resolveShippingMultiplier(
     input.product,
     input.marketplaceId,
     Math.max(0, safeNumber(input.baseShippingCost, 0)),

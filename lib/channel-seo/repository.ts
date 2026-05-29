@@ -1,5 +1,4 @@
 import { getDb } from "@/lib/db";
-import { requireCurrentAuthUserId } from "@/lib/tenant";
 import { getChannelRule, listChannelSeoOptions } from "./channel-rules";
 import type {
   ChannelSeoContent,
@@ -145,14 +144,11 @@ function mapProductRow(row: ProductRow): ChannelSeoProduct {
   };
 }
 
-function buildProductSelectSql(selectedChannel: SalesChannel, filters: ChannelSeoProductListFilters, authUserId: string) {
+function buildProductSelectSql(selectedChannel: SalesChannel, filters: ChannelSeoProductListFilters) {
   const whereClauses: string[] = [];
   const params: Array<string | number> = [];
   const q = normalizeText(filters.q)?.toLowerCase() ?? null;
   const category = normalizeText(filters.category)?.toLowerCase() ?? null;
-
-  whereClauses.push(`p.user_id = ?`);
-  params.push(authUserId);
 
   if (q) {
     const like = `%${q}%`;
@@ -254,18 +250,13 @@ function buildProductRowSql() {
   `;
 }
 
-async function getProductContentRows(db: ReturnType<typeof requireDb>, productIds: string[], authUserId: string) {
+function getProductContentRows(db: ReturnType<typeof requireDb>, productIds: string[]) {
   if (productIds.length === 0) {
     return [] as ChannelSeoContentRow[];
   }
 
-  const accessibleProductIds = await getAccessibleProductIds(db, productIds, authUserId);
-  if (accessibleProductIds.length === 0) {
-    return [] as ChannelSeoContentRow[];
-  }
-
-  const placeholders = accessibleProductIds.map(() => "?").join(", ");
-  return await db
+  const placeholders = productIds.map(() => "?").join(", ");
+  return db
     .prepare(
       `
         SELECT *
@@ -273,35 +264,16 @@ async function getProductContentRows(db: ReturnType<typeof requireDb>, productId
         WHERE product_id IN (${placeholders})
       `
     )
-    .all(...accessibleProductIds) as ChannelSeoContentRow[];
-}
-
-async function getAccessibleProductIds(
-  db: ReturnType<typeof requireDb>,
-  productIds: string[],
-  authUserId: string,
-) {
-  const productExists = db.prepare("SELECT product_id FROM products WHERE product_id = ? AND user_id = ? LIMIT 1");
-  const accessible: string[] = [];
-
-  for (const productId of productIds) {
-    const exists = await productExists.get(Number(productId), authUserId) as { product_id: number } | undefined;
-    if (exists?.product_id) {
-      accessible.push(String(exists.product_id));
-    }
-  }
-
-  return accessible;
+    .all(...productIds) as ChannelSeoContentRow[];
 }
 
 export function listChannelSeoChannels() {
   return listChannelSeoOptions();
 }
 
-export async function listChannelSeoCategories() {
+export function listChannelSeoCategories() {
   const db = requireDb();
-  const authUserId = requireCurrentAuthUserId();
-  const rows = await db
+  const rows = db
     .prepare(
       `
         SELECT DISTINCT
@@ -309,19 +281,17 @@ export async function listChannelSeoCategories() {
           COALESCE(NULLIF(TRIM(COALESCE(p.category_path, c.path, c.name, '')), ''), 'Kategorisiz') AS label
         FROM products p
         LEFT JOIN categories c ON c.category_id = p.category_id
-        WHERE p.user_id = ?
         ORDER BY label ASC
       `
     )
-    .all(authUserId) as Array<{ value: string; label: string }>;
+    .all() as Array<{ value: string; label: string }>;
 
   return rows;
 }
 
-export async function getChannelSeoProductDetail(productId: string): Promise<ChannelSeoProductDetail | null> {
+export function getChannelSeoProductDetail(productId: string): ChannelSeoProductDetail | null {
   const db = requireDb();
-  const authUserId = requireCurrentAuthUserId();
-  const row = await db
+  const row = db
     .prepare(
       `
         SELECT
@@ -360,21 +330,21 @@ export async function getChannelSeoProductDetail(productId: string): Promise<Cha
                 FROM inventory_daily id2
                 WHERE id2.product_id = p.product_id
               )
-        ) AS stock_qty
+          ) AS stock_qty
         FROM products p
         LEFT JOIN categories c ON c.category_id = p.category_id
-        WHERE p.product_id = ? AND p.user_id = ?
+        WHERE p.product_id = ?
         LIMIT 1
       `
     )
-    .get(productId, authUserId) as ProductRow | undefined;
+    .get(productId) as ProductRow | undefined;
 
   if (!row) {
     return null;
   }
 
   const contents = buildContentMap();
-  const contentRows = await db
+  const contentRows = db
     .prepare(
       `
         SELECT *
@@ -398,22 +368,21 @@ export async function getChannelSeoProductDetail(productId: string): Promise<Cha
   };
 }
 
-export async function getChannelSeoProductById(productId: string) {
-  return await getChannelSeoProductDetail(productId);
+export function getChannelSeoProductById(productId: string) {
+  return getChannelSeoProductDetail(productId);
 }
 
-export async function listChannelSeoProducts(filters: ChannelSeoProductListFilters): Promise<{
+export function listChannelSeoProducts(filters: ChannelSeoProductListFilters): {
   items: ChannelSeoProductWithContents[];
   pagination: ChannelSeoPagination;
-}> {
+} {
   const db = requireDb();
-  const authUserId = requireCurrentAuthUserId();
   const page = Number.isFinite(filters.page) && filters.page > 0 ? Math.floor(filters.page) : 1;
   const pageSize = Number.isFinite(filters.pageSize) && filters.pageSize > 0 ? Math.min(Math.floor(filters.pageSize), 50) : 25;
   const offset = (page - 1) * pageSize;
-  const { where, params, selectedChannel } = buildProductSelectSql(filters.channel, filters, authUserId);
+  const { where, params, selectedChannel } = buildProductSelectSql(filters.channel, filters);
 
-  const countRow = await db
+  const countRow = db
     .prepare(
       `
         SELECT COUNT(*) AS total
@@ -427,7 +396,7 @@ export async function listChannelSeoProducts(filters: ChannelSeoProductListFilte
     )
     .get(selectedChannel, ...params) as { total: number } | undefined;
 
-  const rows = await db
+  const rows = db
     .prepare(
       `
         ${buildProductRowSql()}
@@ -439,7 +408,7 @@ export async function listChannelSeoProducts(filters: ChannelSeoProductListFilte
     .all(selectedChannel, ...params, pageSize, offset) as ProductQueryRow[];
 
   const productIds = rows.map((row) => String(row.product_id));
-  const contentRows = await getProductContentRows(db, productIds, authUserId);
+  const contentRows = getProductContentRows(db, productIds);
   const contentMap = new Map<string, Record<SalesChannel, ChannelSeoContent | null>>();
 
   for (const productIdValue of productIds) {
@@ -497,10 +466,9 @@ export async function listChannelSeoProducts(filters: ChannelSeoProductListFilte
   };
 }
 
-export async function getChannelSeoContentsByProductIds(productIds: string[]) {
+export function getChannelSeoContentsByProductIds(productIds: string[]) {
   const db = requireDb();
-  const authUserId = requireCurrentAuthUserId();
-  const rows = await getProductContentRows(db, productIds, authUserId);
+  const rows = getProductContentRows(db, productIds);
   const contents = new Map<string, Record<SalesChannel, ChannelSeoContent | null>>();
 
   for (const productId of productIds) {
@@ -521,15 +489,9 @@ export async function getChannelSeoContentsByProductIds(productIds: string[]) {
   return contents;
 }
 
-export async function getChannelSeoContent(productId: string, channel: SalesChannel): Promise<ChannelSeoContent | null> {
+export function getChannelSeoContent(productId: string, channel: SalesChannel): ChannelSeoContent | null {
   const db = requireDb();
-  const authUserId = requireCurrentAuthUserId();
-  const accessibleProductIds = await getAccessibleProductIds(db, [productId], authUserId);
-  if (accessibleProductIds.length === 0) {
-    return null;
-  }
-
-  const row = await db
+  const row = db
     .prepare(
       `
         SELECT *
@@ -543,9 +505,8 @@ export async function getChannelSeoContent(productId: string, channel: SalesChan
   return row ? mapContentRow(row) : null;
 }
 
-export async function upsertChannelSeoContents(items: ChannelSeoContent[]) {
+export function upsertChannelSeoContents(items: ChannelSeoContent[]) {
   const db = requireDb();
-  const authUserId = requireCurrentAuthUserId();
   const saved: ChannelSeoContent[] = [];
   const nowIso = new Date().toISOString();
   const insertOrUpdate = db.prepare(`
@@ -579,10 +540,10 @@ export async function upsertChannelSeoContents(items: ChannelSeoContent[]) {
       optimized_at = COALESCE(excluded.optimized_at, product_channel_seo_contents.optimized_at)
   `);
 
-  const productExists = db.prepare("SELECT product_id FROM products WHERE product_id = ? AND user_id = ? LIMIT 1");
-  await db.transaction(async () => {
-    for (const item of items) {
-      const exists = await productExists.get(Number(item.productId), authUserId) as { product_id: number } | undefined;
+  const productExists = db.prepare("SELECT product_id FROM products WHERE product_id = ? LIMIT 1");
+  const transaction = db.transaction((records: ChannelSeoContent[]) => {
+    for (const item of records) {
+      const exists = productExists.get(Number(item.productId)) as { product_id: number } | undefined;
       if (!exists) {
         throw new Error(`Ürün bulunamadı: ${item.productId}`);
       }
@@ -594,7 +555,7 @@ export async function upsertChannelSeoContents(items: ChannelSeoContent[]) {
       const notes = item.notes && item.notes.length > 0 ? JSON.stringify(item.notes) : null;
       const keywords = item.keywords && item.keywords.length > 0 ? JSON.stringify(item.keywords) : null;
 
-      await insertOrUpdate.run(
+      insertOrUpdate.run(
         item.productId,
         item.channel,
         item.title,
@@ -610,7 +571,7 @@ export async function upsertChannelSeoContents(items: ChannelSeoContent[]) {
         optimizedAt
       );
 
-      const savedRow = await db
+      const savedRow = db
         .prepare(
           `
             SELECT *
@@ -630,16 +591,18 @@ export async function upsertChannelSeoContents(items: ChannelSeoContent[]) {
     }
   });
 
+  transaction(items);
+
   return saved;
 }
 
-export async function createChannelSeoJob(input: {
+export function createChannelSeoJob(input: {
   totalCount: number;
   channels: SalesChannel[];
   model?: string | null;
 }) {
   const db = requireDb();
-  const result = await db
+  const result = db
     .prepare(
       `
         INSERT INTO product_channel_seo_jobs (
@@ -659,9 +622,9 @@ export async function createChannelSeoJob(input: {
   return Number(result.lastInsertRowid);
 }
 
-export async function finishChannelSeoJob(jobId: number, summary: { success: number; error: number; skipped: number }) {
+export function finishChannelSeoJob(jobId: number, summary: { success: number; error: number; skipped: number }) {
   const db = requireDb();
-  await db.prepare(
+  db.prepare(
     `
       UPDATE product_channel_seo_jobs
       SET status = 'completed',
@@ -674,9 +637,9 @@ export async function finishChannelSeoJob(jobId: number, summary: { success: num
   ).run(summary.success, summary.error, summary.skipped, jobId);
 }
 
-export async function updateChannelSeoJob(jobId: number, summary: { success: number; error: number; skipped: number }) {
+export function updateChannelSeoJob(jobId: number, summary: { success: number; error: number; skipped: number }) {
   const db = requireDb();
-  await db.prepare(
+  db.prepare(
     `
       UPDATE product_channel_seo_jobs
       SET success_count = ?,

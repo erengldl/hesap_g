@@ -34,10 +34,10 @@ export default function CommissionTariffTable({ tariffs, selectedCategoryId }: C
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-border/80 bg-surface-container">
-              <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Kategori Path</th>
-              <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted text-center">Komisyon Oranı</th>
-              <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted text-center">Güven</th>
-              <th className="px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted text-right">Durum</th>
+              <th className="px-6 py-4 text-[10px] font-bold text-muted uppercase tracking-widest">Kategori Path</th>
+              <th className="px-6 py-4 text-[10px] font-bold text-muted uppercase tracking-widest text-center">Komisyon Oranı</th>
+              <th className="px-6 py-4 text-[10px] font-bold text-muted uppercase tracking-widest text-center">Güven</th>
+              <th className="px-6 py-4 text-[10px] font-bold text-muted uppercase tracking-widest text-right">Durum</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
@@ -68,7 +68,7 @@ export default function CommissionTariffTable({ tariffs, selectedCategoryId }: C
                   <td className="px-6 py-4">
                     <div className="flex justify-center">
                       <span className={cn(
-                        "px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-[0.14em] border",
+                        "px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-tighter border",
                         item.confidence_level === 'high' 
                           ? "bg-success/10 text-success border-success/20" 
                           : "bg-warning/10 text-warning border-warning/20"

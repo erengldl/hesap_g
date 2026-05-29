@@ -3,8 +3,6 @@ import { getDb, query } from "@/lib/db";
 import { getStoreExpenseMonthlyTotal } from "@/lib/database-readers";
 import { recalculateAllCostResults } from "@/lib/portfolio-analytics";
 import type { StoreExpenseUpsertInput } from "@/lib/types";
-import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
-import { getCurrentSellerProfileId, getOrCreateCurrentSellerProfileId } from "@/lib/seller-profile-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -13,26 +11,8 @@ function normalizeStatus(status: string | undefined | null) {
 }
 
 export async function GET() {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
-  const authUserId = session.authUserId?.trim() || "";
-  if (!authUserId) {
-    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
-  }
-  primeRequestContextFromApiContext(session);
   try {
-    const profileId = await getCurrentSellerProfileId();
-    if (!profileId) {
-      return NextResponse.json({
-        success: true,
-        expenses: [],
-        count: 0,
-        active_count: 0,
-        total_active_monthly_amount: 0,
-      });
-    }
-
-    const expenses = await query<{
+    const expenses = query<{
       expense_id: number;
       profile_id: number | null;
       name: string;
@@ -42,9 +22,9 @@ export async function GET() {
     }>(`
       SELECT expense_id, profile_id, name, monthly_amount, note, status
       FROM store_expenses
-      WHERE profile_id = ? AND user_id = ?
+      WHERE profile_id = 1
       ORDER BY expense_id ASC
-    `, [profileId, authUserId]);
+    `);
 
     const activeExpenses = expenses.filter((expense) => (expense.status ?? "active") === "active");
 
@@ -53,7 +33,7 @@ export async function GET() {
       expenses,
       count: expenses.length,
       active_count: activeExpenses.length,
-      total_active_monthly_amount: Number((await getStoreExpenseMonthlyTotal(profileId)).toFixed(2)),
+      total_active_monthly_amount: Number(getStoreExpenseMonthlyTotal(1).toFixed(2)),
     });
   } catch (error) {
     console.error("Store expenses GET error:", error);
@@ -62,13 +42,6 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
-  const authUserId = session.authUserId?.trim() || "";
-  if (!authUserId) {
-    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
-  }
-  primeRequestContextFromApiContext(session);
   try {
     const body = (await request.json()) as Partial<StoreExpenseUpsertInput>;
     const name = String(body.name ?? "").trim();
@@ -85,14 +58,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Veritabanı bağlantısı kullanılamıyor." }, { status: 500 });
     }
 
-    const profileId = await getOrCreateCurrentSellerProfileId();
+    db.prepare(`
+      INSERT INTO store_expenses (profile_id, name, monthly_amount, note, status)
+      VALUES (1, ?, ?, ?, ?)
+    `).run(name, monthlyAmount, note || null, status);
 
-    await db.prepare(`
-      INSERT INTO store_expenses (profile_id, user_id, name, monthly_amount, note, status)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(profileId, authUserId, name, monthlyAmount, note || null, status);
-
-    await recalculateAllCostResults();
+    recalculateAllCostResults();
 
     return NextResponse.json({ success: true });
   } catch (error) {

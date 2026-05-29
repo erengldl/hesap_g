@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb, query } from "@/lib/db";
-import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
+import { query } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +28,6 @@ type TopProductRow = {
 
 type SalesHistoryRow = {
   order_id: number;
-  order_item_id: number;
   order_date: string;
   status: string | null;
   external_order_number: string | null;
@@ -71,47 +69,15 @@ function addDays(dateKey: string, days: number) {
   return date.toISOString().slice(0, 10);
 }
 
-async function resolveMarketplaceId(slugOrName: string): Promise<number> {
-  const normalized = String(slugOrName || "").trim().toLowerCase();
-  if (normalized.includes("trendyol")) return 1;
-  if (normalized.includes("hepsiburada") || normalized.includes("hepsi")) return 2;
-  return 3; // Kendi Websitem
-}
-
-async function resolveProductIdBySkuOrName(sku?: string, name?: string): Promise<number | null> {
-  const db = getDb();
-  if (sku) {
-    const row = await db.prepare("SELECT product_id FROM products WHERE sku = ? LIMIT 1").get(sku) as { product_id: number } | undefined;
-    if (row) return row.product_id;
-  }
-  if (name) {
-    const row = await db.prepare("SELECT product_id FROM products WHERE name = ? LIMIT 1").get(name) as { product_id: number } | undefined;
-    if (row) return row.product_id;
-  }
-  const row = await db.prepare("SELECT product_id FROM products LIMIT 1").get() as { product_id: number } | undefined;
-  return row?.product_id ?? null;
-}
-
 export async function GET(request: Request) {
-  const session = await requireAuth(request);
-  if (session instanceof NextResponse) return session;
-  const authUserId = session.authUserId?.trim() || "";
-  if (!authUserId) {
-    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
-  }
-  primeRequestContextFromApiContext(session);
   try {
     const url = new URL(request.url);
     const viewParam = url.searchParams.get("view") ?? "sales";
-    const exportParam = url.searchParams.get("export");
-    const searchParam = (url.searchParams.get("search") ?? "").trim();
     const fromParam = url.searchParams.get("from");
     const toParam = url.searchParams.get("to");
     const daysParam = Number.parseInt(url.searchParams.get("days") ?? "90", 10);
     const pageParam = Number.parseInt(url.searchParams.get("page") ?? "1", 10);
-    const pageSizeParam = Number.parseInt(url.searchParams.get("page_size") ?? "40", 10);
-    const exportAll = exportParam === "all";
-    const pageSize = exportAll ? 5000 : Number.isFinite(pageSizeParam) && pageSizeParam > 0 ? Math.min(pageSizeParam, 5000) : 40;
+    const pageSize = 40;
     const requestedPage = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
     const isReturnView = viewParam === "returns";
 
@@ -121,21 +87,15 @@ export async function GET(request: Request) {
     let rangeDays = 90;
     let rangeStart = addDays(todayKey, -(rangeDays - 1));
     let rangeEnd = todayKey;
-    const marketplaceNameExpr = "COALESCE(m.name, m.slug, 'Kanal')";
-    const marketplaceSlugExpr = "COALESCE(m.slug, 'market')";
-    const productIdExpr = "COALESCE(oi.product_id, o.product_id)";
-    const productNameExpr = "COALESCE(p.name, oi.merchant_sku, 'Ürün')";
-    const productSkuExpr = "COALESCE(p.sku, oi.merchant_sku)";
     let baseWhere = `
       FROM orders o
-      JOIN order_items oi ON oi.order_id = o.order_id AND oi.user_id = o.user_id
+      JOIN order_items oi ON oi.order_id = o.order_id
       LEFT JOIN marketplaces m ON m.marketplace_id = o.marketplace_id
-      LEFT JOIN products p ON p.product_id = COALESCE(oi.product_id, o.product_id) AND p.user_id = o.user_id
-      WHERE o.order_date >= CURRENT_DATE + CAST(? AS interval)
-        AND o.user_id = ?
+      LEFT JOIN products p ON p.product_id = COALESCE(oi.product_id, o.product_id)
+      WHERE o.order_date >= date('now', ?)
         AND ${isReturnView ? "COALESCE(o.status, 'completed') = 'returned'" : "COALESCE(o.status, 'completed') NOT IN ('cancelled', 'returned', 'pending')"}
     `;
-    let whereParams: Array<string> = [`-${rangeDays - 1} days`, authUserId];
+    let whereParams: Array<string> = [`-${rangeDays - 1} days`];
 
     if (hasCustomRange) {
       const firstDate = fromParam as string;
@@ -147,38 +107,21 @@ export async function GET(request: Request) {
       rangeDays = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 86400000) + 1);
       baseWhere = `
         FROM orders o
-        JOIN order_items oi ON oi.order_id = o.order_id AND oi.user_id = o.user_id
+        JOIN order_items oi ON oi.order_id = o.order_id
         LEFT JOIN marketplaces m ON m.marketplace_id = o.marketplace_id
-        LEFT JOIN products p ON p.product_id = COALESCE(oi.product_id, o.product_id) AND p.user_id = o.user_id
+        LEFT JOIN products p ON p.product_id = COALESCE(oi.product_id, o.product_id)
         WHERE o.order_date >= ?
           AND o.order_date <= ?
-          AND o.user_id = ?
           AND ${isReturnView ? "COALESCE(o.status, 'completed') = 'returned'" : "COALESCE(o.status, 'completed') NOT IN ('cancelled', 'returned', 'pending')"}
       `;
-      whereParams = [rangeStart, rangeEnd, authUserId];
+      whereParams = [rangeStart, rangeEnd];
     } else if (Number.isFinite(daysParam) && daysParam > 0) {
       rangeDays = Math.min(Math.max(daysParam, 1), 3650);
       rangeStart = addDays(todayKey, -(rangeDays - 1));
-      whereParams = [`-${rangeDays - 1} days`, authUserId];
+      whereParams = [`-${rangeDays - 1} days`];
     }
 
-    if (searchParam.length > 0) {
-      const searchLike = `%${searchParam.replace(/\s+/g, "%")}%`;
-      baseWhere += `
-        AND (
-          COALESCE(p.name, '') LIKE ?
-          OR COALESCE(p.sku, '') LIKE ?
-          OR COALESCE(oi.merchant_sku, '') LIKE ?
-          OR CAST(o.order_id AS TEXT) LIKE ?
-          OR COALESCE(o.external_order_number, '') LIKE ?
-          OR COALESCE(o.external_package_number, '') LIKE ?
-          OR COALESCE(m.name, m.slug, '') LIKE ?
-        )
-      `;
-      whereParams.push(searchLike, searchLike, searchLike, searchLike, searchLike, searchLike, searchLike);
-    }
-
-    const summaryRow = (await query<SalesHistorySummaryRow>(
+    const summaryRow = query<SalesHistorySummaryRow>(
       `
         SELECT
           COUNT(DISTINCT o.order_id) AS total_orders,
@@ -189,7 +132,7 @@ export async function GET(request: Request) {
         ${baseWhere}
       `,
       whereParams
-    ))[0] ?? {
+    )[0] ?? {
       total_orders: 0,
       total_units: 0,
       total_revenue: 0,
@@ -197,59 +140,58 @@ export async function GET(request: Request) {
       active_marketplaces: 0,
     };
 
-    const topMarketplace = (await query<TopMarketplaceRow>(
+    const topMarketplace = query<TopMarketplaceRow>(
       `
         SELECT
-          ${marketplaceNameExpr} AS marketplace_name,
-          ${marketplaceSlugExpr} AS marketplace_slug,
+          COALESCE(m.name, m.slug, 'Kanal') AS marketplace_name,
+          COALESCE(m.slug, 'market') AS marketplace_slug,
           COUNT(DISTINCT o.order_id) AS order_count,
           COALESCE(SUM(oi.line_total), 0) AS revenue
         ${baseWhere}
-        GROUP BY o.marketplace_id, ${marketplaceNameExpr}, ${marketplaceSlugExpr}
+        GROUP BY o.marketplace_id
         ORDER BY revenue DESC, order_count DESC
         LIMIT 1
       `,
       whereParams
-    ))[0] ?? null;
+    )[0] ?? null;
 
-    const topProduct = (await query<TopProductRow>(
+    const topProduct = query<TopProductRow>(
       `
         SELECT
-          ${productIdExpr} AS product_id,
-          ${productNameExpr} AS product_name,
-          ${productSkuExpr} AS product_sku,
+          COALESCE(oi.product_id, o.product_id) AS product_id,
+          COALESCE(p.name, oi.merchant_sku, 'Ürün') AS product_name,
+          COALESCE(p.sku, oi.merchant_sku) AS product_sku,
           COALESCE(SUM(oi.quantity), 0) AS units,
           COALESCE(SUM(oi.line_total), 0) AS revenue
         ${baseWhere}
-        GROUP BY ${productIdExpr}, ${productNameExpr}, ${productSkuExpr}
+        GROUP BY COALESCE(oi.product_id, o.product_id)
         ORDER BY units DESC, revenue DESC
         LIMIT 1
       `,
       whereParams
-    ))[0] ?? null;
+    )[0] ?? null;
 
     const totalRows = toNumber(
-      (await query<SalesHistoryCountRow>(
+      query<SalesHistoryCountRow>(
         `
           SELECT COUNT(*) AS total_rows
           ${baseWhere}
         `,
         whereParams
-      ))[0]?.total_rows
+      )[0]?.total_rows
     );
     const totalPages = totalRows > 0 ? Math.ceil(totalRows / pageSize) : 0;
-    const currentPage = exportAll ? 1 : totalPages > 0 ? Math.min(requestedPage, totalPages) : 1;
+    const currentPage = totalPages > 0 ? Math.min(requestedPage, totalPages) : 1;
     const offset = (currentPage - 1) * pageSize;
 
-    const salesHistoryQuery = `
+    const salesHistory = query<SalesHistoryRow>(
+      `
         SELECT
           o.order_id,
-          oi.order_item_id,
           o.order_date,
           COALESCE(o.status, 'completed') AS status,
           o.external_order_number,
           o.external_package_number,
-          o.marketplace_id,
           COALESCE(m.name, m.slug, 'Kanal') AS marketplace_name,
           COALESCE(m.slug, 'market') AS marketplace_slug,
           COALESCE(oi.product_id, o.product_id) AS product_id,
@@ -260,10 +202,10 @@ export async function GET(request: Request) {
           oi.line_total
         ${baseWhere}
         ORDER BY o.order_date DESC, o.order_id DESC, oi.order_item_id DESC
-        ${exportAll ? "" : `LIMIT ${pageSize} OFFSET ${offset}`}
-      `;
-
-    const salesHistory = (await query<SalesHistoryRow>(salesHistoryQuery, whereParams)).map((row) => ({
+        LIMIT ${pageSize} OFFSET ${offset}
+      `,
+      whereParams
+    ).map((row) => ({
       ...row,
       quantity: toWholeNumber(row.quantity),
       unit_price: toNumber(row.unit_price),
@@ -285,9 +227,8 @@ export async function GET(request: Request) {
         page: currentPage,
         page_size: pageSize,
         total_rows: totalRows,
-        total_pages: exportAll ? 1 : totalPages,
+        total_pages: totalPages,
       },
-      search: searchParam,
       summary: {
         total_orders: toWholeNumber(totalOrders),
         total_units: toWholeNumber(summaryRow.total_units),
@@ -316,160 +257,5 @@ export async function GET(request: Request) {
       },
       { status: 500 }
     );
-  }
-}
-
-export async function POST(request: Request) {
-  const session = await requireAuth(request);
-  if (session instanceof NextResponse) return session;
-  const authUserId = session.authUserId?.trim() || "";
-  if (!authUserId) {
-    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
-  }
-  primeRequestContextFromApiContext(session);
-
-  try {
-    const body = await request.json();
-    const db = getDb();
-    if (!db) {
-      return NextResponse.json({ success: false, error: "Veritabanı bağlantısı yok" }, { status: 500 });
-    }
-
-    if (body.bulk === true && Array.isArray(body.items)) {
-      // Bulk upload
-      let successCount = 0;
-      await db.transaction(async () => {
-        for (const item of body.items) {
-          const mId = await resolveMarketplaceId(item.marketplace_name);
-          const pId = await resolveProductIdBySkuOrName(item.product_sku, item.product_name);
-          if (!pId) continue;
-
-          const resOrder = await db.prepare(`
-            INSERT INTO orders (
-              product_id,
-              marketplace_id,
-              order_date,
-              quantity,
-              unit_price,
-              status,
-              external_order_number,
-              external_package_number,
-              merchant_sku
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `).run(
-            pId,
-            mId,
-            item.order_date,
-            item.quantity,
-            item.unit_price,
-            item.status || 'completed',
-            item.external_order_number || null,
-            item.external_package_number || null,
-            item.product_sku || null
-          );
-
-          const orderId = resOrder.lastInsertRowid;
-
-          await db.prepare(`
-            INSERT INTO order_items (
-              order_id,
-              product_id,
-              quantity,
-              unit_price,
-              line_total,
-              merchant_sku,
-              marketplace_order_number,
-              package_number
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-          `).run(
-            orderId,
-            pId,
-            item.quantity,
-            item.unit_price,
-            item.quantity * item.unit_price,
-            item.product_sku || null,
-            item.external_order_number || null,
-            item.external_package_number || null
-          );
-
-          successCount++;
-        }
-      });
-
-      return NextResponse.json({ success: true, count: successCount });
-    } else {
-      // Single manual order item
-      const {
-        order_date,
-        product_id,
-        marketplace_id,
-        quantity,
-        unit_price,
-        status,
-        external_order_number,
-        external_package_number,
-        merchant_sku,
-      } = body;
-
-      if (!order_date || !product_id || !marketplace_id || !quantity || unit_price == null) {
-        return NextResponse.json({ success: false, error: "Eksik parametreler" }, { status: 400 });
-      }
-
-      let orderId = 0;
-      await db.transaction(async () => {
-        const resOrder = await db.prepare(`
-          INSERT INTO orders (
-            product_id,
-            marketplace_id,
-            order_date,
-            quantity,
-            unit_price,
-            status,
-            external_order_number,
-            external_package_number,
-            merchant_sku
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-          product_id,
-          marketplace_id,
-          order_date,
-          quantity,
-          unit_price,
-          status || 'completed',
-          external_order_number || null,
-          external_package_number || null,
-          merchant_sku || null
-        );
-
-        orderId = resOrder.lastInsertRowid;
-
-        await db.prepare(`
-          INSERT INTO order_items (
-            order_id,
-            product_id,
-            quantity,
-            unit_price,
-            line_total,
-            merchant_sku,
-            marketplace_order_number,
-            package_number
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-          orderId,
-          product_id,
-          quantity,
-          unit_price,
-          quantity * unit_price,
-          merchant_sku || null,
-          external_order_number || null,
-          external_package_number || null
-        );
-      });
-
-      return NextResponse.json({ success: true, order_id: orderId });
-    }
-  } catch (error) {
-    console.error("Order POST error:", error);
-    return NextResponse.json({ success: false, error: "Kayıt eklenemedi." }, { status: 500 });
   }
 }

@@ -11,12 +11,7 @@ export function getMarketplaceIntegrationServiceToken() {
   return process.env.MARKETPLACE_INTEGRATION_SERVICE_TOKEN?.trim() || "";
 }
 
-export async function proxyMarketplaceIntegrationRequest(
-  path: string,
-  init: RequestInit = {},
-  timeoutMs = MARKETPLACE_INTEGRATION_TIMEOUT_MS,
-  authUserId?: string | null
-) {
+export async function proxyMarketplaceIntegrationRequest(path: string, init: RequestInit = {}, timeoutMs = MARKETPLACE_INTEGRATION_TIMEOUT_MS) {
   const baseUrl = getMarketplaceIntegrationServiceBaseUrl();
   if (!baseUrl) {
     return Response.json(
@@ -51,9 +46,6 @@ export async function proxyMarketplaceIntegrationRequest(
     }
     headers.set("Accept", "application/json");
     headers.set("x-marketplace-service-token", serviceToken);
-    if (authUserId?.trim()) {
-      headers.set("x-app-auth-user-id", authUserId.trim());
-    }
 
     const response = await fetch(url, {
       ...init,

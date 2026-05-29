@@ -89,7 +89,7 @@ export default function ChannelCostResultCard({ data, isBest, productId }: Chann
     <article
       className={cn(
         "relative overflow-hidden rounded-2xl border p-5 transition-colors duration-200",
-        isBest ? "border-primary/20 bg-primary/5" : "border-border/80 bg-surface-container"
+        isBest ? "border-primary/20 bg-primary/[0.05]" : "border-border/80 bg-surface-container"
       )}
     >
       <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-primary/10 blur-3xl" />
@@ -163,7 +163,7 @@ export default function ChannelCostResultCard({ data, isBest, productId }: Chann
               key={row.label}
               className={cn(
                 "rounded-2xl border px-4 py-3",
-                row.highlight ? "border-primary/15 bg-primary/5" : "border-border/80 bg-surface-container"
+                row.highlight ? "border-primary/15 bg-primary/[0.04]" : "border-border/80 bg-surface-container"
               )}
             >
               <p className={cn("text-[10px] uppercase tracking-[0.16em]", row.highlight ? "text-primary/80" : "text-muted/60")}>
@@ -213,7 +213,7 @@ export default function ChannelCostResultCard({ data, isBest, productId }: Chann
             )}
 
             {mlRows.length > 0 && (
-              <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
+              <div className="rounded-2xl border border-primary/15 bg-primary/[0.03] p-4">
                 <p className="text-[10px] uppercase tracking-[0.16em] text-primary/80">
                   ML tahminleri
                 </p>

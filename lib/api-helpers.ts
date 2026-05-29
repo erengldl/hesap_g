@@ -30,7 +30,7 @@ export function badRequest(error: string): NextResponse {
   return NextResponse.json({ success: false, error }, { status: 400 });
 }
 
-export function unauthorized(error = "Oturum gerekli."): NextResponse {
+export function unauthorized(error = "Yetkisiz erisim."): NextResponse {
   return NextResponse.json({ success: false, error }, { status: 401 });
 }
 
@@ -47,10 +47,10 @@ export function conflict(error: string): NextResponse {
 }
 
 export function validationError(details: Record<string, string[]>): NextResponse {
-  return NextResponse.json({ success: false, error: "Doğrulama hatası.", details }, { status: 422 });
+  return NextResponse.json({ success: false, error: "Dogrulama hatasi.", details }, { status: 422 });
 }
 
-export function serverError(error = "Sunucu hatası."): NextResponse {
+export function serverError(error = "Sunucu hatasi."): NextResponse {
   return NextResponse.json({ success: false, error }, { status: 500 });
 }
 

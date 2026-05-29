@@ -5,31 +5,31 @@ import { ArrowLeft, BarChart3, Sparkles } from "lucide-react";
 
 import { ManualAdReportView } from "@/components/manual-ads/ManualAdReportView";
 import { PageHeader, WarningBadge } from "@/components/ui-custom/GlassComponents";
+import { TOKEN_COOKIE_NAME, verifyToken } from "@/lib/auth";
 import { getManualAdCampaignDetail, getLatestManualAdReport } from "@/lib/manual-ads/repository";
-import { getAuthenticatedUserFromCookieHeader } from "@/lib/request-auth";
 
 export const dynamic = "force-dynamic";
 
 async function getManualAdReportContext(campaignId: string) {
   const cookieStore = await cookies();
-  const cookieHeader = cookieStore
-    .getAll()
-    .map((cookie) => `${cookie.name}=${cookie.value}`)
-    .join("; ");
+  const token = cookieStore.get(TOKEN_COOKIE_NAME)?.value;
+  if (!token) {
+    return null;
+  }
 
-  const user = await getAuthenticatedUserFromCookieHeader(cookieHeader);
+  const user = await verifyToken(token);
   if (!user) {
     return null;
   }
 
-  const detail = await getManualAdCampaignDetail(user.userId, campaignId);
+  const detail = getManualAdCampaignDetail(user.userId, campaignId);
   if (!detail) {
     return null;
   }
 
   return {
     ...detail,
-    latestReport: detail.latestReport ?? await getLatestManualAdReport(campaignId),
+    latestReport: detail.latestReport ?? getLatestManualAdReport(campaignId),
   };
 }
 

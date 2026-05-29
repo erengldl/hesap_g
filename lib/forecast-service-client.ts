@@ -89,7 +89,7 @@ export async function getForecastBootstrapData(input: {
   }
 
   return {
-    ...(await buildDemandForecastBootstrap(input.productId, input.marketplaceId, input.horizonDays ?? 14)),
+    ...buildDemandForecastBootstrap(input.productId, input.marketplaceId, input.horizonDays ?? 14),
     success: true,
   };
 }
@@ -110,7 +110,7 @@ export async function runDemandForecastData(input: Partial<DemandForecastRequest
     }
   }
 
-  const result: DemandForecastResult = await generateDemandForecast(input);
+  const result: DemandForecastResult = generateDemandForecast(input);
   return {
     success: true,
     result,

@@ -144,7 +144,7 @@ export default function ChannelSettingsCard({
             className={cn(
               "flex w-full items-center justify-between gap-4 rounded-2xl border px-4 py-4 text-left transition-colors duration-200",
               isSelectedCheapest
-                ? "border-primary/20 bg-primary/5"
+                ? "border-primary/20 bg-primary/[0.05]"
                 : "border-border/80 bg-surface-container hover:border-primary/20 hover:bg-surface-container"
             )}
           >

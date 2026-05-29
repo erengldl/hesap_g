@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
 
 import { listChannelSeoCategories, listChannelSeoProducts } from "@/lib/channel-seo/repository";
 import { isSalesChannel } from "@/lib/channel-seo/channel-rules";
@@ -25,8 +24,6 @@ function readPageParam(value: string | null, fallback: number) {
 }
 
 export async function GET(request: NextRequest) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
   try {
     const searchParams = request.nextUrl.searchParams;
     const channelInput = readTextParam(searchParams.get("channel")) ?? "my_website";
@@ -57,7 +54,7 @@ export async function GET(request: NextRequest) {
     const category = readTextParam(searchParams.get("category")) ?? undefined;
     const status = statusParam && statusParam !== "all" ? (statusParam as ChannelSeoStatus) : undefined;
 
-    const products = await listChannelSeoProducts({
+    const products = listChannelSeoProducts({
       q,
       category,
       channel: channelInput,
@@ -71,7 +68,7 @@ export async function GET(request: NextRequest) {
       data: {
         ...products,
         facets: {
-          categories: await listChannelSeoCategories(),
+          categories: listChannelSeoCategories(),
         },
       },
     });

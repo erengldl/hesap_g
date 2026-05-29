@@ -5,6 +5,7 @@ import {
   Link2,
   Megaphone,
   Sparkles,
+  Settings,
   TrendingUp,
   type LucideIcon,
 } from "lucide-react";
@@ -16,6 +17,11 @@ export type NavigationItem = {
   description: string;
 };
 
+export type NavigationSection = {
+  title: string;
+  items: NavigationItem[];
+};
+
 export const primaryNavigationItems: NavigationItem[] = [
   { name: "Anasayfa", href: "/dashboard", icon: LayoutDashboard, description: "Kısa genel bakış" },
   { name: "Ürünler", href: "/veri-merkezi", icon: Database, description: "Ürün ve ayarları yönet" },
@@ -24,25 +30,23 @@ export const primaryNavigationItems: NavigationItem[] = [
     name: "Kârlılık",
     href: "/profit-pricing",
     icon: ArrowRightLeft,
-    description: "Fiyat optimizasyonu ve net maliyet",
+    description: "Kârlılık, maliyet ve fiyat kararları",
   },
 ];
 
 export const advancedNavigationItems: NavigationItem[] = [
   { name: "Reklam", href: "/reklam-analizi", icon: Megaphone, description: "Reklam performansı" },
   { name: "SEO", href: "/channel-seo", icon: Sparkles, description: "Kanal bazlı SEO içerikleri" },
-  { name: "Entegrasyonlar", href: "/integrations", icon: Link2, description: "Bağlantı ve servis yönetimi" },
+];
+
+export const accountNavigationItems: NavigationItem[] = [
+  { name: "Bağlantılar", href: "/integrations", icon: Link2, description: "Servis ve kanal bağlantıları" },
+  { name: "Ayarlar", href: "/ayarlar", icon: Settings, description: "Profil ve uygulama tercihleri" },
+];
+
+export const navigationSections: NavigationSection[] = [
+  { title: "Ana İşler", items: primaryNavigationItems },
+  { title: "Diğer Araçlar", items: advancedNavigationItems },
 ];
 
 export const navigationItems: NavigationItem[] = [...primaryNavigationItems, ...advancedNavigationItems];
-
-export const navigationSections = [
-  {
-    title: "Operasyon",
-    items: primaryNavigationItems,
-  },
-  {
-    title: "Büyüme",
-    items: advancedNavigationItems,
-  },
-];

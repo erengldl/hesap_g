@@ -1,17 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { applyProfitPricingRun, requireAuthMock } = vi.hoisted(() => ({
+const { applyProfitPricingRun } = vi.hoisted(() => ({
   applyProfitPricingRun: vi.fn(),
-  requireAuthMock: vi.fn(),
 }));
 
 vi.mock("@/lib/profit-pricing/server", () => ({
   applyProfitPricingRun,
-}));
-
-vi.mock("@/lib/api-auth", () => ({
-  requireAuth: requireAuthMock,
-  primeRequestContextFromApiContext: vi.fn(),
 }));
 
 import { POST } from "@/app/api/profit-pricing/apply-price/route";
@@ -19,13 +13,6 @@ import { POST } from "@/app/api/profit-pricing/apply-price/route";
 describe("profit pricing apply-price route", () => {
   beforeEach(() => {
     applyProfitPricingRun.mockReset();
-    requireAuthMock.mockResolvedValue({
-      userId: 1,
-      authUserId: "test-auth-user",
-      email: "demo@example.com",
-      name: "Demo User",
-      plan: "Pro",
-    });
   });
 
   it("rejects missing run ids", async () => {

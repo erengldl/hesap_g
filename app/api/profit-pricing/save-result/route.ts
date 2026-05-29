@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 
 import type { ProfitPricingInput } from "@/lib/profit-pricing/types";
 import { saveProfitPricingRun } from "@/lib/profit-pricing/server";
@@ -7,9 +6,6 @@ import { saveProfitPricingRun } from "@/lib/profit-pricing/server";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  const session = await requireAuth(request);
-  if (session instanceof NextResponse) return session;
-  primeRequestContextFromApiContext(session);
   try {
     const body = (await request.json().catch(() => ({}))) as {
       input?: Partial<ProfitPricingInput>;
@@ -26,7 +22,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const saved = await saveProfitPricingRun({
+    const saved = saveProfitPricingRun({
       input: body.input,
       note: body.note,
     });
@@ -42,9 +38,10 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Sonuҧ kaydedilemedi. Tekrar deneyebilirsin.",
+        error: "Sonuç kaydedilemedi. Tekrar deneyebilirsin.",
       },
       { status: 500 }
     );
   }
 }
+

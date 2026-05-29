@@ -142,7 +142,7 @@ export function calculateProfitPricing(
     warnings.push("Buybox fiyatı mevcut maliyet yapısında başabaş seviyesinin altında kalıyor.");
   }
   if (normalizedInput.salePrice > 0 && currentCost.components.returnRiskCost / normalizedInput.salePrice > 0.5) {
-    warnings.push("İade/fire maliyeti olağan dışı yüksek görünüyor. Veriyi kontrol edin.");
+    warnings.push("Iade/fire maliyeti olagan disi yuksek gorunuyor. Veriyi kontrol edin.");
   }
   const dataQuality = calculateDataQuality(validation, {
     hasCommissionData: normalizedInput.channel === "website" || normalizedInput.commissionRate !== undefined,

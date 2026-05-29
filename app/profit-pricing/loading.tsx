@@ -1,14 +1,13 @@
 import ProfitPricingLoadingState from "@/components/profit-pricing/ProfitPricingLoadingState";
-import ModuleHero from "@/components/layout/ModuleHero";
+import { PageHeader } from "@/components/ui-custom/GlassComponents";
 
 export default function ProfitPricingLoadingRoute() {
   return (
-    <div className="space-y-5">
-      <ModuleHero
-        eyebrow="Kârlılık"
-        title="Kârlılık çalışma alanı"
-        description="Fiyat Optimizasyonu ve Net Maliyet sekmeleri hazırlanıyor."
-        badges={["Kanal kıyası", "Fiyat eğrisi", "Maliyet analizi"]}
+    <div className="page-shell">
+      <PageHeader
+        eyebrow="Karar ekrani"
+        title="Karlilik ve Fiyat Optimizasyonu"
+        description="Urunun gercek maliyetini hesapla, karli fiyat araligini ayni ekranda gor."
       />
       <ProfitPricingLoadingState />
     </div>

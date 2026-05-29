@@ -1,24 +1,4 @@
 services:
-  # PostgreSQL database (required)
-  postgres:
-    image: postgres:16-alpine
-    container_name: hesapg-postgres
-    environment:
-      POSTGRES_USER: hesapg
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hesapg}
-      POSTGRES_DB: hesapg
-    ports:
-      - "5432:5432"
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hesapg"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Next.js application
   app:
     build:
       context: .
@@ -28,13 +8,12 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://hesapg:${POSTGRES_PASSWORD:-hesapg}@postgres:5432/hesapg
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - FORECAST_SERVICE_URL=${FORECAST_SERVICE_URL:-}
       - MARKETPLACE_INTEGRATION_SERVICE_URL=${MARKETPLACE_INTEGRATION_SERVICE_URL:-}
       - MARKETPLACE_CREDENTIALS_FERNET_KEY=${MARKETPLACE_CREDENTIALS_FERNET_KEY:-}
-    depends_on:
-      postgres:
-        condition: service_healthy
+    volumes:
+      - sqlite_data:/app/Veri\ Merkezi
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
@@ -58,5 +37,5 @@ services:
   #   restart: unless-stopped
 
 volumes:
-  pg_data:
+  sqlite_data:
   # marketplace_data:

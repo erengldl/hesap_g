@@ -2,35 +2,27 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getProducts } from "@/lib/database-readers";
 import { recalculateAllCostResults } from "@/lib/portfolio-analytics";
-import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function POST() {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
-  const authUserId = session.authUserId?.trim() || "";
-  if (!authUserId) {
-    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
-  }
-  primeRequestContextFromApiContext(session);
   try {
-    const db = await getDb();
+    const db = getDb();
     if (!db) {
-      return NextResponse.json({ success: false, error: "Tüm ürünler veri merkezine yüklenemedi." }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Database connection unavailable" }, { status: 500 });
     }
 
-    const products = await getProducts();
+    const products = getProducts();
     const productCount = products.length;
     const activeProductCount = products.filter((product) => (product.status ?? "draft") === "active").length;
-    const processedProducts = await recalculateAllCostResults();
+    const processedProducts = recalculateAllCostResults();
     const syncedAt = new Date().toISOString();
     const note =
       productCount > 0
         ? `${productCount} ürün veri merkezine yüklendi.`
         : "Veri merkezinde yüklenecek gerçek ürün bulunamadı.";
 
-    await db.prepare(
+    db.prepare(
       `
       INSERT INTO data_center_sync_runs (
         sync_scope,

@@ -6,36 +6,11 @@ import path from "node:path";
 import type { ReturnRiskModelArtifact } from "./types";
 
 const MODEL_DIR = path.join(process.cwd(), "Veri Merkezi", "return-risk-models");
-const GLOBAL_SCOPE_KEY = "global";
+const LATEST_MODEL_FILE = path.join(MODEL_DIR, "latest.json");
 
-function sanitizeScopeKey(scopeKey?: string | null) {
-  const trimmed = scopeKey?.trim() || GLOBAL_SCOPE_KEY;
-  return trimmed.replace(/[^a-zA-Z0-9_-]/g, "_");
-}
-
-function getScopeDirectory(scopeKey?: string | null) {
-  const normalized = sanitizeScopeKey(scopeKey);
-  return normalized === GLOBAL_SCOPE_KEY ? MODEL_DIR : path.join(MODEL_DIR, normalized);
-}
-
-function getVersionFilePath(modelVersion: string, scopeKey?: string | null) {
-  const normalized = sanitizeScopeKey(scopeKey);
-  return normalized === GLOBAL_SCOPE_KEY
-    ? path.join(MODEL_DIR, `${modelVersion}.json`)
-    : path.join(getScopeDirectory(normalized), `${modelVersion}.json`);
-}
-
-function getLatestModelFilePath(scopeKey?: string | null) {
-  const normalized = sanitizeScopeKey(scopeKey);
-  return normalized === GLOBAL_SCOPE_KEY
-    ? path.join(MODEL_DIR, "latest.json")
-    : path.join(getScopeDirectory(normalized), "latest.json");
-}
-
-function ensureModelDir(scopeKey?: string | null) {
-  const scopeDir = getScopeDirectory(scopeKey);
-  if (!fs.existsSync(scopeDir)) {
-    fs.mkdirSync(scopeDir, { recursive: true });
+function ensureModelDir() {
+  if (!fs.existsSync(MODEL_DIR)) {
+    fs.mkdirSync(MODEL_DIR, { recursive: true });
   }
 }
 
@@ -52,30 +27,28 @@ function parseArtifact(value: string): ReturnRiskModelArtifact | null {
   }
 }
 
-export function saveReturnRiskModelArtifact(artifact: ReturnRiskModelArtifact, scopeKey: string = GLOBAL_SCOPE_KEY) {
-  ensureModelDir(scopeKey);
-  const versionFile = getVersionFilePath(artifact.modelVersion, scopeKey);
-  const latestFile = getLatestModelFilePath(scopeKey);
+export function saveReturnRiskModelArtifact(artifact: ReturnRiskModelArtifact) {
+  ensureModelDir();
+  const versionFile = path.join(MODEL_DIR, `${artifact.modelVersion}.json`);
   const payload = JSON.stringify(artifact, null, 2);
   fs.writeFileSync(versionFile, payload, "utf8");
-  fs.writeFileSync(latestFile, payload, "utf8");
+  fs.writeFileSync(LATEST_MODEL_FILE, payload, "utf8");
 }
 
-export function loadLatestReturnRiskModelArtifact(scopeKey: string = GLOBAL_SCOPE_KEY) {
+export function loadLatestReturnRiskModelArtifact() {
   try {
-    const latestFile = getLatestModelFilePath(scopeKey);
-    if (!fs.existsSync(latestFile)) {
+    if (!fs.existsSync(LATEST_MODEL_FILE)) {
       return null;
     }
 
-    return parseArtifact(fs.readFileSync(latestFile, "utf8"));
+    return parseArtifact(fs.readFileSync(LATEST_MODEL_FILE, "utf8"));
   } catch {
     return null;
   }
 }
 
-export function evaluateLatestReturnRiskModel(scopeKey: string = GLOBAL_SCOPE_KEY) {
-  const artifact = loadLatestReturnRiskModelArtifact(scopeKey);
+export function evaluateLatestReturnRiskModel() {
+  const artifact = loadLatestReturnRiskModelArtifact();
   if (!artifact) {
     return null;
   }

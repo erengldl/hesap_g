@@ -74,7 +74,7 @@ export default function ProfitMetricStrip({ result }: { result: ProfitPricingRes
   return (
     <GlassCard className="overflow-hidden border-border/80">
       <div className="border-b border-border/70 bg-gradient-to-r from-primary/8 via-transparent to-transparent px-4 py-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/60">
           Karar metrikleri
         </p>
       </div>
@@ -84,7 +84,7 @@ export default function ProfitMetricStrip({ result }: { result: ProfitPricingRes
             key={item.label}
             className="border-b border-border/50 px-4 py-3 last:border-b-0"
           >
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">{item.label}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">{item.label}</p>
             <p
               className={`mt-2 whitespace-nowrap text-sm font-semibold tracking-tight ${
                 item.accent ? "text-primary" : "text-foreground"
@@ -92,7 +92,7 @@ export default function ProfitMetricStrip({ result }: { result: ProfitPricingRes
             >
               {item.value}
             </p>
-            <p className="mt-1 text-[11px] leading-5 text-soft">{item.helper}</p>
+            <p className="mt-1 text-[11px] leading-5 text-muted/60">{item.helper}</p>
           </div>
         ))}
       </div>

@@ -2,8 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  turbopack: {
-    root: __dirname,
+  serverExternalPackages: ["better-sqlite3", "bcryptjs", "postgres"],
+  outputFileTracingIncludes: {
+    "/*": ["Veri Merkezi/kategoriagaci.db"],
   },
 };
 

@@ -324,7 +324,7 @@ export default function CategorySelector({
         type="button"
         onClick={() => (isOpen ? closeDropdown() : openDropdown())}
         className={[
-          "flex min-h-[58px] w-full items-center justify-between rounded-xl border px-4 text-left transition-colors duration-200",
+          "flex min-h-[58px] w-full items-center justify-between rounded-xl border px-4 text-left transition-all duration-200",
           "border-border bg-surface-container text-foreground backdrop-blur-xl",
           "hover:border-success/50 hover:bg-surface-container",
           isOpen ? "border-success/70 shadow-[var(--shadow-card)]" : "",
@@ -350,7 +350,7 @@ export default function CategorySelector({
           )}
           <ChevronDown
             size={18}
-            className={["text-muted transition-colors duration-200", isOpen ? "rotate-180 text-success" : ""].join(" ")}
+            className={["text-muted transition-[color,transform] duration-200", isOpen ? "rotate-180 text-success" : ""].join(" ")}
           />
         </div>
       </button>
@@ -451,7 +451,7 @@ export default function CategorySelector({
                     key={cat.id + "-" + cat.path}
                     onClick={() => selectCategory(cat)}
                     className={[
-                      "flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm transition-colors duration-200",
+                      "flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm transition-all duration-200",
                       highlightIndex === idx
                         ? "bg-success/15 text-success"
                         : "text-soft hover:bg-success/10 hover:text-success",
@@ -476,7 +476,7 @@ export default function CategorySelector({
                     key={cat.id}
                     onClick={() => handleCategoryClick(cat)}
                     className={[
-                      "group flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm transition-colors duration-200",
+                      "group flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm transition-all duration-200",
                       highlightIndex === idx
                         ? "bg-success/15 text-success"
                         : "text-soft hover:bg-success/10 hover:text-success",
@@ -494,7 +494,7 @@ export default function CategorySelector({
                       )}
                     </div>
                     {hasChildren ? (
-                      <ChevronRight size={16} className="shrink-0 text-muted transition-colors duration-200 group-hover:translate-x-0.5 group-hover:text-success/60" />
+                      <ChevronRight size={16} className="shrink-0 text-muted transition-[color,transform] duration-200 group-hover:translate-x-0.5 group-hover:text-success/60" />
                     ) : (
                       <Check size={15} className="shrink-0 text-success/50" />
                     )}

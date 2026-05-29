@@ -1,19 +1,19 @@
 import { cookies } from "next/headers";
 
 import { ManualAdsPage } from "@/components/manual-ads/ManualAdsPage";
-import { getAuthenticatedUserFromCookieHeader } from "@/lib/request-auth";
+import { TOKEN_COOKIE_NAME, verifyToken } from "@/lib/auth";
 import { listManualAdCampaignSummaries } from "@/lib/manual-ads/repository";
 
 export const dynamic = "force-dynamic";
 
 async function getManualAdCampaigns() {
   const cookieStore = await cookies();
-  const cookieHeader = cookieStore
-    .getAll()
-    .map((cookie) => `${cookie.name}=${cookie.value}`)
-    .join("; ");
+  const token = cookieStore.get(TOKEN_COOKIE_NAME)?.value;
+  if (!token) {
+    return [];
+  }
 
-  const user = await getAuthenticatedUserFromCookieHeader(cookieHeader);
+  const user = await verifyToken(token);
   if (!user) {
     return [];
   }

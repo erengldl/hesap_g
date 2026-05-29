@@ -277,11 +277,11 @@ export function trainReturnRiskLogisticModel(
   const positiveRows = rows.filter((row) => row.isReturnedOrLost).length;
 
   if (trainingRows < MIN_TRAINING_ROWS) {
-    return { artifact: null, reason: "Model eğitimi için en az 300 geçmiş sipariş gerekli." };
+    return { artifact: null, reason: "Model egitimi icin en az 300 gecmis siparis gerekli." };
   }
 
   if (positiveRows < MIN_POSITIVE_ROWS) {
-    return { artifact: null, reason: "Model eğitimi için en az 30 iade/fire örneği gerekli." };
+    return { artifact: null, reason: "Model egitimi icin en az 30 iade/fire ornegi gerekli." };
   }
 
   const examples = rows.map((row) => buildReturnRiskTrainingExample(row, rows));

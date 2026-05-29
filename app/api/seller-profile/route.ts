@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { getOne, getDb } from "@/lib/db";
 import { recalculateCostResultsForProfile } from "@/lib/portfolio-analytics";
 import { getStoreExpenseMonthlyTotal } from "@/lib/database-readers";
-import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
-import { DEFAULT_SELLER_PROFILE, getCurrentSellerProfileId } from "@/lib/seller-profile-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -15,14 +13,15 @@ type SellerProfilePayload = {
 
 function getDefaultProfile() {
   return {
-    profile_id: null,
-    ...DEFAULT_SELLER_PROFILE,
+    profile_id: 1,
+    company_type: "Şahıs Şirketi",
+    tax_bracket: 20,
+    expected_monthly_order_count: 500,
   };
 }
 
-async function getProfileWithUnitCost(authUserId: string) {
-  const profileId = await getCurrentSellerProfileId();
-  const profile = await getOne<{
+function getProfileWithUnitCost() {
+  const profile = getOne<{
     profile_id: number;
     company_type: string;
     tax_bracket: number | null;
@@ -34,33 +33,25 @@ async function getProfileWithUnitCost(authUserId: string) {
       tax_bracket,
       expected_monthly_order_count
     FROM seller_profiles
-    WHERE user_id = ?
+    WHERE profile_id = 1
     LIMIT 1
-  `, [authUserId]);
+  `) ?? getDefaultProfile();
 
-  const resolvedProfile = profile ?? getDefaultProfile();
-  const totalFixedCost = profileId ? await getStoreExpenseMonthlyTotal(profileId) : 0;
-  const expectedOrders = Math.max(1, Number(resolvedProfile.expected_monthly_order_count ?? 1));
+  const totalFixedCost = getStoreExpenseMonthlyTotal(profile.profile_id ?? 1);
+  const expectedOrders = Math.max(1, Number(profile.expected_monthly_order_count ?? 1));
 
   return {
-    ...resolvedProfile,
+    ...profile,
     active_monthly_expense_total: Math.round(totalFixedCost * 100) / 100,
     unit_fixed_cost: Math.round((totalFixedCost / expectedOrders) * 100) / 100,
   };
 }
 
 export async function GET() {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
-  const authUserId = session.authUserId?.trim() || "";
-  if (!authUserId) {
-    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
-  }
-  primeRequestContextFromApiContext(session);
   try {
     return NextResponse.json({
       success: true,
-      profile: await getProfileWithUnitCost(authUserId),
+      profile: getProfileWithUnitCost(),
     });
   } catch (error) {
     console.error("Seller profile GET error:", error);
@@ -69,65 +60,41 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
-  const authUserId = session.authUserId?.trim() || "";
-  if (!authUserId) {
-    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
-  }
-  primeRequestContextFromApiContext(session);
   try {
     const body = (await request.json()) as Partial<SellerProfilePayload>;
     const db = getDb();
     if (!db) {
-      return NextResponse.json({ success: false, error: "Veritabanı bağlantısı kullanılamıyor." }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Database connection unavailable" }, { status: 500 });
     }
 
     const payload = {
-      company_type: String(body.company_type ?? DEFAULT_SELLER_PROFILE.company_type),
-      tax_bracket: Number(body.tax_bracket ?? DEFAULT_SELLER_PROFILE.tax_bracket),
+      company_type: String(body.company_type ?? "Şahıs Şirketi"),
+      tax_bracket: Number(body.tax_bracket ?? 20),
       expected_monthly_order_count: Number(body.expected_monthly_order_count ?? 1),
     };
 
-    const existingProfileId = await getCurrentSellerProfileId();
-    if (existingProfileId) {
-      await db.prepare(`
-        UPDATE seller_profiles
-        SET company_type = ?,
-            tax_bracket = ?,
-            expected_monthly_order_count = ?
-        WHERE profile_id = ? AND user_id = ?
-      `).run(
-        payload.company_type,
-        payload.tax_bracket,
-        payload.expected_monthly_order_count,
-        existingProfileId,
-        authUserId,
-      );
-    } else {
-      await db.prepare(`
-        INSERT INTO seller_profiles (
-          company_type,
-          tax_bracket,
-          expected_monthly_order_count,
-          user_id
-        ) VALUES (?, ?, ?, ?)
-      `).run(
-        payload.company_type,
-        payload.tax_bracket,
-        payload.expected_monthly_order_count,
-        authUserId,
-      );
-    }
+    db.prepare(`
+      INSERT INTO seller_profiles (
+        profile_id,
+        company_type,
+        tax_bracket,
+        expected_monthly_order_count
+      ) VALUES (1, ?, ?, ?)
+      ON CONFLICT(profile_id) DO UPDATE SET
+        company_type = excluded.company_type,
+        tax_bracket = excluded.tax_bracket,
+        expected_monthly_order_count = excluded.expected_monthly_order_count
+    `).run(
+      payload.company_type,
+      payload.tax_bracket,
+      payload.expected_monthly_order_count
+    );
 
-    const profileId = await getCurrentSellerProfileId();
-    if (profileId) {
-      await recalculateCostResultsForProfile(profileId);
-    }
+    recalculateCostResultsForProfile(1);
 
     return NextResponse.json({
       success: true,
-      profile: await getProfileWithUnitCost(authUserId),
+      profile: getProfileWithUnitCost(),
     });
   } catch (error) {
     console.error("Seller profile PUT error:", error);

@@ -57,17 +57,17 @@ export default function ForecastControlPanel({
     <GlassCard className={cn("flex w-full flex-col gap-4", className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary/80">Kontrol</p>
-          <h2 className="mt-1 text-xl font-semibold text-foreground">Tahmin ayarları</h2>
-          <p className="mt-1 text-sm leading-6 text-soft">Seçimi değiştirdikçe sonuç yenilenir.</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/80">Kontrol</p>
+          <h2 className="mt-1 text-xl font-semibold text-foreground">Seçenekler</h2>
+          <p className="mt-1 text-sm leading-6 text-muted">Seçim yaptıkça sonuç yenilenir.</p>
         </div>
 
         <div className="flex shrink-0 flex-col items-end gap-2">
-          <span className={cn("rounded-md border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.18em]", dataSourceTone)}>
+          <span className={cn("rounded-md border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]", dataSourceTone)}>
             {dataSourceLabel}
           </span>
-          <span className="rounded-md border border-border bg-surface-container px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-            {selectedMarketplace?.name ?? `Pazar ${selectedMarketplaceId}`}
+          <span className="rounded-md border border-border bg-surface-container px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+            Pazar {selectedMarketplaceId}
           </span>
         </div>
       </div>
@@ -139,11 +139,11 @@ export default function ForecastControlPanel({
       <div className="space-y-3 rounded-lg border border-border bg-surface-container p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Seçim</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Seçim</p>
             <h3 className="mt-1 truncate text-base font-semibold text-foreground">
               {selectedProduct?.name ?? "Ürün seçilmedi"}
             </h3>
-            <p className="mt-1 truncate text-xs text-soft">
+            <p className="mt-1 truncate text-xs text-muted">
               {selectedMarketplace?.name ?? "Kanal seçilmedi"} · Kod {selectedProduct?.sku ?? "Belirtilmedi"}
             </p>
           </div>
@@ -156,7 +156,7 @@ export default function ForecastControlPanel({
           <MetricTile label="Fiyat" value={formatCurrency(selectedMarketplace?.current_price ?? 0)} />
           <MetricTile label="Birim maliyet" value={formatCurrency(selectedMarketplace?.current_unit_cost ?? 0)} />
           <MetricTile label="Net kâr" value={formatCurrency(selectedMarketplace?.current_net_profit ?? 0)} />
-          <MetricTile label="Ürün stoku" value={formatNumber(selectedProduct?.current_stock ?? 0)} />
+          <MetricTile label="Ürün stok" value={formatNumber(selectedProduct?.current_stock ?? 0)} />
         </div>
       </div>
 
@@ -164,7 +164,7 @@ export default function ForecastControlPanel({
         type="button"
         onClick={onRunForecast}
         disabled={submitting}
-        className="btn-primary w-full px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex items-center justify-center gap-2 rounded-md border border-primary/30 bg-primary px-4 py-3 text-sm font-semibold text-black transition-[filter] duration-200 hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {submitting ? (
           <>
@@ -174,7 +174,7 @@ export default function ForecastControlPanel({
         ) : (
           <>
             <Zap className="h-4 w-4" />
-            Tahmini Güncelle
+            Şimdi yenile
           </>
         )}
       </button>
@@ -183,7 +183,7 @@ export default function ForecastControlPanel({
         <div className="rounded-lg border border-warning/20 bg-warning/10 p-4">
           <div className="flex items-center gap-2 text-warning">
             <AlertTriangle className="h-4 w-4" />
-            <p className="text-xs font-semibold uppercase tracking-[0.18em]">Uyarılar</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em]">Uyarılar</p>
           </div>
           <ul className="mt-3 space-y-2 text-sm text-soft">
             {result.warnings.slice(0, 3).map((warning) => (

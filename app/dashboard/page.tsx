@@ -1,87 +1,58 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { PageHeader, KpiCard, GlassCard, WarningBadge, SkeletonCard, EmptyState } from "@/components/ui-custom/GlassComponents";
 import {
-  AlertTriangle,
-  ArrowRight,
-  BadgeCheck,
-  Box,
-  CircleAlert,
-  CircleDashed,
-  Loader2,
-  Search,
-  ShieldCheck,
-  TrendingUp,
+  TrendingUp, Wallet, BarChart3, ShoppingCart, Target, Zap, Info,
+  Package, AlertTriangle, DollarSign, Activity, ChevronRight, Megaphone, Database, Sparkles,
 } from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-
-import { SeedDemoButton } from "@/components/demo/SeedDemoButton";
-import { formatCurrency, formatNumber, formatPercent } from "@/lib/formatters";
-import type { AggregateDashboard } from "@/lib/portfolio-analytics";
-import type { ChannelCostResult, Product } from "@/lib/types";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
-
-type DashboardDataMode = "demo" | "live" | "partial";
-
-type DashboardDataQuality = {
-  score: number;
-  warnings: string[];
-  lastSyncAt: string | null;
-};
+import { formatCurrency, formatNumber, formatPercent } from "@/lib/formatters";
+import type { ChannelCostResult, Product } from "@/lib/types";
+import type { AggregateDashboard } from "@/lib/portfolio-analytics";
+import {
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie,
+  AreaChart, Area,
+} from "recharts";
 
 type DashboardPayload = {
   success: boolean;
   aggregate: AggregateDashboard;
-  dataMode: DashboardDataMode;
-  dataQuality: DashboardDataQuality;
-  fallbackUsed?: boolean;
+  adAnalysis?: {
+    totalSpend: number;
+    totalNetProfit: number;
+    averagePoas: number;
+    lossMakingCount: number;
+    watchCount: number;
+    scaleCount: number;
+    totalCampaigns: number;
+    lastSyncedAt: string;
+  } | null;
+  product?: Product;
   results?: ChannelCostResult[];
   bestChannel?: ChannelCostResult;
-  product?: Product;
+  bestChannelName?: string;
+  bestNetProfit?: number;
+  bestMargin?: number;
+  lowestTotalCost?: number;
+  costBreakdown?: { label: string; value: number }[];
+  methodology?: string;
 };
 
-function formatShortDate(value: string | null) {
-  if (!value) return "Henüz yok";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Henüz yok";
-  return new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short" }).format(date);
-}
-
-function getModeBadge(mode: DashboardDataMode) {
-  if (mode === "live") return { label: "Canlı veri", className: "bg-emerald-50 text-emerald-700 border-emerald-200" };
-  if (mode === "demo") return { label: "Demo veri", className: "bg-sky-50 text-sky-700 border-sky-200" };
-  return { label: "Kısmi veri", className: "bg-amber-50 text-amber-700 border-amber-200" };
-}
-
-function getStockTone(stock: number) {
-  if (stock <= 5) return { label: "Yüksek Risk", className: "bg-red-50 text-red-600 border-red-200" };
-  if (stock <= 12) return { label: "Orta Risk", className: "bg-amber-50 text-amber-600 border-amber-200" };
-  return { label: "Düşük Risk", className: "bg-emerald-50 text-emerald-600 border-emerald-200" };
-}
-
 export default function DashboardPage() {
+  const [isClient, setIsClient] = useState(false);
+  const [chartsReady, setChartsReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [payload, setPayload] = useState<DashboardPayload | null>(null);
-  const [seedDemoError, setSeedDemoError] = useState<string | null>(null);
 
   useEffect(() => {
+    setIsClient(true);
     void (async () => {
       try {
         const response = await fetch("/api/dashboard", { cache: "no-store" });
         const data = await response.json();
-        if (response.ok && data?.success) {
-          setPayload(data);
-        }
+        if (response.ok && data?.success) setPayload(data);
       } catch (error) {
         console.error("Dashboard load error:", error);
       } finally {
@@ -90,365 +61,786 @@ export default function DashboardPage() {
     })();
   }, []);
 
-  const aggregate = payload?.aggregate;
-  const rankedResults = [...(payload?.results ?? [])].sort((a, b) => b.net_profit - a.net_profit);
-  const bestChannel = payload?.bestChannel ?? rankedResults[0] ?? null;
-  const heroProduct = payload?.product ?? null;
-  const heroTopProduct = aggregate?.topProducts[0] ?? null;
-  const qualityScore = Math.max(0, Math.min(100, payload?.dataQuality.score ?? 0));
-  const modeBadge = getModeBadge(payload?.dataMode ?? "partial");
-  const trendData = aggregate?.salesTrend.map((item) => ({
-    ...item,
-    profit: item.revenue * ((aggregate?.avgMargin ?? 0) / 100),
-  })) ?? [];
+  const agg = payload?.aggregate;
+
+  useEffect(() => {
+    if (!agg) {
+      setChartsReady(false);
+      return;
+    }
+
+    setChartsReady(false);
+    const timeoutId = window.setTimeout(() => {
+      setChartsReady(true);
+    }, 80);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [agg]);
+
+  const results = payload?.results ?? [];
+  const bestChannel = payload?.bestChannel;
+  const bestChannelName = bestChannel?.channel_name ?? "Kanal";
+  const methodology = payload?.methodology ?? agg?.methodology ?? "";
+  const adSummary = payload?.adAnalysis ?? null;
+  const rankedResults = [...results].sort((a, b) => b.net_profit - a.net_profit);
+  const maxChannelProfit = Math.max(...rankedResults.map((result) => result.net_profit), 1);
+  const chartPalette = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)"];
+  const costPalette = [
+    "var(--chart-1)",
+    "var(--chart-2)",
+    "var(--chart-3)",
+    "var(--chart-4)",
+    "var(--chart-5)",
+    "var(--success)",
+    "var(--warning)",
+    "var(--info)",
+  ];
+  const chartTooltipStyle: React.CSSProperties = {
+    backgroundColor: "var(--bg-elevated)",
+    border: "1px solid var(--border-soft)",
+    borderRadius: "var(--radius)",
+    color: "var(--text-main)",
+  };
 
   if (loading) {
     return (
-      <div className="space-y-5">
-        <div className="grid gap-5 xl:grid-cols-[1.4fr_0.8fr]">
-          <div className="rounded-[26px] border border-slate-200 bg-white p-8 shadow-[var(--shadow-card)]">
-            <div className="h-6 w-44 animate-pulse rounded-full bg-slate-100" />
-            <div className="mt-6 h-32 animate-pulse rounded-[22px] bg-slate-100" />
-          </div>
-          <div className="rounded-[26px] border border-slate-200 bg-white p-8 shadow-[var(--shadow-card)]">
-            <div className="h-6 w-32 animate-pulse rounded-full bg-slate-100" />
-            <div className="mt-6 h-32 animate-pulse rounded-[22px] bg-slate-100" />
-          </div>
+      <div className="page-shell">
+        <PageHeader eyebrow="Genel Bakış" title="Özet" description="Veriler hazırlanıyor..." />
+        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[...Array(4)].map((_, i) => <SkeletonCard key={i} className="h-24" />)}
         </div>
-        <div className="rounded-[26px] border border-slate-200 bg-white p-8 shadow-[var(--shadow-card)]">
-          <div className="flex items-center gap-3 text-slate-400">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Dashboard hazırlanıyor...
-          </div>
+        <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <SkeletonCard className="h-[300px] lg:col-span-2" />
+          <SkeletonCard className="h-[300px]" />
         </div>
       </div>
     );
   }
 
-  if (!aggregate) {
+  if (!agg) {
     return (
-      <section className="rounded-[26px] border border-slate-200 bg-white p-8 shadow-[var(--shadow-card)]">
-        <span className={cn("inline-flex rounded-full border px-3 py-1 text-xs font-semibold", modeBadge.className)}>
-          {modeBadge.label}
-        </span>
-        <h2 className="mt-5 text-3xl font-semibold tracking-[-0.05em] text-slate-900">
-          Dashboard için veri gerekiyor.
-        </h2>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500">
-          Referanstaki görünümü üretebilmek için önce ürün, sipariş ve kanal verilerinin en azından demo olarak hazır olması gerekiyor.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <SeedDemoButton
-            className="btn-primary px-6 py-3 text-sm"
-            onStart={() => setSeedDemoError(null)}
-            onError={setSeedDemoError}
-          />
-          <Link href="/veri-merkezi" className="btn-secondary px-6 py-3 text-sm">
-            Veri merkezine git
-          </Link>
-        </div>
-        {seedDemoError ? <p className="mt-4 text-sm text-danger">{seedDemoError}</p> : null}
-      </section>
+      <div className="page-shell">
+        <PageHeader eyebrow="Genel Bakış" title="Özet" description="Satış kanalları ve kârlılığı kısa bakışta görün." />
+        <EmptyState
+          icon={BarChart3}
+          title="Henüz özet oluşturulmadı"
+          description="Özetin görünmesi için önce ürün ve sipariş verisi ekleyin."
+          action={(
+            <Link
+              href="/veri-merkezi"
+              className="btn-primary py-3 px-6 text-sm"
+            >
+              Ürün Merkezini Aç
+            </Link>
+          )}
+        />
+      </div>
     );
   }
 
+  const trendMax = Math.max(...agg.salesTrend.map((d) => d.revenue), 1);
+
   return (
-    <div className="space-y-5">
-      <section className="grid gap-5 xl:grid-cols-[1.38fr_0.82fr]">
-        <article className="rounded-[26px] border border-slate-200 bg-[linear-gradient(180deg,#f3faf8,#ffffff)] p-6 shadow-[var(--shadow-card)]">
-          <div className="grid gap-5 lg:grid-cols-[0.78fr_1.22fr]">
-            <div className="rounded-[22px] bg-white/70 p-4">
-              <div className="relative mx-auto aspect-square max-w-[230px]">
-                <Image
-                  src="/demo-products/product-01.jpg"
-                  alt={heroProduct?.name ?? "Ürün görseli"}
-                  fill
-                  className="object-contain drop-shadow-[0_24px_34px_rgba(15,23,42,0.18)]"
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-[1.9rem] font-semibold tracking-[-0.05em] text-slate-900">
-                    {heroProduct?.name ?? heroTopProduct?.name ?? "Akıllı Saat Pro 2"}
-                  </h2>
-                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                    Öne Çıkan Ürün
-                  </span>
-                </div>
-                <p className="mt-2 text-sm text-slate-400">
-                  SKU: {heroProduct?.sku ?? heroTopProduct?.sku ?? "ASW-PRO2-BLK"}
-                </p>
-
-                <div className="mt-5 flex items-start gap-3 rounded-[20px] border border-emerald-200 bg-white px-4 py-4">
-                  <BadgeCheck className="mt-0.5 h-5 w-5 text-emerald-600" />
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">
-                      Kârlılık durumu: <span className="text-emerald-600">Çok iyi</span>
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">Son 30 gün verilerine göre</p>
-                  </div>
-                </div>
-
-                <div className="mt-4 rounded-[20px] border border-[#b8e4dc] bg-[#f1fbf8] px-4 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0f8b8d]">
-                    En iyi kanal önerisi
-                  </p>
-                  <div className="mt-2 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-2xl font-semibold tracking-tight text-slate-900">
-                        {bestChannel?.channel_name ?? "Trendyol"}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        En yüksek net kâr: {bestChannel ? formatCurrency(bestChannel.net_profit) : "—"}
-                      </p>
-                    </div>
-                    <ArrowRight className="h-5 w-5 text-slate-400" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col justify-between rounded-[22px] border border-slate-200 bg-white p-5">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">Karar Önerisi</p>
-                  <p className="mt-3 text-sm leading-7 text-slate-500">
-                    {bestChannel
-                      ? `${bestChannel.channel_name} kanalında fiyatı koruyarak reklam bütçesini %15 artırman beklenen net kârı güçlendirir.`
-                      : "Kanal verisi hazır olduğunda burada doğrudan aksiyon önerisi oluşacak."}
-                  </p>
-                </div>
-                <div className="mt-5 space-y-3">
-                  <Link href="/profit-pricing" className="btn-primary w-full justify-center py-3 text-sm">
-                    Aksiyon planı oluştur
-                  </Link>
-                  <Link href="/net-maliyet-motoru" className="btn-secondary w-full justify-center py-3 text-sm">
-                    Detaylı analizi görüntüle
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </article>
-
-        <aside className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-[var(--shadow-card)]">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-base font-semibold text-slate-900">Kârlılık Özeti</p>
-            </div>
-            <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">
-              Son 30 Gün
-            </span>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <SummaryCard title="Net Kâr" value={bestChannel ? formatCurrency(bestChannel.net_profit) : formatCurrency(aggregate.totalProfit)} detail="Önceki dönem: izleniyor" accent="emerald" />
-            <SummaryCard title="Kâr Marjı" value={bestChannel ? formatPercent(bestChannel.profit_margin_percent) : formatPercent(aggregate.avgMargin)} detail="Değişim: +2,9%" accent="emerald" />
-            <SummaryCard title="Toplam Maliyet" value={bestChannel ? formatCurrency(bestChannel.total_unit_cost) : formatCurrency(0)} detail="Değişim: -9,4%" accent="slate" />
-            <SummaryCard title="Tahmin Güveni" value={qualityScore >= 80 ? "Yüksek" : qualityScore >= 50 ? "Orta" : "Düşük"} detail={`Güven skoru: %${qualityScore}`} accent="emerald" />
-          </div>
-
-          <Link href="/profit-pricing" className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#0f8b8d]">
-            Karlılık detaylarını görüntüle
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </aside>
-      </section>
-
-      <section className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-[var(--shadow-card)]">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-base font-semibold text-slate-900">Kanal Performans Karşılaştırması</p>
-          </div>
-          <button className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
-            <Search className="h-4 w-4" />
-            Sütunları Düzenle
-          </button>
+    <div className="page-shell">
+      <PageHeader eyebrow="Genel Bakış" title="Özet" description="Tüm ürünler, kanallar ve siparişler üzerinden kısa finansal özet.">
+        <div className="flex items-center gap-1.5 rounded-md border border-border bg-surface-container px-2 py-0.5 text-[10px] font-medium text-muted">
+          <Zap className="h-3 w-3 text-primary" />
+          Canlı Analiz
         </div>
+      </PageHeader>
 
-        <div className="mt-4 overflow-hidden rounded-[20px] border border-slate-100">
-          <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_0.9fr_0.7fr] gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-            <span>Kanal</span>
-            <span>Net Kâr</span>
-            <span>Kâr Marjı</span>
-            <span>Toplam Maliyet</span>
-            <span>Satış Adedi</span>
-            <span className="text-right">Detay</span>
-          </div>
-          <div className="divide-y divide-slate-100">
-            {rankedResults.length > 0 ? rankedResults.map((result, index) => {
-              const ratio = bestChannel?.net_profit ? Math.max(18, (result.net_profit / bestChannel.net_profit) * 100) : 24;
-              return (
-                <div key={result.channel_name} className="grid grid-cols-[1.5fr_1fr_1fr_1fr_0.9fr_0.7fr] items-center gap-3 px-4 py-4 text-sm">
-                  <div className="flex items-center gap-3">
-                    <span className={cn("h-7 w-7 rounded-[10px] border border-slate-200", index === 0 ? "bg-orange-100" : index === 1 ? "bg-slate-900" : "bg-amber-100")} />
-                    <div>
-                      <p className="font-semibold text-slate-900">{result.channel_name}</p>
-                      {index === 0 ? (
-                        <span className="mt-1 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                          Önerilen
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">{formatCurrency(result.net_profit)}</p>
-                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
-                      <div className={cn("h-full rounded-full", index === 0 ? "bg-[#0f8b8d]" : index === 1 ? "bg-[#22c55e]" : "bg-[#f59e0b]")} style={{ width: `${Math.min(100, ratio)}%` }} />
-                    </div>
-                  </div>
-                  <p className={cn("font-semibold", index === 2 ? "text-amber-600" : "text-emerald-600")}>
-                    {formatPercent(result.profit_margin_percent)}
-                  </p>
-                  <p className="text-slate-600">{formatCurrency(result.total_unit_cost)}</p>
-                  <p className="text-slate-600">{formatNumber(heroTopProduct?.orders ?? aggregate.totalOrders)}</p>
-                  <div className="text-right">
-                    <Link href="/net-maliyet-motoru" className="inline-flex rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-500">
-                      Detay
-                    </Link>
-                  </div>
-                </div>
-              );
-            }) : (
-              <div className="px-4 py-8 text-sm text-slate-500">Kanal verisi henüz oluşmadı.</div>
-            )}
-          </div>
+      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard title="Toplam Ciro" value={formatCurrency(agg.totalRevenue)} icon={DollarSign}
+          subValue={`${formatNumber(agg.totalOrders)} sipariş`} />
+        <KpiCard title="Ortalama Kâr Marjı" value={formatPercent(agg.avgMargin)} icon={TrendingUp}
+          trend={{ value: "%25-%45 aralığı", isPositive: true }} />
+        <KpiCard title="Tahmini Net Kâr" value={formatCurrency(agg.totalProfit)} icon={Wallet}
+          subValue={`${agg.totalProducts} aktif ürün`} />
+        <KpiCard title="Tamamlanan Sipariş" value={formatNumber(agg.totalOrders)} icon={ShoppingCart}
+          subValue="Son 90 gün" />
+      </div>
+
+      {adSummary && (
+        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <KpiCard
+            title="Reklam Harcaması"
+            value={formatCurrency(adSummary.totalSpend)}
+            subValue={`${formatNumber(adSummary.totalCampaigns)} kampanya`}
+            icon={Megaphone}
+          />
+          <KpiCard
+            title="Reklam Net Kârı"
+            value={formatCurrency(adSummary.totalNetProfit)}
+            subValue={`Senkron: ${new Intl.DateTimeFormat("tr-TR", { dateStyle: "short" }).format(new Date(adSummary.lastSyncedAt))}`}
+            icon={Wallet}
+            className="border-border/80 bg-surface-container"
+          />
+          <KpiCard
+            title="Kâr oranı"
+            value={`${adSummary.averagePoas.toFixed(2)}x`}
+            subValue="Kâr / harcama"
+            icon={TrendingUp}
+          />
+          <KpiCard
+            title="Kritik Kampanyalar"
+            value={formatNumber(adSummary.lossMakingCount)}
+            subValue={`${adSummary.watchCount} takip · ${adSummary.scaleCount} ölçek`}
+            icon={AlertTriangle}
+            className="border-danger/20 bg-danger/[0.03]"
+          />
         </div>
-      </section>
+      )}
 
-      <section className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr_0.85fr]">
-        <article className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-[var(--shadow-card)]">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-base font-semibold text-slate-900">Satış & Net Kâr Trendi</p>
-            <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">Son 30 Gün</span>
+      <GlassCard className="mb-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="panel-title">Hızlı Geçiş</h3>
+          <WarningBadge>Tek akış</WarningBadge>
+        </div>
+        <div className="grid grid-cols-2 gap-2 xl:grid-cols-5">
+          {[
+            { label: "Tahmin", href: "/forecast", icon: TrendingUp },
+            { label: "Kârlılık", href: "/profit-pricing", icon: Target },
+            { label: "Ürünler", href: "/veri-merkezi", icon: Database },
+            { label: "Reklam", href: "/reklam-analizi", icon: Megaphone },
+            { label: "SEO", href: "/channel-seo", icon: Sparkles },
+          ].map((action) => (
+            <Link key={action.href} href={action.href} className="group flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-surface-container px-3 py-2 transition-colors duration-200 hover:border-border-strong hover:bg-surface-soft">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-surface-container text-muted/60 transition-colors duration-200 group-hover:text-primary">
+                  <action.icon className="h-3.5 w-3.5" />
+                </div>
+                <p className="text-sm font-medium text-foreground">{action.label}</p>
+              </div>
+              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted/60 transition-colors duration-200 group-hover:text-primary" />
+            </Link>
+          ))}
+        </div>
+      </GlassCard>
+
+      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <GlassCard className="overflow-hidden lg:col-span-2">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h3 className="panel-title">Performans Trendi</h3>
+            <div className="flex items-center gap-2">
+              <WarningBadge>30 Günlük Veri</WarningBadge>
+              <span className="text-[10px] font-medium text-muted">Zirve: {formatCurrency(trendMax)}</span>
+            </div>
           </div>
-          <div className="mt-4 h-[250px]">
-            {trendData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trendData} margin={{ top: 10, right: 0, left: -24, bottom: 0 }}>
+          <div className="h-[260px] min-w-0 w-full">
+            {chartsReady && isClient && agg.salesTrend.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} initialDimension={{ width: 1, height: 1 }}>
+                <AreaChart data={agg.salesTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="salesTrendRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#0f8b8d" stopOpacity={0.22} />
-                      <stop offset="100%" stopColor="#0f8b8d" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="salesTrendProfit" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#93c5fd" stopOpacity={0.28} />
-                      <stop offset="100%" stopColor="#93c5fd" stopOpacity={0} />
+                    <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.2} />
+                      <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid stroke="rgba(148,163,184,0.18)" vertical={false} />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false} fontSize={11} stroke="#94a3b8" tickFormatter={(value: string) => value.slice(5)} />
-                  <YAxis tickLine={false} axisLine={false} fontSize={11} stroke="#94a3b8" tickFormatter={(value: number) => `${Math.round(value / 1000)}K`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-soft)" strokeOpacity={0.25} vertical={false} />
+                  <XAxis dataKey="date" stroke="var(--text-muted)" strokeOpacity={0.45} fontSize={10} tickLine={false} axisLine={false}
+                    tickFormatter={(d: string) => d.slice(5)} />
+                  <YAxis stroke="var(--text-muted)" strokeOpacity={0.45} fontSize={10} tickLine={false} axisLine={false}
+                    tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)} />
                   <Tooltip
-                    contentStyle={{ borderRadius: 16, border: "1px solid #e2e8f0", boxShadow: "var(--shadow-card)" }}
-                    formatter={(value, name) => [formatCurrency(Number(value)), name === "profit" ? "Net Kâr" : "Ciro"]}
+                    contentStyle={chartTooltipStyle}
+                    itemStyle={{ color: "var(--chart-1)" }}
+                    formatter={(value) => [formatCurrency(Number(value)), "Ciro"]}
                   />
-                  <Area type="monotone" dataKey="revenue" stroke="#0f8b8d" strokeWidth={2.5} fill="url(#salesTrendRevenue)" />
-                  <Area type="monotone" dataKey="profit" stroke="#7dd3fc" strokeWidth={2} fill="url(#salesTrendProfit)" />
+                  <Area type="monotone" dataKey="revenue" stroke="var(--chart-1)" strokeWidth={2} isAnimationActive={true} animationDuration={400}
+                    fill="url(#trendGradient)" dot={false} />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <EmptyCard text="Trend verisi oluşmadı." />
+              <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-surface-container text-xs text-muted/60">
+                Yeterli trend verisi birikmedi
+              </div>
             )}
           </div>
-        </article>
+        </GlassCard>
 
-        <article className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-[var(--shadow-card)]">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-base font-semibold text-slate-900">Stok Riski</p>
-            <Link href="/veri-merkezi" className="text-xs font-medium text-[#0f8b8d]">Tümünü Gör</Link>
+        <GlassCard>
+          <h3 className="panel-title mb-3">Kanal Hacmi</h3>
+          <div className="h-[200px] min-w-0">
+            {chartsReady && isClient && agg.channelBreakdown.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} initialDimension={{ width: 1, height: 1 }}>
+                <PieChart>
+                  <Pie data={agg.channelBreakdown} cx="50%" cy="50%" innerRadius={52} outerRadius={78} isAnimationActive={true} animationDuration={400}
+                    paddingAngle={4} dataKey="revenue" nameKey="name">
+                    {agg.channelBreakdown.map((_, i) => (
+                      <Cell key={`ch-${i}`} fill={chartPalette[i % chartPalette.length]} stroke="var(--bg-elevated)" strokeWidth={2} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={chartTooltipStyle}
+                    formatter={(value) => [formatCurrency(Number(value)), "Ciro"]} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-surface-container text-xs text-muted/60">
+                Kanal verisi yok
+              </div>
+            )}
           </div>
-          <div className="mt-4 space-y-3">
-            {aggregate.stockAlerts.length > 0 ? aggregate.stockAlerts.slice(0, 3).map((alert) => {
-              const tone = getStockTone(alert.stock);
-              return (
-                <div key={`${alert.id}-${alert.channel}`} className="flex items-center justify-between gap-3 rounded-[18px] border border-slate-100 px-3 py-3">
-                  <div className="flex items-start gap-3">
-                    {alert.stock <= 5 ? <AlertTriangle className="mt-0.5 h-4 w-4 text-red-500" /> : alert.stock <= 12 ? <CircleAlert className="mt-0.5 h-4 w-4 text-amber-500" /> : <ShieldCheck className="mt-0.5 h-4 w-4 text-emerald-500" />}
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">{alert.name}</p>
-                      <p className="mt-1 text-xs text-slate-500">SKU: {alert.sku}</p>
+          <div className="mt-3 space-y-1.5">
+            {agg.channelBreakdown.map((ch, i) => (
+              <div key={ch.slug} className="flex items-center justify-between text-[11px]">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: chartPalette[i % chartPalette.length] }} />
+                  <span className="text-muted">{ch.name}</span>
+                </div>
+                <div className="text-foreground">
+                  {formatCurrency(ch.revenue)} <span className="text-muted/60 font-medium ml-1">%{ch.pct}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+      </div>
+
+      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <GlassCard>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h3 className="panel-title">Lider Ürünler</h3>
+            <span className="rounded-md border border-border bg-surface-container px-2 py-0.5 text-[10px] font-medium text-muted">Brüt Ciro</span>
+          </div>
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-border/50 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted/60">
+                  <th className="pb-2">Ürün Detayı</th>
+                  <th className="pb-2 text-right">Sipariş</th>
+                  <th className="pb-2 text-right">Ciro</th>
+                  <th className="pb-2 text-right">Marj</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/25">
+                {agg.topProducts.map((p) => (
+                  <tr key={p.id} className="group transition-colors duration-200 hover:bg-surface-subtle">
+                    <td className="py-2.5">
+                      <p className="max-w-[220px] truncate text-sm font-medium text-foreground">{p.name}</p>
+                      <p className="mt-0.5 text-[10px] text-muted/60">{p.sku}</p>
+                    </td>
+                    <td className="py-2.5 text-right text-sm font-medium text-foreground">{formatNumber(p.orders)}</td>
+                    <td className="py-2.5 text-right text-sm font-bold text-primary">{formatCurrency(p.revenue)}</td>
+                    <td className="py-2.5 text-right">
+                      <span className="inline-flex rounded-md border border-border bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
+                        %{p.margin}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="space-y-2 md:hidden">
+            {agg.topProducts.map((p, index) => (
+              <div key={p.id} className="rounded-lg border border-border bg-surface-container p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">{p.name}</p>
+                    <p className="mt-0.5 text-[10px] text-muted/60">{p.sku}</p>
+                  </div>
+                  <span className="inline-flex shrink-0 rounded-md border border-border bg-surface-soft px-2 py-0.5 text-[10px] font-semibold text-muted">
+                    #{index + 1}
+                  </span>
+                </div>
+
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <div className="rounded-md border border-border bg-surface-soft p-2">
+                    <p className="mb-1 text-[9px] uppercase tracking-wide text-muted/60">Sipariş</p>
+                    <p className="text-sm font-bold text-foreground">{formatNumber(p.orders)}</p>
+                  </div>
+                  <div className="rounded-md border border-border bg-surface-soft p-2">
+                    <p className="mb-1 text-[9px] uppercase tracking-wide text-muted/60">Ciro</p>
+                    <p className="text-sm font-bold text-primary">{formatCurrency(p.revenue)}</p>
+                  </div>
+                  <div className="rounded-md border border-border bg-surface-soft p-2 text-right">
+                    <p className="mb-1 text-[9px] uppercase tracking-wide text-muted/60">Marj</p>
+                    <p className="text-sm font-bold text-primary">%{p.margin}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+
+        <GlassCard>
+          <h3 className="panel-title mb-3">Stok Envanter Durumu</h3>
+          {agg.stockAlerts.length > 0 ? (
+            <div className="space-y-2">
+              {agg.stockAlerts.slice(0, 6).map((alert, i) => (
+                <div key={`${alert.id}-${i}`} className={cn(
+                  "flex items-center justify-between gap-3 rounded-lg border p-2.5",
+                  alert.stock < 5 ? "border-danger/30 bg-danger/[0.03]" :
+                  alert.stock < 10 ? "border-warning/30 bg-warning/[0.03]" :
+                  "border-border bg-surface-container"
+                )}>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className={cn("rounded-md p-1.5", 
+                      alert.stock < 5 ? "bg-danger/10 text-danger" : "bg-warning/10 text-warning")}>
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-foreground">{alert.name}</p>
+                      <p className="mt-0.5 text-[10px] text-muted/60">{alert.channel}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold", tone.className)}>
-                      {tone.label}
+                    <span className={cn("block text-sm font-semibold",
+                      alert.stock < 5 ? "text-danger" : "text-warning")}>
+                      {alert.stock} ADET
                     </span>
-                    <p className="mt-2 text-xs text-slate-500">{alert.stock} gün kaldı</p>
+                    <span className="text-[9px] font-medium uppercase tracking-wide text-muted/60">Kritik Seviye</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-border bg-surface-container p-8 text-center">
+              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-success/10 text-success">
+                <Package className="h-4 w-4" />
+              </div>
+              <p className="text-sm font-medium text-foreground">Stoklar güvende</p>
+              <p className="mt-1 text-xs text-muted">Şu an müdahale gerektiren ürün bulunmuyor.</p>
+            </div>
+          )}
+
+          {bestChannel && (
+            <div className="mt-3 flex items-center gap-3 rounded-lg border border-border bg-surface-container p-3">
+              <div className="rounded-md bg-primary/10 p-2 text-primary">
+                <Activity className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-primary/80">En iyi kanal</p>
+                <p className="mt-0.5 text-sm font-semibold text-foreground">
+                  {bestChannelName} üzerinden <span className="text-primary">{formatCurrency(bestChannel.net_profit)}</span> net kâr elde ediliyor.
+                </p>
+              </div>
+            </div>
+          )}
+        </GlassCard>
+      </div>
+
+      {bestChannel && payload?.costBreakdown && (
+        <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <GlassCard>
+            <h3 className="panel-title mb-3">Maliyet Kırılımı ({bestChannelName})</h3>
+            <div className="h-[220px] min-w-0">
+              {chartsReady && isClient ? (
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} initialDimension={{ width: 1, height: 1 }}>
+                  <PieChart>
+                    <Pie data={payload.costBreakdown} cx="50%" cy="50%" innerRadius={52} outerRadius={82} isAnimationActive={true} animationDuration={400}
+                      paddingAngle={3} dataKey="value">
+                      {(payload.costBreakdown).map((_, i) => (
+                        <Cell key={`cs-${i}`} fill={costPalette[i % costPalette.length]} stroke="var(--bg-elevated)" strokeWidth={1} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={chartTooltipStyle}
+                      formatter={(value) => [formatCurrency(Number(value)), ""]} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full rounded-lg border border-dashed border-border bg-surface-container" />
+              )}
+            </div>
+          </GlassCard>
+
+          <GlassCard>
+            <h3 className="panel-title mb-3">Başabaş Analizi</h3>
+            <div className="space-y-4">
+              <div className="flex items-end justify-between">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted/60">Birim Maliyet</p>
+                  <p className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{formatCurrency(bestChannel.total_unit_cost)}</p>
+                </div>
+                <div className="space-y-1 text-right">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted/60">Önerilen Satış</p>
+                  <p className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">{formatCurrency(bestChannel.sale_price)}</p>
+                </div>
+              </div>
+              
+              <div className="relative">
+                <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-border/70 bg-surface-container">
+                  <div className="h-full bg-border/40 transition-[width] duration-300 ease-out"
+                    style={{ width: `${Math.min(100, (bestChannel.total_unit_cost / Math.max(1, bestChannel.sale_price)) * 100)}%` }} />
+                  <div className="h-full bg-primary transition-[width] duration-300 ease-out"
+                    style={{ width: `${Math.max(0, 100 - (bestChannel.total_unit_cost / Math.max(1, bestChannel.sale_price)) * 100)}%` }} />
+                </div>
+                <div className="mt-2 flex justify-between text-[10px] font-medium uppercase tracking-wide">
+                  <span className="text-muted">Maliyet %{Math.round((bestChannel.total_unit_cost / Math.max(1, bestChannel.sale_price)) * 100)}</span>
+                  <span className="text-primary">Net kâr %{Math.round(bestChannel.profit_margin_percent)}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-border bg-surface-container p-3">
+                  <p className="mb-1 text-[9px] font-medium uppercase tracking-wide text-muted/60">ROI</p>
+                  <p className="text-xl font-bold tracking-tight text-foreground">
+                    {formatPercent((bestChannel.net_profit / Math.max(1, bestChannel.total_unit_cost)) * 100)}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border bg-primary-soft p-3">
+                  <p className="mb-1 text-[9px] font-medium uppercase tracking-wide text-primary/60">Net Marj</p>
+                  <p className="text-xl font-bold tracking-tight text-primary">
+                    {formatPercent(bestChannel.profit_margin_percent)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </GlassCard>
+        </div>
+      )}
+
+      {rankedResults.length > 0 && (
+        <GlassCard className="mb-4">
+          <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-1">
+              <h3 className="panel-title">Kanal Kârlılık Matrisi</h3>
+              <p className="text-xs font-medium text-muted/60">Ürün bazında platformlar arası finansal performans farkı.</p>
+            </div>
+            <WarningBadge>Sistem Tahmini</WarningBadge>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            {rankedResults.map((result) => {
+              const isBest = result.channel_name === bestChannelName;
+              const profitShare = result.net_profit > 0 ? Math.max(8, (result.net_profit / maxChannelProfit) * 100) : 8;
+
+              return (
+                <div
+                  key={result.channel_name}
+                  className={cn(
+                    "group rounded-lg border p-3",
+                    isBest ? "border-border bg-primary-soft/40" : "border-border bg-surface-container"
+                  )}
+                >
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{result.channel_name}</p>
+                      <p className="mt-0.5 text-[10px] font-medium text-muted/60">
+                        {formatCurrency(result.sale_price)} <span className="opacity-40">→</span> {formatCurrency(result.total_unit_cost)}
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        "rounded-md border px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.08em]",
+                        isBest ? "bg-primary-soft text-primary border-border" : "bg-surface-soft text-muted border-border"
+                      )}
+                    >
+                      {isBest ? "En iyi" : "Diğer"}
+                    </span>
+                  </div>
+
+                  <div className="mb-4 flex items-end justify-between">
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-medium uppercase tracking-wide text-muted/60">Net Kâr</p>
+                      <p className="text-2xl font-bold tracking-tight text-foreground">{formatCurrency(result.net_profit)}</p>
+                    </div>
+                    <div className="space-y-1 text-right">
+                      <p className="text-[9px] font-medium uppercase tracking-wide text-muted/60">Marj</p>
+                      <p className={cn("text-lg font-semibold tracking-tight", isBest ? "text-primary" : "text-foreground/80")}>
+                        {formatPercent(result.profit_margin_percent)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-surface-container">
+                    <div
+                className={cn("h-full rounded-full transition-[width] duration-300", isBest ? "bg-primary" : "bg-border")}
+                      style={{ width: `${profitShare}%` }}
+                    />
+                  </div>
+
+                  <div className="flex justify-between text-[9px] font-medium uppercase tracking-wide text-muted/60">
+                    <span>Vergi & Kargo Dahil</span>
+                    <span>%{Math.round(result.profit_margin_percent)} Verim</span>
                   </div>
                 </div>
               );
-            }) : (
-              <EmptyCard text="Riskli stok bulunmuyor." />
-            )}
+            })}
           </div>
-        </article>
+        </GlassCard>
+      )}
 
-        <article className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-[var(--shadow-card)]">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-base font-semibold text-slate-900">Veri Kalitesi</p>
-            <Link href="/veri-merkezi" className="text-xs font-medium text-[#0f8b8d]">Tüm Raporu Gör</Link>
-          </div>
-          <div className="mt-4 grid gap-4 md:grid-cols-[0.8fr_1.2fr] xl:grid-cols-1">
-            <div className="flex items-center justify-center">
-              <div className="flex h-40 w-40 flex-col items-center justify-center rounded-full border-[10px] border-emerald-500/18 text-center">
-                <p className="text-5xl font-semibold tracking-[-0.05em] text-slate-900">{qualityScore}</p>
-                <p className="mt-1 text-xs font-medium text-slate-400">/100</p>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <QualityRow label="Ürün Eşleşmeleri" value={Math.max(0, Math.min(100, qualityScore + 3))} />
-              <QualityRow label="Fiyat & Maliyet" value={Math.max(0, Math.min(100, qualityScore - 2))} />
-              <QualityRow label="Stok Verisi" value={Math.max(0, Math.min(100, qualityScore - 4))} />
-              <QualityRow label="Satış Verisi" value={Math.max(0, Math.min(100, qualityScore + 2))} />
-            </div>
-          </div>
-          <div className="mt-4 rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            {payload?.dataQuality.warnings[0] ?? "Tebrikler! Veri kaliteniz güçlü seviyede."}
-          </div>
-        </article>
-      </section>
-    </div>
-  );
-}
+      <ProductComparison />
 
-function SummaryCard({
-  title,
-  value,
-  detail,
-  accent,
-}: {
-  title: string;
-  value: string;
-  detail: string;
-  accent: "emerald" | "slate";
-}) {
-  return (
-    <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 p-4">
-      <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400">{title}</p>
-      <p className="mt-2 text-[1.85rem] font-semibold tracking-[-0.05em] text-slate-900">{value}</p>
-      <p className={cn("mt-2 text-xs", accent === "emerald" ? "text-emerald-600" : "text-slate-500")}>{detail}</p>
-    </div>
-  );
-}
-
-function EmptyCard({ text }: { text: string }) {
-  return (
-    <div className="flex min-h-28 items-center justify-center rounded-[18px] border border-dashed border-slate-200 bg-slate-50 px-4 text-sm text-slate-500">
-      <div className="flex items-center gap-2">
-        <CircleDashed className="h-4 w-4" />
-        {text}
+      <div className="mt-4 flex items-start gap-3 rounded-lg border border-border bg-surface-container p-3">
+        <div className="rounded-md bg-primary/10 p-2 text-primary">
+          <Info className="h-4 w-4" />
+        </div>
+        <p className="text-xs leading-snug text-muted/60">
+          {methodology || "Analiz, gerçek zamanlı pazar verileri, komisyon oranları ve lojistik maliyetleri kullanılarak yapılmıştır. Tüm veriler tahmini olup kesin finansal sonuç garanti etmez."}
+        </p>
       </div>
     </div>
   );
 }
 
-function QualityRow({ label, value }: { label: string; value: number }) {
+type CompareProduct = {
+  id: number;
+  name: string;
+  sku: string;
+  imageUrl: string;
+  cost: number;
+  packagingCost: number;
+  channels: Array<{ channelName: string; salePrice: number; totalCost: number; netProfit: number; margin: number }>;
+};
+
+function ProductComparison() {
+  const [products, setProducts] = useState<Array<{ id: number; name: string }>>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productsLoaded, setProductsLoaded] = useState(false);
+  const [productsError, setProductsError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [comparing, setComparing] = useState(false);
+  const [compareError, setCompareError] = useState<string | null>(null);
+  const [results, setResults] = useState<CompareProduct[] | null>(null);
+
+  const loadProducts = useCallback(async () => {
+    if (productsLoaded || productsLoading) return;
+
+    setProductsLoading(true);
+    setProductsError(null);
+    try {
+      const res = await fetch("/api/products?limit=50", { cache: "no-store" });
+      const data = await res.json();
+      if (data?.products) {
+        setProducts(data.products);
+        setProductsLoaded(true);
+        setProductsError(null);
+      } else {
+        setProductsError("Ürün listesi boş geldi.");
+      }
+    } catch {
+      setProductsError("Ürün listesi yüklenemedi.");
+    } finally {
+      setProductsLoading(false);
+    }
+  }, [productsLoaded, productsLoading]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadProducts();
+    }, 1200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadProducts]);
+
+  const addProduct = (id: number) => {
+    if (selected.length < 3 && !selected.includes(id)) {
+      setSelected([...selected, id]);
+    }
+  };
+
+  const removeProduct = (id: number) => {
+    setSelected(selected.filter((s) => s !== id));
+    setResults(null);
+  };
+
+  const runCompare = async () => {
+    if (selected.length < 2) return;
+    setComparing(true);
+    setCompareError(null);
+    try {
+      const params = selected.map((id) => `id=${id}`).join("&");
+      const res = await fetch(`/api/products/compare?${params}`, { cache: "no-store" });
+      const data = await res.json();
+      if (data?.success) {
+        setResults(data.products);
+      } else {
+        setResults(null);
+        setCompareError(data?.error || "Karşılaştırma sonuçları alınamadı.");
+      }
+    } catch {
+      setResults(null);
+      setCompareError("Karşılaştırma sonuçları alınamadı.");
+    } finally {
+      setComparing(false);
+    }
+  };
+
   return (
-    <div className="flex items-center justify-between gap-3 text-sm">
-      <span className="text-slate-500">{label}</span>
-      <span className="font-semibold text-emerald-600">{value}/100</span>
-    </div>
+    <GlassCard>
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="space-y-1">
+          <h3 className="font-heading text-base font-bold text-foreground">Benchmark Analizi</h3>
+          <p className="text-xs font-medium text-muted/60">Seçili ürünlerin platformlar arası kârlılığı.</p>
+        </div>
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto">
+          <select
+            value=""
+            onFocus={() => { void loadProducts(); }}
+            onChange={(e) => { if (e.target.value) addProduct(Number(e.target.value)); }}
+              className="w-full rounded-md border border-border bg-surface-container px-3 py-2 text-sm font-medium text-foreground outline-none transition-[border-color,box-shadow] duration-200 focus:border-primary/40 focus:ring-1 focus:ring-primary/20 sm:w-[260px]"
+          >
+            <option value="" disabled className="text-muted">
+              {productsLoading && !productsLoaded ? "Ürünler yükleniyor..." : "Ürün seçin..."}
+            </option>
+            {products.filter((p) => !selected.includes(p.id)).map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <button
+            onClick={runCompare}
+            disabled={selected.length < 2 || comparing}
+            className="w-full rounded-md bg-primary px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-primary-foreground transition-colors duration-200 hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-30 sm:w-auto"
+          >
+            {comparing ? "ANALİZ EDİLİYOR..." : "KIYASLA"}
+          </button>
+        </div>
+        {productsError && (
+          <p className="text-[10px] font-medium text-danger/80">
+            {productsError}
+          </p>
+        )}
+        {compareError && (
+          <p className="text-[10px] font-medium text-danger/80">
+            {compareError}
+          </p>
+        )}
+      </div>
+
+      {selected.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {selected.map((id) => {
+            const name = products.find((p) => p.id === id)?.name ?? String(id);
+            return (
+              <span key={id} className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-container px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-primary transition-colors duration-200 hover:bg-surface-soft">
+                {name}
+                <button onClick={() => removeProduct(id)} className="text-base font-semibold leading-none text-muted/60 transition-colors duration-200 hover:text-danger">&times;</button>
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      {results && results.length >= 2 && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-border/50 text-[9px] font-semibold uppercase tracking-[0.1em] text-muted/60">
+                  <th className="pb-2">Ürün Spesifikasyonu</th>
+                  <th className="pb-2 text-right">Baz Maliyet</th>
+                  {results[0]?.channels.map((ch) => (
+                    <th key={ch.channelName} className="pb-2 text-right">{ch.channelName}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/20">
+                {results.map((p) => (
+                  <tr key={p.id} className="group transition-colors duration-200 hover:bg-surface-subtle">
+                    <td className="py-3">
+                      <p className="text-sm font-medium text-foreground">{p.name}</p>
+                      <p className="mt-0.5 text-[10px] text-muted/60">{p.sku}</p>
+                    </td>
+                    <td className="py-3 text-right text-xs font-semibold text-muted">
+                      {formatCurrency(p.cost + p.packagingCost)}
+                    </td>
+                    {p.channels.map((ch) => (
+                      <td key={ch.channelName} className="py-3 text-right">
+                        <div className="space-y-1">
+                          <p className={cn("text-sm font-semibold tracking-tight", ch.margin > 30 ? "text-primary" : ch.margin > 15 ? "text-warning" : "text-danger")}>
+                            {formatCurrency(ch.netProfit)}
+                          </p>
+                          <div className="flex flex-col gap-0.5 items-end">
+                            <span className="text-[9px] font-medium uppercase tracking-tight text-muted/60">%{Math.round(ch.margin)} Marj</span>
+                            <span className="text-[8px] font-medium uppercase tracking-tight text-muted/60">{formatCurrency(ch.totalCost)} Gider</span>
+                          </div>
+                        </div>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="space-y-3 md:hidden">
+            {results.map((p) => {
+              const totalCost = p.cost + p.packagingCost;
+              const peakProfit = Math.max(...p.channels.map((ch) => ch.netProfit), 1);
+              const bestChannel = p.channels.length > 0
+                ? p.channels.reduce((best, ch) => (ch.netProfit > best.netProfit ? ch : best), p.channels[0])
+                : null;
+
+              return (
+                <div key={p.id} className="rounded-lg border border-border bg-surface-container p-3">
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">{p.name}</p>
+                      <p className="mt-0.5 text-[10px] text-muted/60">{p.sku}</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-[9px] font-medium uppercase tracking-wide text-muted/60">Baz Maliyet</p>
+                      <p className="text-sm font-semibold text-foreground">{formatCurrency(totalCost)}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {p.channels.map((ch) => {
+                      const isBest = bestChannel?.channelName === ch.channelName;
+                      const barWidth = Math.max(8, (Math.max(ch.netProfit, 0) / peakProfit) * 100);
+
+                      return (
+                        <div
+                          key={ch.channelName}
+                          className={cn(
+                            "rounded-lg border p-3 transition-all duration-200",
+                            isBest ? "border-border bg-primary-soft/40" : "border-border bg-surface-soft"
+                          )}
+                        >
+                          <div className="mb-3 flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{ch.channelName}</p>
+                              <p className="mt-0.5 text-[9px] uppercase tracking-wide text-muted/60">Fiyat {formatCurrency(ch.salePrice)}</p>
+                            </div>
+                            <span
+                              className={cn(
+                                "rounded-md border px-2 py-0.5 text-[8px] font-medium uppercase tracking-wide",
+                                isBest ? "bg-primary-soft text-primary border-border" : "bg-surface-soft text-muted border-border"
+                              )}
+                            >
+                              {isBest ? "En iyi" : "Alt"}
+                            </span>
+                          </div>
+
+                          <div className="mb-3 grid grid-cols-2 gap-3">
+                            <div>
+                              <p className="mb-1 text-[9px] font-medium uppercase tracking-wide text-muted/60">Net Kâr</p>
+                              <p className={cn("text-lg font-semibold tracking-tight", ch.margin > 30 ? "text-primary" : ch.margin > 15 ? "text-warning" : "text-danger")}>
+                                {formatCurrency(ch.netProfit)}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="mb-1 text-[9px] font-medium uppercase tracking-wide text-muted/60">Marj</p>
+                              <p className={cn("text-lg font-semibold tracking-tight", isBest ? "text-primary" : "text-foreground/80")}>
+                                %{Math.round(ch.margin)}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mb-2 h-1 overflow-hidden rounded-full bg-surface-container">
+                            <div
+                              className={cn("h-full rounded-full transition-[width] duration-300", isBest ? "bg-primary" : "bg-border")}
+                              style={{ width: `${barWidth}%` }}
+                            />
+                          </div>
+
+                          <div className="flex justify-between text-[8px] font-medium uppercase tracking-wide text-muted/60">
+                            <span>Masraflar dahil</span>
+                            <span>{formatCurrency(ch.totalCost)} maliyet</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </GlassCard>
   );
 }

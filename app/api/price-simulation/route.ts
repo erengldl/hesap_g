@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
 import { buildPriceSimulation } from '@/lib/portfolio-analytics';
-import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
   try {
     const payload = buildPriceSimulation();
     if (!payload) {

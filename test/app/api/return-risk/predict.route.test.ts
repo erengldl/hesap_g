@@ -1,17 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { predictReturnRiskFromDataCenter, requireAuthMock } = vi.hoisted(() => ({
+const { predictReturnRiskFromDataCenter } = vi.hoisted(() => ({
   predictReturnRiskFromDataCenter: vi.fn(),
-  requireAuthMock: vi.fn(),
 }));
 
 vi.mock("@/lib/return-risk/server", () => ({
   predictReturnRiskFromDataCenter,
-}));
-
-vi.mock("@/lib/api-auth", () => ({
-  requireAuth: requireAuthMock,
-  primeRequestContextFromApiContext: vi.fn(),
 }));
 
 import { POST } from "@/app/api/return-risk/predict/route";
@@ -19,13 +13,6 @@ import { POST } from "@/app/api/return-risk/predict/route";
 describe("return risk predict route", () => {
   beforeEach(() => {
     predictReturnRiskFromDataCenter.mockReset();
-    requireAuthMock.mockResolvedValue({
-      userId: 1,
-      authUserId: "test-auth-user",
-      email: "demo@example.com",
-      name: "Demo User",
-      plan: "Pro",
-    });
   });
 
   it("returns a valid prediction response", async () => {
@@ -40,7 +27,7 @@ describe("return risk predict route", () => {
       modelVersion: "return-risk-v1-test",
       modelType: "typescript-logistic-regression",
       usedFallback: false,
-      topRiskFactors: ["Kategori iade/fire oranı yüksek"],
+      topRiskFactors: ["Kategori iade/fire orani yuksek"],
       explanation: "Tahmin hazir.",
     });
 
@@ -96,8 +83,8 @@ describe("return risk predict route", () => {
       modelVersion: "return-risk-fallback-v1",
       modelType: "historical-weighted-average",
       usedFallback: true,
-      topRiskFactors: ["Ürün bazlı iade/fire verisi sınırlı"],
-      explanation: "Fallback kullanıldı.",
+      topRiskFactors: ["Urun bazli iade/fire verisi sinirli"],
+      explanation: "Fallback kullanildi.",
     });
 
     const response = await POST(

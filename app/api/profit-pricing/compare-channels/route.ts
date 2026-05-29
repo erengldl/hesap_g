@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 
 import type { ProfitPricingInput } from "@/lib/profit-pricing/types";
 import { buildServerSideChannelComparison, resolveProfitPricingRequest } from "@/lib/profit-pricing/server";
@@ -7,21 +6,14 @@ import { buildServerSideChannelComparison, resolveProfitPricingRequest } from "@
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
-  const authUserId = session.authUserId?.trim() || "";
-  if (!authUserId) {
-    return NextResponse.json({ ok: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
-  }
-  primeRequestContextFromApiContext(session);
   try {
     const body = (await request.json().catch(() => ({}))) as {
       input?: Partial<ProfitPricingInput> & { productId?: string | number; channel?: string };
       channels?: string[];
     };
     const input = body.input ?? {};
-    const resolved = await resolveProfitPricingRequest(input);
-    const comparison = await buildServerSideChannelComparison(input);
+    const resolved = resolveProfitPricingRequest(input);
+    const comparison = buildServerSideChannelComparison(input);
     const filtered = Array.isArray(body.channels) && body.channels.length > 0
       ? comparison.filter((item) => body.channels?.includes(item.channel))
       : comparison;

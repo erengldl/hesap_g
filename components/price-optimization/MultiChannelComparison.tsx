@@ -184,7 +184,7 @@ export default function MultiChannelComparison({ productId, marketplaceIds, mark
                 const isBest = bestChannel?.marketplaceId === ch.marketplaceId;
 
                 return (
-                  <tr key={ch.marketplaceId} className={cn("group hover:bg-surface-container transition-colors duration-200", isBest && "bg-primary/5")}>
+                  <tr key={ch.marketplaceId} className={cn("group hover:bg-surface-container transition-colors duration-200", isBest && "bg-primary/[0.04]")}>
                     <td className="py-3">
                       <div className="flex items-center gap-2">
                         {isBest && <Zap className="w-3.5 h-3.5 text-primary" />}

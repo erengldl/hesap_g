@@ -1,7 +1,6 @@
 import { calculateChannelCost } from "./cost-engine";
 import { getOwnWebsiteGatewayRule, getProductMarketplaceSetting, getProducts } from "./database-readers";
 import { getDb, query } from "./db";
-import { requireCurrentAuthUserId } from "./tenant";
 import type { Product } from "./types";
 
 export type CampaignPlatformId = "meta" | "google_ads" | "tiktok";
@@ -127,10 +126,6 @@ export type CampaignPipelineStage = {
 
 export type AdAnalysisResponse = {
   success: true;
-  analysisMode: "imported" | "simulated";
-  dataSource: "imported" | "derived";
-  coverageRatio: number;
-  fallbackUsed: boolean;
   metricWindow: {
     start: string;
     end: string;
@@ -162,11 +157,6 @@ export type AdAnalysisResponse = {
   pipeline: CampaignPipelineStage[];
   campaignMetrics: CampaignProfitMetric[];
 };
-
-export type AdAnalysisSummary = Pick<
-  AdAnalysisResponse,
-  "lastSyncedAt" | "totalCampaigns" | "totalSpend" | "totalNetProfit" | "averagePoas" | "lossMakingCount" | "watchCount" | "scaleCount" | "analysisMode" | "dataSource" | "coverageRatio" | "fallbackUsed"
->;
 
 const PLATFORM_CONFIG: Record<CampaignPlatformId, CampaignPlatformConfig> = {
   meta: {
@@ -315,23 +305,14 @@ export function getCampaignPlatformConfig(platform: CampaignPlatformId) {
   return PLATFORM_CONFIG[platform];
 }
 
-async function getBaselineTrafficCpa(
-  productId: number,
-  settingMap?: Map<number, ProductSettingRow>,
-  websiteGateway?: Awaited<ReturnType<typeof getOwnWebsiteGatewayRule>>
-) {
-  const productSetting = settingMap?.get(productId) ?? (await getProductMarketplaceSetting(productId, 3) as ProductSettingRow | null);
-  if (productSetting?.traffic_cpa != null) {
-    return round2(Number(productSetting.traffic_cpa));
-  }
-
-  const gateway = websiteGateway ?? await getOwnWebsiteGatewayRule();
-  return round2(Number(gateway?.avg_ad_cost ?? 56.2));
+function getBaselineTrafficCpa(productId: number, settingMap?: Map<number, ProductSettingRow>) {
+  const productSetting = settingMap?.get(productId) ?? (getProductMarketplaceSetting(productId, 3) as ProductSettingRow | null);
+  const gateway = getOwnWebsiteGatewayRule();
+  return round2(Number(productSetting?.traffic_cpa ?? gateway?.avg_ad_cost ?? 56.2));
 }
 
-async function getOwnWebsiteCostResult(product: Product) {
-  const authUserId = requireCurrentAuthUserId();
-  const row = (await query<CostResultRow>(
+function getOwnWebsiteCostResult(product: Product) {
+  const row = query<CostResultRow>(
     `
       SELECT
         product_id,
@@ -344,21 +325,21 @@ async function getOwnWebsiteCostResult(product: Product) {
         platform_fee_cost,
         payment_gateway_cost
       FROM cost_results
-      WHERE product_id = ? AND marketplace_id = 3 AND user_id = ?
+      WHERE product_id = ? AND marketplace_id = 3
       LIMIT 1
     `,
-    [product.id, authUserId]
-  ))[0];
+    [product.id]
+  )[0];
 
   if (row) {
     return row;
   }
 
-  const productSetting = await getProductMarketplaceSetting(product.id, 3) as ProductSettingRow | null;
-  const gateway = await getOwnWebsiteGatewayRule();
-  const baselineCpa = await getBaselineTrafficCpa(product.id);
+  const productSetting = getProductMarketplaceSetting(product.id, 3) as ProductSettingRow | null;
+  const gateway = getOwnWebsiteGatewayRule();
+  const baselineCpa = getBaselineTrafficCpa(product.id);
 
-  const calculation = await calculateChannelCost("Kendi Websitem", {
+  const calculation = calculateChannelCost("Kendi Websitem", {
     product,
     salePrice: Number(productSetting?.sale_price ?? product.sale_price ?? 0),
     manualShippingCost: Number(productSetting?.manual_shipping_cost ?? gateway?.manual_shipping_cost ?? 95),
@@ -390,9 +371,8 @@ async function getOwnWebsiteCostResult(product: Product) {
   };
 }
 
-async function getProductSettingMap() {
-  const authUserId = requireCurrentAuthUserId();
-  const rows = await query<ProductSettingRow>(
+function getProductSettingMap() {
+  const rows = query<ProductSettingRow>(
     `
       SELECT
         product_id,
@@ -403,17 +383,15 @@ async function getProductSettingMap() {
         payment_gateway_rule_id,
         shipping_mode
       FROM product_marketplace_settings
-      WHERE marketplace_id = 3 AND user_id = ?
+      WHERE marketplace_id = 3
     `
-    ,
-    [authUserId]
   );
 
   return new Map(rows.map((row) => [row.product_id, row]));
 }
 
-async function getProductMap() {
-  return new Map((await getProducts()).map((product) => [product.id, product]));
+function getProductMap() {
+  return new Map(getProducts().map((product) => [product.id, product]));
 }
 
 function buildMetricWindow(windowDays: number) {
@@ -550,14 +528,12 @@ function buildCampaignMetric(accumulator: CampaignAccumulator, windowStart: stri
   };
 }
 
-async function persistCampaignMetrics(rows: CampaignProfitMetric[]) {
+function persistCampaignMetrics(rows: CampaignProfitMetric[]) {
   const db = getDb();
   if (!db) return false;
-  const authUserId = requireCurrentAuthUserId();
 
   const insert = db.prepare(`
     INSERT INTO campaign_profit_metrics (
-      user_id,
       campaign_id,
       campaign_name,
       platform_slug,
@@ -588,20 +564,19 @@ async function persistCampaignMetrics(rows: CampaignProfitMetric[]) {
       efficiency_gap,
       data_source,
       last_calculated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  await db.transaction(async () => {
-    await db.prepare("DELETE FROM campaign_profit_metrics WHERE user_id = ?").run(authUserId);
+  const trx = db.transaction(() => {
+    db.prepare("DELETE FROM campaign_profit_metrics").run();
     for (const row of rows) {
-      await insert.run(
-        authUserId,
+      insert.run(
         row.campaign_id,
-        row.campaign_name,
-        row.platform_slug,
-        row.platform_label,
-        row.utm_source,
-        row.utm_campaign,
+      row.campaign_name,
+      row.platform_slug,
+      row.platform_label,
+      row.utm_source,
+      row.utm_campaign,
         row.window_start,
         row.window_end,
         row.spend,
@@ -629,24 +604,22 @@ async function persistCampaignMetrics(rows: CampaignProfitMetric[]) {
       );
     }
   });
+
+  trx();
   return true;
 }
 
-async function buildFallbackCostResult(product: Product) {
-  return await getOwnWebsiteCostResult(product);
+function buildFallbackCostResult(product: Product) {
+  return getOwnWebsiteCostResult(product);
 }
 
-async function collectCampaignRows(windowStart: string, windowEnd: string) {
-  const authUserId = requireCurrentAuthUserId();
-  const productMap = await getProductMap();
-  const settingMap = await getProductSettingMap();
-  const websiteGateway = await getOwnWebsiteGatewayRule();
+function collectCampaignRows(windowStart: string, windowEnd: string) {
+  const productMap = getProductMap();
+  const settingMap = getProductSettingMap();
   const costMap = new Map<number, CostResultRow>();
-  const baselineTrafficCpaMap = new Map<number, number>();
-  const fallbackCostMap = new Map<number, CostResultRow>();
   const uniqueOrderIds = new Set<number>();
 
-  const costRows = await query<CostResultRow>(
+  const costRows = query<CostResultRow>(
     `
       SELECT
         product_id,
@@ -659,17 +632,15 @@ async function collectCampaignRows(windowStart: string, windowEnd: string) {
         platform_fee_cost,
         payment_gateway_cost
       FROM cost_results
-      WHERE marketplace_id = 3 AND user_id = ?
+      WHERE marketplace_id = 3
     `
-    ,
-    [authUserId]
   );
 
   for (const row of costRows) {
     costMap.set(row.product_id, row);
   }
 
-  const orderRows = await query<CampaignOrderRow>(
+  const orderRows = query<CampaignOrderRow>(
     `
       SELECT
         o.order_id,
@@ -692,18 +663,17 @@ async function collectCampaignRows(windowStart: string, windowEnd: string) {
         o.platform_reported_revenue,
         o.platform_reported_roas
       FROM orders o
-      JOIN order_items oi ON oi.order_id = o.order_id AND oi.user_id = o.user_id
-      JOIN products p ON p.product_id = COALESCE(oi.product_id, o.product_id) AND p.user_id = o.user_id
+      JOIN order_items oi ON oi.order_id = o.order_id
+      JOIN products p ON p.product_id = COALESCE(oi.product_id, o.product_id)
       LEFT JOIN categories c ON c.category_id = p.category_id
       JOIN marketplaces m ON m.marketplace_id = o.marketplace_id
-      WHERE o.user_id = ?
-        AND o.status = 'completed'
+      WHERE o.status = 'completed'
         AND m.slug = 'own_website'
         AND o.order_date >= ?
         AND o.order_date <= ?
       ORDER BY o.order_date ASC, o.order_id ASC
     `,
-    [authUserId, windowStart, windowEnd]
+    [windowStart, windowEnd]
   );
 
   const accumulators = new Map<string, CampaignAccumulator>();
@@ -745,20 +715,8 @@ async function collectCampaignRows(windowStart: string, windowEnd: string) {
       cpaSamples: [],
     };
 
-    let baselineTrafficCpa = baselineTrafficCpaMap.get(product.id);
-    if (baselineTrafficCpa == null) {
-      baselineTrafficCpa = await getBaselineTrafficCpa(product.id, settingMap, websiteGateway ?? undefined);
-      baselineTrafficCpaMap.set(product.id, baselineTrafficCpa);
-    }
-
-    let costResult = costMap.get(product.id);
-    if (!costResult) {
-      costResult = fallbackCostMap.get(product.id);
-      if (!costResult) {
-        costResult = await buildFallbackCostResult(product);
-        fallbackCostMap.set(product.id, costResult);
-      }
-    }
+    const baselineTrafficCpa = getBaselineTrafficCpa(product.id, settingMap);
+    const costResult = costMap.get(product.id) ?? (buildFallbackCostResult(product) as unknown as CostResultRow);
     const baseNetProfitPerUnit = round2(Number(costResult.net_profit ?? 0));
     const quantity = Math.max(1, roundWhole(Number(row.quantity ?? 1)));
     const lineTotal = round2(Number(row.line_total ?? 0));
@@ -782,7 +740,7 @@ async function collectCampaignRows(windowStart: string, windowEnd: string) {
   const campaignRows = Array.from(accumulators.values()).map((accumulator) => buildCampaignMetric(accumulator, windowStartDate, windowEndDate));
   totalOrders = uniqueOrderIds.size;
 
-  const persisted = await persistCampaignMetrics(campaignRows);
+  const persisted = persistCampaignMetrics(campaignRows);
   const lastSyncedAt = campaignRows.length > 0 ? campaignRows[0].last_calculated_at : new Date().toISOString();
 
   return {
@@ -797,18 +755,17 @@ async function collectCampaignRows(windowStart: string, windowEnd: string) {
   };
 }
 
-export async function buildAdAnalysis(windowDays = 30): Promise<AdAnalysisResponse | null> {
+export function buildAdAnalysis(windowDays = 30): AdAnalysisResponse | null {
   const db = getDb();
   if (!db) return null;
-  const authUserId = requireCurrentAuthUserId();
 
-  const productCountRow = await db.prepare("SELECT COUNT(*) AS count FROM products WHERE user_id = ?").get(authUserId) as { count: number };
+  const productCountRow = db.prepare("SELECT COUNT(*) AS count FROM products").get() as { count: number };
   if ((productCountRow?.count ?? 0) === 0) {
     return null;
   }
 
   const metricWindow = buildMetricWindow(windowDays);
-  const { campaignRows, lastSyncedAt, windowStart, windowEnd, windowDays: resolvedWindowDays, totalOrders, totalUnits } = await collectCampaignRows(metricWindow.start, metricWindow.end);
+  const { campaignRows, lastSyncedAt, windowStart, windowEnd, windowDays: resolvedWindowDays, totalOrders, totalUnits } = collectCampaignRows(metricWindow.start, metricWindow.end);
   if (campaignRows.length === 0) {
     return null;
   }
@@ -857,10 +814,6 @@ export async function buildAdAnalysis(windowDays = 30): Promise<AdAnalysisRespon
 
   return {
     success: true,
-    analysisMode: "simulated",
-    dataSource: "derived",
-    coverageRatio: 0,
-    fallbackUsed: false,
     metricWindow: {
       start: windowStart,
       end: windowEnd,
@@ -896,58 +849,6 @@ export async function buildAdAnalysis(windowDays = 30): Promise<AdAnalysisRespon
   };
 }
 
-export async function buildAdAnalysisSummary(): Promise<AdAnalysisSummary | null> {
-  const db = getDb();
-  if (!db) return null;
-  const authUserId = requireCurrentAuthUserId();
-
-  const summary = await db.prepare(`
-    SELECT
-      COUNT(*)::int AS total_campaigns,
-      COUNT(*) FILTER (WHERE data_source = 'imported')::int AS imported_campaigns,
-      COALESCE(SUM(spend), 0) AS total_spend,
-      COALESCE(SUM(net_profit), 0) AS total_net_profit,
-      COALESCE(AVG(poas), 0) AS average_poas,
-      COUNT(*) FILTER (WHERE health_status = 'stop')::int AS loss_making_count,
-      COUNT(*) FILTER (WHERE health_status = 'watch')::int AS watch_count,
-      COUNT(*) FILTER (WHERE health_status = 'scale')::int AS scale_count,
-      MAX(last_calculated_at) AS last_synced_at
-    FROM campaign_profit_metrics
-    WHERE user_id = ?
-  `).get(authUserId) as {
-    total_campaigns: number | null;
-    imported_campaigns: number | null;
-    total_spend: number | null;
-    total_net_profit: number | null;
-    average_poas: number | null;
-    loss_making_count: number | null;
-    watch_count: number | null;
-    scale_count: number | null;
-    last_synced_at: string | null;
-  } | undefined;
-
-  if (!summary || Number(summary.total_campaigns ?? 0) === 0) {
-    return null;
-  }
-
-  return {
-    totalCampaigns: Number(summary.total_campaigns ?? 0),
-    totalSpend: round2(Number(summary.total_spend ?? 0)),
-    totalNetProfit: round2(Number(summary.total_net_profit ?? 0)),
-    averagePoas: round2(Number(summary.average_poas ?? 0)),
-    lossMakingCount: Number(summary.loss_making_count ?? 0),
-    watchCount: Number(summary.watch_count ?? 0),
-    scaleCount: Number(summary.scale_count ?? 0),
-    lastSyncedAt: summary.last_synced_at ?? new Date().toISOString(),
-    analysisMode: Number(summary.imported_campaigns ?? 0) > 0 ? "imported" : "simulated",
-    dataSource: Number(summary.imported_campaigns ?? 0) > 0 ? "imported" : "derived",
-    coverageRatio: Number(summary.total_campaigns ?? 0) > 0
-      ? round2(Number(summary.imported_campaigns ?? 0) / Number(summary.total_campaigns ?? 0))
-      : 0,
-    fallbackUsed: false,
-  };
-}
-
-export async function refreshCampaignProfitMetrics(windowDays = 30) {
-  return await buildAdAnalysis(windowDays);
+export function refreshCampaignProfitMetrics(windowDays = 30) {
+  return buildAdAnalysis(windowDays);
 }

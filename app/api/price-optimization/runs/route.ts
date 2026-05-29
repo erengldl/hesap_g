@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import type { PriceOptimizationRunListResponse, PriceOptimizationRunSummary } from "@/lib/price-optimization-types";
-import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -31,23 +30,14 @@ function clampLimit(value: number) {
 }
 
 export async function GET(request: Request) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
   try {
-    const authUserId = session.authUserId;
-    if (!authUserId) {
-      return NextResponse.json(
-        { success: false, runs: [], error: "Authentication required." } satisfies PriceOptimizationRunListResponse,
-        { status: 401 }
-      );
-    }
     const url = new URL(request.url);
     const limit = clampLimit(parseNumeric(url.searchParams.get("limit"), 8));
     const productId = parseNumeric(url.searchParams.get("productId"), 0);
     const marketplaceId = parseNumeric(url.searchParams.get("marketplaceId"), 0);
 
-    const filters: string[] = ["r.user_id = ?"];
-    const params: Array<number | string> = [authUserId];
+    const filters: string[] = [];
+    const params: Array<number> = [];
 
     if (productId > 0) {
       filters.push("r.product_id = ?");
@@ -61,7 +51,7 @@ export async function GET(request: Request) {
 
     const whereClause = filters.length > 0 ? `WHERE ${filters.join(" AND ")}` : "";
 
-    const runs = await query<RawRunRow>(
+    const runs = query<RawRunRow>(
       `
       SELECT
         r.run_id,
@@ -78,7 +68,7 @@ export async function GET(request: Request) {
         COALESCE(r.created_at, CURRENT_TIMESTAMP) AS created_at,
         r.published_at
       FROM price_optimization_runs r
-      LEFT JOIN products p ON p.product_id = r.product_id AND p.user_id = r.user_id
+      LEFT JOIN products p ON p.product_id = r.product_id
       LEFT JOIN marketplaces m ON m.marketplace_id = r.marketplace_id
       ${whereClause}
       ORDER BY COALESCE(r.published_at, r.created_at) DESC, r.run_id DESC

@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getOwnWebsiteGatewayRule } from "@/lib/database-readers";
 import { recalculateAllCostResults } from "@/lib/portfolio-analytics";
-import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
-import { getCurrentSellerProfileId, getOrCreateCurrentSellerProfileId } from "@/lib/seller-profile-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -29,14 +27,13 @@ function getDefaultSettings() {
   };
 }
 
-async function getSettings() {
-  const sellerProfileId = await getCurrentSellerProfileId();
-  const rule = await getOwnWebsiteGatewayRule();
+function getSettings() {
+  const rule = getOwnWebsiteGatewayRule();
   if (!rule) {
     return {
       payment_gateway_rule_id: null,
       marketplace_id: 3,
-      seller_profile_id: sellerProfileId,
+      seller_profile_id: 1,
       ...getDefaultSettings(),
     };
   }
@@ -44,7 +41,7 @@ async function getSettings() {
   return {
     payment_gateway_rule_id: rule.id,
     marketplace_id: rule.marketplace_id,
-    seller_profile_id: rule.seller_profile_id ?? sellerProfileId,
+    seller_profile_id: rule.seller_profile_id ?? 1,
     gateway_name: rule.gateway_name,
     commission_rate: Number(rule.fee_rate_percent ?? 0),
     fixed_fee: Number(rule.fixed_fee_per_order ?? 0),
@@ -56,17 +53,10 @@ async function getSettings() {
 }
 
 export async function GET() {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
-  const authUserId = session.authUserId?.trim() || "";
-  if (!authUserId) {
-    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
-  }
-  primeRequestContextFromApiContext(session);
   try {
     return NextResponse.json({
       success: true,
-      settings: await getSettings(),
+      settings: getSettings(),
     });
   } catch (error) {
     console.error("Website settings GET error:", error);
@@ -75,19 +65,11 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
-  const authUserId = session.authUserId?.trim() || "";
-  if (!authUserId) {
-    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
-  }
-  primeRequestContextFromApiContext(session);
   try {
     const body = (await request.json()) as Partial<WebsiteSettingsPayload>;
-    const sellerProfileId = await getOrCreateCurrentSellerProfileId();
-    const db = await getDb();
+    const db = getDb();
     if (!db) {
-      return NextResponse.json({ success: false, error: "Veritabanı bağlantısı kullanılamıyor." }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Database connection unavailable" }, { status: 500 });
     }
 
     const payload = {
@@ -100,9 +82,9 @@ export async function PUT(request: Request) {
       avg_conversion_rate: Number(body.avg_conversion_rate ?? 2.6),
     };
 
-    const existing = await getOwnWebsiteGatewayRule();
+    const existing = getOwnWebsiteGatewayRule();
     if (existing) {
-      await db.prepare(`
+      db.prepare(`
         UPDATE payment_gateway_rules
         SET gateway_name = ?,
             fee_rate_percent = ?,
@@ -111,7 +93,7 @@ export async function PUT(request: Request) {
             manual_shipping_cost = ?,
             avg_ad_cost = ?,
             avg_conversion_rate = ?,
-            seller_profile_id = ?,
+            seller_profile_id = 1,
             marketplace_id = 3,
             is_active = 1
         WHERE id = ?
@@ -123,11 +105,10 @@ export async function PUT(request: Request) {
         payload.manual_shipping_cost,
         payload.avg_ad_cost,
         payload.avg_conversion_rate,
-        sellerProfileId,
         existing.id
       );
     } else {
-      await db.prepare(`
+      db.prepare(`
         INSERT INTO payment_gateway_rules (
           seller_profile_id,
           marketplace_id,
@@ -140,9 +121,8 @@ export async function PUT(request: Request) {
           avg_ad_cost,
           avg_conversion_rate,
           is_active
-        ) VALUES (?, 3, ?, ?, ?, 20, ?, ?, ?, ?, 1)
+        ) VALUES (1, 3, ?, ?, ?, 20, ?, ?, ?, ?, 1)
       `).run(
-        sellerProfileId,
         payload.gateway_name,
         payload.commission_rate,
         payload.fixed_fee,
@@ -153,11 +133,11 @@ export async function PUT(request: Request) {
       );
     }
 
-    await recalculateAllCostResults();
+    recalculateAllCostResults();
 
     return NextResponse.json({
       success: true,
-      settings: await getSettings(),
+      settings: getSettings(),
     });
   } catch (error) {
     console.error("Website settings PUT error:", error);

@@ -10,10 +10,10 @@ export async function GET(request: Request) {
   try {
     const user = await getAuthenticatedUserFromRequest(request);
     if (!user) {
-      return NextResponse.json({ success: false, error: "Oturum bulunamadı." }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Oturum bulunamadi." }, { status: 401 });
     }
 
-    const campaigns = await listManualAdCampaignSummaries(user.userId);
+    const campaigns = listManualAdCampaignSummaries(user.userId);
     return NextResponse.json({
       success: true,
       campaigns,
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   try {
     const user = await getAuthenticatedUserFromRequest(request);
     if (!user) {
-      return NextResponse.json({ success: false, error: "Oturum bulunamadı." }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Oturum bulunamadi." }, { status: 401 });
     }
 
     const body = (await request.json()) as unknown;
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Doğrulama başarısız.", errors: validation.errors }, { status: 400 });
     }
 
-    const detail = await createManualAdCampaign(user.userId, validation.value);
+    const detail = createManualAdCampaign(user.userId, validation.value);
     return NextResponse.json({
       success: true,
       campaign: detail.campaign,

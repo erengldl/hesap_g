@@ -1,16 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getShippingCompanies } from '@/lib/database-readers';
-import { requireAuth } from "@/lib/api-auth";
 
 export async function GET(request: Request) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type');
 
   try {
     if (type === 'shipping') {
-      const companies = (await getShippingCompanies()) as any[];
+      const companies = getShippingCompanies() as any[];
       const carriers = Array.from(new Set(companies.map(c => c.name))).filter(Boolean);
       return NextResponse.json({ success: true, carriers });
     }

@@ -1,57 +1,30 @@
-import { buildCostBootstrap, recalculateCostResultsForProductFromDatabase } from "@/lib/cost-engine";
-import NetCostWorkspace from "@/components/profit-pricing/NetCostWorkspace";
-
-export const dynamic = "force-dynamic";
+import { redirect } from "next/navigation";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-function readFirstValue(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
+function appendParams(searchParams: SearchParams) {
+  const params = new URLSearchParams();
 
-function parseProductId(value: string | undefined) {
-  const numericValue = Number(value);
-  return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : undefined;
-}
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (typeof value === "string") {
+      params.set(key, value);
+      continue;
+    }
 
-async function resolveNetCostBootstrap(searchParams: SearchParams) {
-  const productId = parseProductId(readFirstValue(searchParams.productId));
-
-  try {
-    const [bootstrap, results] = await Promise.all([
-      buildCostBootstrap(productId),
-      recalculateCostResultsForProductFromDatabase(productId),
-    ]);
-
-    return {
-      bootstrap,
-      results,
-      error: null as string | null,
-      selectedProductId: productId ?? bootstrap.selectedProduct?.id,
-    };
-  } catch (error) {
-    console.error("Net cost page bootstrap error:", error);
-    return {
-      bootstrap: null,
-      results: null,
-      error: "Net maliyet ekranı hazırlanamadı. Veri kaynağına erişim tekrar denenmeli.",
-      selectedProductId: productId,
-    };
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        params.append(key, item);
+      }
+    }
   }
+
+  return params.toString();
 }
 
-export default async function NetCostPage(props: {
+export default async function NetCostRedirectPage(props: {
   searchParams?: Promise<SearchParams>;
 }) {
   const searchParams = props.searchParams ? await props.searchParams : {};
-  const { bootstrap, results, error, selectedProductId } = await resolveNetCostBootstrap(searchParams);
-
-  return (
-    <NetCostWorkspace
-      bootstrap={bootstrap}
-      results={results}
-      selectedProductId={selectedProductId}
-      error={error}
-    />
-  );
+  const query = appendParams(searchParams);
+  redirect(`/profit-pricing${query ? `?${query}` : ""}`);
 }

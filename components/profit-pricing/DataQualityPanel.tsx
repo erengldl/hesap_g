@@ -14,12 +14,12 @@ export default function DataQualityPanel({ result }: { result: ProfitPricingResu
       : null;
   const sourceLabel =
     returnRiskPrediction?.modelType === "manual-override"
-      ? "Manuel giriş"
+      ? "Manuel giris"
       : returnRiskPrediction?.usedFallback
-        ? "Geçmiş ortalama fallback"
+        ? "Gecmis ortalama fallback"
         : returnRiskPrediction
-          ? "Eğitilmiş ML modeli"
-          : "Henüz yok";
+          ? "Egitilmis ML modeli"
+          : "Henuz yok";
 
   return (
     <GlassCard className="border-border/80">
@@ -34,28 +34,28 @@ export default function DataQualityPanel({ result }: { result: ProfitPricingResu
         <div className="flex w-full flex-col gap-3">
           <div className="rounded-2xl border border-border/70 bg-surface-container/55 p-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">
-              İade/Fire Risk Tahmini
+              Iade/Fire Risk Tahmini
             </p>
             <div className="mt-3 space-y-3">
-              <RiskMetric label="Sipariş başı risk" value={formatProfitPricingCurrency(currentScenario?.returnRiskCost)} />
+              <RiskMetric label="Siparis basi risk" value={formatProfitPricingCurrency(currentScenario?.returnRiskCost)} />
               <RiskMetric
-                label="İade olasılığı"
+                label="Iade olasiligi"
                 value={formatProfitPricingPercent(returnRiskPrediction?.returnProbability)}
               />
               <RiskMetric
-                label="İade olursa maliyet"
+                label="Iade olursa maliyet"
                 value={formatProfitPricingCurrency(returnRiskPrediction?.expectedCostIfReturned)}
               />
               <RiskMetric
-                label="Güven"
+                label="Guven"
                 value={
                   returnRiskPrediction?.confidence === "high"
-                    ? "Yüksek"
+                    ? "Yuksek"
                     : returnRiskPrediction?.confidence === "medium"
                       ? "Orta"
                       : returnRiskPrediction?.confidence === "low"
-                        ? "Düşük"
-                        : "Henüz yok"
+                        ? "Dusuk"
+                        : "Henuz yok"
                 }
               />
               <RiskMetric label="Kaynak" value={sourceLabel} />
@@ -66,12 +66,12 @@ export default function DataQualityPanel({ result }: { result: ProfitPricingResu
             </div>
             <p className="mt-3 text-sm leading-6 text-soft">
               {returnRiskPrediction?.explanation ??
-                "Geçmiş satış ve iade verisi yoksa kategori/kanal ortalamalarıyla güvenli tahmin kullanılır."}
+                "Gecmis satis ve iade verisi yoksa kategori/kanal ortalamalariyla guvenli tahmin kullanilir."}
             </p>
             {profitWithoutReturnRisk !== null && returnRiskCost > 0 && (
               <p className="mt-2 text-xs leading-5 text-soft">
-                İade/fire riski olmasaydı birim net kâr yaklaşık {formatProfitPricingCurrency(profitWithoutReturnRisk)}
-                olurdu; mevcut net kâra etkisi {formatProfitPricingCurrency(-returnRiskCost)}.
+                Iade/fire riski olmasaydi birim net kar yaklasik {formatProfitPricingCurrency(profitWithoutReturnRisk)}
+                olurdu; mevcut net kara etkisi {formatProfitPricingCurrency(-returnRiskCost)}.
               </p>
             )}
           </div>

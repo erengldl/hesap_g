@@ -47,13 +47,13 @@ export default function CommissionResultCard({
       <div className="relative space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
-            <h4 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted flex items-center gap-2">
+            <h4 className="text-xs font-bold text-muted uppercase tracking-widest flex items-center gap-2">
               <Tag className="w-3 h-3" />
               Hesaplanan Komisyon
             </h4>
             <div className="flex items-center gap-3">
               <span className="text-3xl font-extrabold text-foreground">%{commissionRate}</span>
-              <span className={cn("px-2.5 py-1 rounded-xl text-[10px] font-semibold border uppercase tracking-[0.14em]", badge.className)}>
+              <span className={cn("px-2.5 py-1 rounded-xl text-[10px] font-bold border uppercase tracking-wider", badge.className)}>
                 {badge.label}
               </span>
             </div>
@@ -61,12 +61,12 @@ export default function CommissionResultCard({
           
           <div className="flex items-center gap-4 text-right">
              <div className="space-y-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Pazaryeri</p>
+                <p className="text-[10px] font-bold text-muted uppercase tracking-widest">Pazaryeri</p>
                 <p className="text-sm font-bold text-foreground">{marketplace}</p>
              </div>
              <div className="w-px h-8 bg-border/80" />
              <div className="space-y-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Güven Durumu</p>
+                <p className="text-[10px] font-bold text-muted uppercase tracking-widest">Güven Durumu</p>
                 <p className="text-sm font-bold text-success flex items-center gap-1.5">
                    <ShieldCheck className="w-4 h-4" />
                    Yüksek
@@ -78,11 +78,11 @@ export default function CommissionResultCard({
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-3 rounded-xl bg-surface-container border border-border/80 space-y-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Seçili Kategori</p>
+              <p className="text-[10px] font-bold text-muted uppercase tracking-widest">Seçili Kategori</p>
               <p className="text-xs text-soft truncate" title={selectedCategory}>{selectedCategory}</p>
             </div>
             <div className="p-3 rounded-xl bg-surface-container border border-border/80 space-y-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Kullanılan Kural Kapsamı</p>
+              <p className="text-[10px] font-bold text-muted uppercase tracking-widest">Kullanılan Kural Kapsamı</p>
               <p className="text-xs text-soft truncate" title={matchedCategory}>{matchedCategory}</p>
             </div>
           </div>

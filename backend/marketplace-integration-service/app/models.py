@@ -10,12 +10,9 @@ from .database import Base
 
 class MarketplaceCredential(Base):
     __tablename__ = "marketplace_credentials"
-    __table_args__ = (
-        UniqueConstraint("user_id", "marketplace_id", name="uq_marketplace_credentials_user_marketplace"),
-    )
+    __table_args__ = (UniqueConstraint("marketplace_id", name="uq_marketplace_credentials_marketplace"),)
 
     credential_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    user_id: Mapped[str] = mapped_column(ForeignKey("auth.users.id"), nullable=False)
     marketplace_id: Mapped[int] = mapped_column(ForeignKey("marketplaces.marketplace_id"), nullable=False)
     merchant_id: Mapped[str] = mapped_column(String, nullable=False)
     encrypted_api_key: Mapped[str] = mapped_column(Text, nullable=False)

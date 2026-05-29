@@ -105,7 +105,7 @@ export default function NetCostBreakdownTable({ results, bestChannelName }: NetC
               key={result.channel_name}
               className={cn(
                 "overflow-hidden rounded-2xl border",
-                isBest ? "border-primary/20 bg-primary/5" : "border-border/80 bg-surface-container"
+                isBest ? "border-primary/20 bg-primary/[0.05]" : "border-border/80 bg-surface-container"
               )}
             >
               <summary className="list-none cursor-pointer p-4 outline-none">
@@ -160,11 +160,11 @@ export default function NetCostBreakdownTable({ results, bestChannelName }: NetC
                         {section.rows.map((row) => {
                           const value = getRowValue(result, row.key);
                           const rowTone = row.isFinal
-                            ? "border-primary/15 bg-primary/5"
+                            ? "border-primary/15 bg-primary/[0.05]"
                             : row.isFooter
                               ? "border-border bg-surface-container"
                               : row.isTax
-                                ? "border-primary/10 bg-primary/5"
+                                ? "border-primary/10 bg-primary/[0.03]"
                                 : row.isTraffic
                                   ? "border-warning/15 bg-warning/[0.03]"
                                   : "border-border/80 bg-surface-container";
@@ -250,7 +250,7 @@ export default function NetCostBreakdownTable({ results, bestChannelName }: NetC
                     className={cn(
                       "group/row transition-colors duration-200",
                       row.isFooter ? "bg-surface-container" : "bg-surface-container hover:bg-surface-container",
-                      row.isFinal ? "bg-primary/5" : "",
+                      row.isFinal ? "bg-primary/[0.05]" : "",
                       row.isTraffic ? "bg-warning/[0.03]" : ""
                     )}
                   >
@@ -281,7 +281,7 @@ export default function NetCostBreakdownTable({ results, bestChannelName }: NetC
                           key={`${r.channel_name}-${row.key}`}
                           className={cn(
                             "rounded-r-2xl px-4 py-4 align-middle text-center transition-colors duration-200",
-                            isBest ? "bg-primary/5" : "",
+                            isBest ? "bg-primary/[0.04]" : "",
                             isBest && (row.isFinal || row.isFooter) ? "text-primary" : "",
                             isTrafficRow && isOwnWebsite && val > 0 ? "font-medium text-warning" : "",
                             val === 0 ? "text-muted/60" : "text-foreground/80"

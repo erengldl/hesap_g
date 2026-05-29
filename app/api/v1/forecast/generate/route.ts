@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildDemandForecastBootstrap, generateDemandForecast } from "@/lib/demand-forecast";
 import { getMarketplaces, getProducts } from "@/lib/database-readers";
-import type { DemandForecastRunResponse, ForecastHorizon } from "@/lib/demand-forecast-types";
-import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
+import type { ForecastHorizon } from "@/lib/demand-forecast-types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -39,22 +38,19 @@ function toMaybeNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-async function buildSafeBootstrap(input: {
+function buildSafeBootstrap(input: {
   productId?: number;
   marketplaceId?: number;
   horizonDays: ForecastHorizon;
 }) {
   try {
     return {
-      ...await buildDemandForecastBootstrap(input.productId, input.marketplaceId, input.horizonDays),
+      ...buildDemandForecastBootstrap(input.productId, input.marketplaceId, input.horizonDays),
       success: true as const,
-      partial: false,
-      fallbackUsed: false,
-      staleAt: null,
     };
   } catch (error) {
     console.error("Forecast bootstrap fallback error:", error);
-    const products = (await getProducts()).slice(0, 100).map((product) => ({
+    const products = getProducts().slice(0, 100).map((product) => ({
       ...product,
       current_stock: Number((product as { stock?: number }).stock ?? 0),
       current_sales_volume: 0,
@@ -63,7 +59,7 @@ async function buildSafeBootstrap(input: {
       confidence_score: "Low",
       stock_status: "healthy" as const,
     }));
-    const marketplaces = (await getMarketplaces()).slice(0, 20).map((marketplace) => ({
+    const marketplaces = getMarketplaces().slice(0, 20).map((marketplace) => ({
       ...marketplace,
       current_price: 0,
       current_unit_cost: 0,
@@ -128,7 +124,6 @@ async function buildSafeBootstrap(input: {
         summary: {
           horizonDays: input.horizonDays,
           historyWindowDays: 0,
-          historyDays: 0,
           currentStock: 0,
           currentSalesVolume: 0,
           currentPrice: 0,
@@ -141,40 +136,28 @@ async function buildSafeBootstrap(input: {
           wmape: 1,
           confidenceScore: "Low",
           modelName: "FallbackBaseline",
-          confidenceMethod: "Yedek görünüm",
           forecastStartDate: new Date().toISOString().slice(0, 10),
           forecastEndDate: new Date().toISOString().slice(0, 10),
           stockWarning: "Veri bulunamadı.",
           dataSource: "synthetic",
-          isSyntheticHistory: true,
         },
         chartData: [],
         tableRows: [],
-        methodology: "Veri bulunamadığı için istatistiksel baseline tabanlı yedek tahmin gösteriliyor.",
-        warnings: ["Tahmin verisi üretilemedi; yedek görünüm gösteriliyor."],
+        methodology: "Veri bulunamadığı için yedek tahmin üretildi.",
+        warnings: ["Tahmin verisi üretilemedi, yedek görünüm gösteriliyor."],
         generatedAt: new Date().toISOString(),
       },
       historyDepthDays: 0,
-      warnings: ["Tahmin verisi üretilemedi; yedek görünüm gösteriliyor."],
-      methodology: "Veri bulunamadığı için istatistiksel baseline tabanlı yedek tahmin gösteriliyor.",
-      partial: true,
-      fallbackUsed: true,
-      staleAt: new Date().toISOString(),
+      warnings: ["Tahmin verisi üretilemedi, yedek görünüm gösteriliyor."],
+      methodology: "Veri bulunamadığı için yedek tahmin üretildi.",
     };
   }
 }
 
 export async function GET(request: Request) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
-  const authUserId = session.authUserId?.trim() || "";
-  if (!authUserId) {
-    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
-  }
-  primeRequestContextFromApiContext(session);
   try {
     const url = new URL(request.url);
-    const bootstrap = await buildSafeBootstrap({
+    const bootstrap = buildSafeBootstrap({
       productId: parseProductId(url),
       marketplaceId: parseMarketplaceId(url),
       horizonDays: parseHorizonDays(url.searchParams.get("horizonDays")) ?? 14,
@@ -183,18 +166,11 @@ export async function GET(request: Request) {
     return NextResponse.json(bootstrap);
   } catch (error) {
     console.error("Forecast bootstrap error:", error);
-    return NextResponse.json(await buildSafeBootstrap({ horizonDays: 14 }), { status: 200 });
+    return NextResponse.json(buildSafeBootstrap({ horizonDays: 14 }), { status: 200 });
   }
 }
 
 export async function POST(request: Request) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
-  const authUserId = session.authUserId?.trim() || "";
-  if (!authUserId) {
-    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
-  }
-  primeRequestContextFromApiContext(session);
   try {
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const input = {
@@ -206,30 +182,17 @@ export async function POST(request: Request) {
       persist: body.persist !== false,
     };
 
-    const result = await generateDemandForecast(input);
+    const result = generateDemandForecast(input);
 
-    const response: DemandForecastRunResponse = {
-      success: true,
-      result,
-      savedRows: input.persist === false ? 0 : result.tableRows.length,
-      warnings: result.warnings,
-      partial: false,
-      fallbackUsed: false,
-      staleAt: null,
-    };
-
-    return NextResponse.json(response);
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Forecast generation error:", error);
-    const bootstrap = await buildSafeBootstrap({ horizonDays: 14 });
+    const bootstrap = buildSafeBootstrap({ horizonDays: 14 });
     return NextResponse.json({
       success: true,
       result: bootstrap.result,
       savedRows: 0,
       warnings: bootstrap.warnings,
-      partial: true,
-      fallbackUsed: true,
-      staleAt: new Date().toISOString(),
     });
   }
 }

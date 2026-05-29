@@ -1,37 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import {
-  CircleAlert,
-  DollarSign,
-  Download,
-  FileSpreadsheet,
-  Loader2,
-  Package,
-  Pencil,
-  Plus,
-  RefreshCcw,
-  Search,
-  ShoppingCart,
-  Trash2,
-  TrendingUp,
-  Upload,
-  X,
-} from "lucide-react";
-import { ResponsiveContainer, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, Area } from "recharts";
-import { EmptyState, ErrorStateCard, GlassCard, KpiCard, SkeletonCard, SkeletonTable } from "@/components/ui-custom/GlassComponents";
-import { exportSalesToExcel, type SalesRow } from "@/lib/excel";
+import { CircleAlert, Download, RefreshCcw, Search } from "lucide-react";
+import { EmptyState, ErrorStateCard, GlassCard, SkeletonCard, SkeletonTable } from "@/components/ui-custom/GlassComponents";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/formatters";
-import { useToast } from "@/lib/toast";
-import SalesDataForm from "@/components/data-center/SalesDataForm";
-import { SalesExcelImportModal } from "@/components/data-center/SalesExcelImportModal";
 
-type SalesHistoryRow = SalesRow & {
-  order_item_id: number;
-  marketplace_id?: number;
+type SalesHistoryRow = {
+  order_id: number;
+  order_date: string;
+  status: string | null;
+  external_order_number: string | null;
+  external_package_number: string | null;
+  marketplace_name: string | null;
+  marketplace_slug: string | null;
+  product_id: number | null;
+  product_name: string | null;
+  product_sku: string | null;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
 };
 
 type SalesHistorySummary = {
@@ -54,7 +43,6 @@ type SalesHistorySummary = {
 type SalesHistoryResponse = {
   success: boolean;
   view?: string;
-  search?: string;
   range_days: number;
   applied_range?: {
     from: string;
@@ -124,13 +112,27 @@ function statusCopy(status?: string | null) {
   }
 }
 
-export default function SalesHistorySection() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const toast = useToast();
+function MetricCard({
+  label,
+  value,
+  hint,
+  accent = false,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  accent?: boolean;
+}) {
+  return (
+    <GlassCard className={cn("border-border bg-surface-container", accent && "border-primary/20 bg-primary/[0.05]")}>
+      <p className="text-[10px] font-extrabold uppercase tracking-[0.26em] text-muted">{label}</p>
+      <p className={cn("mt-2 text-2xl font-extrabold tracking-tight", accent ? "text-primary" : "text-foreground")}>{value}</p>
+      {hint && <p className="mt-1 text-xs text-muted">{hint}</p>}
+    </GlassCard>
+  );
+}
 
-  const commandSearch = (searchParams.get("search") ?? "").trim();
+export default function SalesHistorySection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<SalesHistorySummary | null>(null);
@@ -142,40 +144,11 @@ export default function SalesHistorySection() {
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [appliedRange, setAppliedRange] = useState<{ from: string; to: string; days: number } | null>(null);
-  const [exportingExcel, setExportingExcel] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
 
-  // Redesign state additions
-  const [isClient, setIsClient] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isImportOpen, setIsImportOpen] = useState(false);
-  const [selectedSale, setSelectedSale] = useState<SalesHistoryRow | null>(null);
-  const [isSubmittingForm, setIsSubmittingForm] = useState(false);
-  const [isDeletingId, setIsDeletingId] = useState<number | null>(null);
-  const [searchQuery, setSearchQuery] = useState(commandSearch);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    setSearchQuery(commandSearch);
-  }, [commandSearch]);
-
-  const buildQuery = useCallback((
-    view: HistoryViewMode,
-    mode: HistoryRangeMode,
-    pageNumber: number,
-    from?: string,
-    to?: string,
-    searchTerm?: string,
-  ) => {
+  const buildQuery = useCallback((view: HistoryViewMode, mode: HistoryRangeMode, pageNumber: number, from?: string, to?: string) => {
     const params = new URLSearchParams();
     params.set("view", view);
     params.set("page", String(pageNumber));
-    if (searchTerm) {
-      params.set("search", searchTerm);
-    }
 
     if (mode === "custom" && from && to) {
       params.set("from", from);
@@ -183,24 +156,16 @@ export default function SalesHistorySection() {
       return params.toString();
     }
 
-    params.set("days", searchTerm ? "3650" : mode === "30" ? "30" : "90");
+    params.set("days", mode === "30" ? "30" : "90");
     return params.toString();
   }, []);
 
-  const loadSalesHistory = useCallback(async (
-    view: HistoryViewMode,
-    mode: HistoryRangeMode,
-    pageNumber: number,
-    from?: string,
-    to?: string,
-    searchTerm?: string,
-  ) => {
+  const loadSalesHistory = useCallback(async (view: HistoryViewMode, mode: HistoryRangeMode, pageNumber: number, from?: string, to?: string) => {
     setLoading(true);
     setError(null);
-    setExportError(null);
 
     try {
-      const queryString = buildQuery(view, mode, pageNumber, from, to, searchTerm);
+      const queryString = buildQuery(view, mode, pageNumber, from, to);
       const response = await fetch(`/api/data-center/sales-history?${queryString}`, { cache: "no-store" });
       const json = (await response.json()) as Partial<SalesHistoryResponse> & { error?: string };
 
@@ -233,49 +198,10 @@ export default function SalesHistorySection() {
   }, [buildQuery]);
 
   useEffect(() => {
-    void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo, commandSearch);
-  }, [commandSearch, viewMode, rangeMode, page, customFrom, customTo, loadSalesHistory]);
+    void loadSalesHistory("sales", "90", 1);
+  }, [loadSalesHistory]);
 
   const isReturnsView = viewMode === "returns";
-
-  const aggregatedData = useMemo(() => {
-    const groups: Record<string, { date: string; revenue: number; quantity: number }> = {};
-    rows.forEach((row) => {
-      const dateKey = row.order_date;
-      if (!groups[dateKey]) {
-        groups[dateKey] = { date: dateKey, revenue: 0, quantity: 0 };
-      }
-      groups[dateKey].revenue += row.line_total ?? 0;
-      groups[dateKey].quantity += row.quantity ?? 0;
-    });
-    return Object.values(groups).sort((a, b) => a.date.localeCompare(b.date));
-  }, [rows]);
-
-  async function downloadExcel() {
-    if (rows.length === 0 || exportingExcel) return;
-
-    setExportingExcel(true);
-    setExportError(null);
-
-    try {
-      const params = new URLSearchParams(buildQuery(viewMode, rangeMode, 1, customFrom, customTo, commandSearch));
-      params.set("export", "all");
-      params.set("page_size", "5000");
-
-      const response = await fetch(`/api/data-center/sales-history?${params.toString()}`, { cache: "no-store" });
-      const json = (await response.json().catch(() => null)) as (Partial<SalesHistoryResponse> & { error?: string }) | null;
-
-      if (!response.ok || !json?.success || !Array.isArray(json.sales_history)) {
-        throw new Error(json?.error ?? "Satış verileri Excel için alınamadı.");
-      }
-
-      exportSalesToExcel(json.sales_history as SalesHistoryRow[]);
-    } catch (err) {
-      setExportError(err instanceof Error ? err.message : "Satış verileri Excel olarak dışa aktarılamadı.");
-    } finally {
-      setExportingExcel(false);
-    }
-  }
 
   const currentRangeLabel = (() => {
     if (rangeMode === "custom" && appliedRange?.from && appliedRange?.to) {
@@ -289,22 +215,15 @@ export default function SalesHistorySection() {
     return rangeMode === "30" ? "Son 30 gün" : "Son 90 gün";
   })();
 
-  function clearCommandSearch() {
-    setSearchQuery("");
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("search");
-    router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname, { scroll: false });
-  }
-
   function downloadCsv() {
     if (rows.length === 0) return;
 
     const headers = [
       "Tarih",
-      "Ürün",
+      "Urun",
       "Kod",
       "Kanal",
-      "Sipariş",
+      "Siparis",
       "Paket",
       "Adet",
       "Birim",
@@ -321,7 +240,7 @@ export default function SalesHistorySection() {
 
     const body = rows.map((row) => [
       formatDate(row.order_date),
-      row.product_name ?? "Ürün",
+      row.product_name ?? "Urun",
       row.product_sku ?? "",
       row.marketplace_name ?? "Kanal",
       row.external_order_number ?? `#${row.order_id}`,
@@ -337,7 +256,7 @@ export default function SalesHistorySection() {
     const url = window.URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     const fileDate = new Date().toISOString().slice(0, 10);
-    const filePrefix = isReturnsView ? "iadeler" : "satış-geçmişi";
+    const filePrefix = isReturnsView ? "iadeler" : "satis-gecmisi";
     anchor.href = url;
     anchor.download = `${filePrefix}-${fileDate}.csv`;
     anchor.click();
@@ -360,19 +279,19 @@ export default function SalesHistorySection() {
     setCustomFrom(from);
     setCustomTo(to);
     setPage(1);
-    void loadSalesHistory(viewMode, "custom", 1, from, to, commandSearch);
+    void loadSalesHistory(viewMode, "custom", 1, from, to);
   }
 
   function setQuickRange(nextMode: Exclude<HistoryRangeMode, "custom">) {
     setRangeMode(nextMode);
     setPage(1);
-    void loadSalesHistory(viewMode, nextMode, 1, undefined, undefined, commandSearch);
+    void loadSalesHistory(viewMode, nextMode, 1);
   }
 
   function setView(nextView: HistoryViewMode) {
     setViewMode(nextView);
     setPage(1);
-    void loadSalesHistory(nextView, rangeMode, 1, customFrom, customTo, commandSearch);
+    void loadSalesHistory(nextView, rangeMode, 1, customFrom, customTo);
   }
 
   function openCustomRange() {
@@ -383,98 +302,6 @@ export default function SalesHistorySection() {
     if (!customTo) setCustomTo(today);
     setRangeMode("custom");
   }
-
-  const handleSearchSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const params = new URLSearchParams(searchParams.toString());
-    if (searchQuery.trim()) {
-      params.set("search", searchQuery.trim());
-    } else {
-      params.delete("search");
-    }
-    params.set("page", "1");
-    router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname, { scroll: false });
-  };
-
-  const handleDeleteSale = async (orderItemId: number) => {
-    if (!window.confirm("Bu satış kaydını silmek istediğinizden emin misiniz?")) {
-      return;
-    }
-
-    setIsDeletingId(orderItemId);
-    try {
-      const response = await fetch(`/api/data-center/sales-history/${orderItemId}`, {
-        method: "DELETE",
-      });
-      const data = await response.json().catch(() => null);
-      if (!response.ok || !data?.success) {
-        throw new Error(data?.error ?? "Silme işlemi başarısız.");
-      }
-      toast.success("Kayıt silindi", "Satış kaydı başarıyla veritabanından kaldırıldı.");
-      void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo, commandSearch);
-    } catch (err: any) {
-      toast.error("Hata", err?.message || "Silme işlemi sırasında hata oluştu.");
-    } finally {
-      setIsDeletingId(null);
-    }
-  };
-
-  const handleFormSubmit = async (payload: any) => {
-    setIsSubmittingForm(true);
-    try {
-      const url = selectedSale
-        ? `/api/data-center/sales-history/${selectedSale.order_item_id}`
-        : "/api/data-center/sales-history";
-      const method = selectedSale ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json().catch(() => null);
-      if (!response.ok || !data?.success) {
-        throw new Error(data?.error ?? "İşlem başarısız.");
-      }
-
-      toast.success(
-        selectedSale ? "Kayıt güncellendi" : "Kayıt eklendi",
-        selectedSale
-          ? "Satış kaydı başarıyla güncellendi."
-          : "Yeni satış kaydı başarıyla eklendi."
-      );
-
-      setIsFormOpen(false);
-      setSelectedSale(null);
-      void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo, commandSearch);
-    } catch (err: any) {
-      toast.error("Hata", err?.message || "İşlem sırasında hata oluştu.");
-      throw err;
-    } finally {
-      setIsSubmittingForm(false);
-    }
-  };
-
-  const openNewSaleForm = () => {
-    setSelectedSale(null);
-    setIsFormOpen(true);
-  };
-
-  const openEditSaleForm = (sale: SalesHistoryRow) => {
-    setSelectedSale(sale);
-    setIsFormOpen(true);
-  };
-
-  const handleNotify = useCallback((msg: { text: string; type: "success" | "warning" | "error" }) => {
-    if (msg.type === "success") {
-      toast.success(msg.text);
-    } else if (msg.type === "error") {
-      toast.error(msg.text);
-    } else {
-      toast.warning(msg.text);
-    }
-  }, [toast]);
 
   if (loading) {
     return (
@@ -506,7 +333,7 @@ export default function SalesHistorySection() {
           </div>
           <button
             type="button"
-            onClick={() => void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo, commandSearch)}
+            onClick={() => void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo)}
             className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface-container px-4 py-2 text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-surface-container"
           >
             <RefreshCcw className="h-4 w-4" />
@@ -520,7 +347,7 @@ export default function SalesHistorySection() {
           action={
             <button
               type="button"
-              onClick={() => void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo, commandSearch)}
+              onClick={() => void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo)}
               className="inline-flex items-center gap-2 rounded-md border border-danger/30 bg-danger/10 px-4 py-2 text-sm font-semibold text-danger transition-colors duration-200 hover:bg-danger/15"
             >
               <RefreshCcw className="h-4 w-4" />
@@ -559,7 +386,7 @@ export default function SalesHistorySection() {
     }
 
     setPage(nextPage);
-    void loadSalesHistory(viewMode, rangeMode, nextPage, customFrom, customTo, commandSearch);
+    void loadSalesHistory(viewMode, rangeMode, nextPage, customFrom, customTo);
   }
 
   return (
@@ -632,70 +459,19 @@ export default function SalesHistorySection() {
           >
             Özel aralık
           </button>
-        </div>
-      </div>
-
-      {/* Elegant search and actions control bar */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between bg-surface-container/35 p-3 rounded-2xl border border-border">
-        <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-md w-full">
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-          <input
-            type="text"
-            placeholder="Ürün adı, SKU veya sipariş no ara..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border border-border bg-surface-container pl-10 pr-8 py-2 text-sm text-foreground outline-none transition-colors duration-200 placeholder:text-muted focus:border-primary/30"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={clearCommandSearch}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-foreground"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </form>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={openNewSaleForm}
-            className="inline-flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-colors duration-200 hover:bg-primary/15"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Yeni Satış
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsImportOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl border border-info/20 bg-info/10 px-3 py-2 text-xs font-semibold text-info transition-colors duration-200 hover:bg-info/15"
-          >
-            <Upload className="h-3.5 w-3.5" />
-            Excel İçe Aktar
-          </button>
-          <button
-            type="button"
-            onClick={() => void downloadExcel()}
-            disabled={rows.length === 0 || exportingExcel}
-            className="inline-flex items-center gap-2 rounded-xl border border-success/20 bg-success/10 px-3 py-2 text-xs font-semibold text-success transition-colors duration-200 hover:bg-success/15 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {exportingExcel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5" />}
-            Excel dışa aktar
-          </button>
           <button
             type="button"
             onClick={downloadCsv}
-            disabled={rows.length === 0 || exportingExcel}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface-container px-3 py-2 text-xs font-semibold text-muted transition-colors duration-200 hover:bg-surface-container hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={rows.length === 0}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-container px-3 py-2 text-xs font-semibold text-muted transition-colors duration-200 hover:bg-surface-container hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Download className="h-3.5 w-3.5" />
             CSV indir
           </button>
           <button
             type="button"
-            onClick={() => void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo, commandSearch)}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface-container px-3 py-2 text-xs font-semibold text-muted transition-colors duration-200 hover:bg-surface-container hover:text-foreground"
+            onClick={() => void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo)}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-container px-3 py-2 text-xs font-semibold text-muted transition-colors duration-200 hover:bg-surface-container hover:text-foreground"
           >
             <RefreshCcw className="h-3.5 w-3.5" />
             Yenile
@@ -703,34 +479,13 @@ export default function SalesHistorySection() {
         </div>
       </div>
 
-      {exportError ? (
-        <div className="flex gap-3 rounded-2xl border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger">
-          <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>{exportError}</p>
-        </div>
-      ) : null}
-
-      {commandSearch ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
-          <Search className="h-4 w-4 shrink-0" />
-          <span>Filtre uygulanıyor: &quot;{commandSearch}&quot;</span>
-          <button
-            type="button"
-            onClick={clearCommandSearch}
-            className="rounded-full border border-primary/20 bg-background/60 px-3 py-1 text-[11px] font-semibold text-foreground transition-colors duration-200 hover:bg-background"
-          >
-            Temizle
-          </button>
-        </div>
-      ) : null}
-
       {rangeMode === "custom" && (
         <GlassCard className="border-border bg-surface-container">
           <form onSubmit={applyCustomRange}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="grid gap-4 sm:grid-cols-2 lg:flex-1">
               <label className="space-y-2">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Başlangıç</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.26em] text-muted">Başlangıç</span>
                 <input
                   name="custom_from"
                   type="date"
@@ -740,7 +495,7 @@ export default function SalesHistorySection() {
                 />
               </label>
               <label className="space-y-2">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Bitiş</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.26em] text-muted">Bitiş</span>
                 <input
                   name="custom_to"
                   type="date"
@@ -763,7 +518,7 @@ export default function SalesHistorySection() {
                 onClick={() => {
                   setRangeMode("90");
                   setPage(1);
-                  void loadSalesHistory(viewMode, "90", 1, undefined, undefined, commandSearch);
+                  void loadSalesHistory(viewMode, "90", 1);
                 }}
                 className="rounded-xl border border-border bg-surface-container px-4 py-2.5 text-sm font-semibold text-muted transition-colors duration-200 hover:bg-surface-container hover:text-foreground"
               >
@@ -792,110 +547,30 @@ export default function SalesHistorySection() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <KpiCard
-          title={isReturnsView ? "İade siparişi" : "Sipariş"}
+        <MetricCard
+          label={isReturnsView ? "İade siparişi" : "Sipariş"}
           value={formatNumber(summaryData.total_orders)}
-          subValue={isReturnsView ? "İade edilen siparişler" : "Tamamlanan siparişler"}
-          icon={ShoppingCart}
+          hint={isReturnsView ? "İade edilen siparişler" : "Tamamlanan siparişler"}
         />
-        <KpiCard
-          title={isReturnsView ? "İade adet" : "Adet"}
+        <MetricCard
+          label={isReturnsView ? "İade adet" : "Adet"}
           value={formatNumber(summaryData.total_units)}
-          subValue={isReturnsView ? "İade edilen toplam adet" : "Satılan toplam adet"}
-          icon={Package}
+          hint={isReturnsView ? "İade edilen toplam adet" : "Satılan toplam adet"}
         />
-        <KpiCard
-          title="Ciro"
-          value={formatCurrency(summaryData.total_revenue)}
-          subValue={currentRangeLabel}
-          icon={DollarSign}
-          tone="primary"
-        />
-        <KpiCard
-          title={isReturnsView ? "Ortalama iade" : "Ortalama sipariş"}
+        <MetricCard label="Ciro" value={formatCurrency(summaryData.total_revenue)} hint={currentRangeLabel} accent />
+        <MetricCard
+          label={isReturnsView ? "Ortalama iade" : "Ortalama sipariş"}
           value={formatCurrency(summaryData.average_order_value)}
-          subValue={isReturnsView ? "İade başına" : "Sipariş başına"}
-          icon={TrendingUp}
+          hint={isReturnsView ? "İade başına" : "Sipariş başına"}
         />
       </div>
 
-      {/* Visual Recharts area chart showing sales trend velocity */}
-      <GlassCard className="border-border bg-surface-container">
-        <div className="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
-          <div>
-            <h4 className="text-base font-bold text-foreground">Günlük Satış Trendi</h4>
-            <p className="text-xs text-muted-foreground">Seçili tarih aralığındaki günlük ciro dağılımı</p>
-          </div>
-          {isClient && aggregatedData.length > 0 && (
-            <div className="text-xs font-semibold text-muted">
-              En Yüksek Günlük Ciro: {formatCurrency(Math.max(...aggregatedData.map((d) => d.revenue), 0))}
-            </div>
-          )}
-        </div>
-        <div className="h-[240px] min-w-0 w-full">
-          {isClient && aggregatedData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} initialDimension={{ width: 1, height: 1 }}>
-              <AreaChart data={aggregatedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="salesTrendGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-soft)" strokeOpacity={0.25} vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  stroke="var(--text-muted)"
-                  strokeOpacity={0.45}
-                  fontSize={10}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(d: string) => d.slice(5)}
-                />
-                <YAxis
-                  stroke="var(--text-muted)"
-                  strokeOpacity={0.45}
-                  fontSize={10}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--bg-elevated)",
-                    border: "1px solid var(--border-soft)",
-                    borderRadius: "var(--radius)",
-                    color: "var(--text-main)",
-                  }}
-                  itemStyle={{ color: "var(--chart-1)" }}
-                  formatter={(value) => [formatCurrency(Number(value)), "Ciro"]}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="var(--chart-1)"
-                  strokeWidth={2.5}
-                  isAnimationActive={true}
-                  animationDuration={400}
-                  fill="url(#salesTrendGradient)"
-                  dot={false}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-border bg-surface-container/30 text-xs text-soft">
-              Gösterilecek grafik verisi bulunmuyor.
-            </div>
-          )}
-        </div>
-      </GlassCard>
-
       <div className="grid gap-4 lg:grid-cols-2">
         <GlassCard className="border-border bg-surface-container">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.26em] text-muted">
             {isReturnsView ? "En çok iade alan kanal" : "En yüksek ciro"}
           </p>
-          <p className="mt-2 text-lg font-semibold text-foreground">
+          <p className="mt-2 text-lg font-extrabold text-foreground">
             {summaryData.top_marketplace_name ?? "Henüz öne çıkan kanal yok"}
           </p>
           <p className="mt-1 text-sm text-muted">
@@ -905,10 +580,10 @@ export default function SalesHistorySection() {
         </GlassCard>
 
         <GlassCard className="border-border bg-surface-container">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.26em] text-muted">
             {isReturnsView ? "En çok iade edilen ürün" : "En çok satılan ürün"}
           </p>
-          <p className="mt-2 text-lg font-semibold text-foreground">
+          <p className="mt-2 text-lg font-extrabold text-foreground">
             {summaryData.top_product_name ?? "Henüz öne çıkan ürün yok"}
           </p>
           <p className="mt-1 text-sm text-muted">
@@ -941,7 +616,7 @@ export default function SalesHistorySection() {
         <GlassCard className="!p-0 overflow-hidden border-border bg-surface-container">
           <div className="flex flex-col gap-1 border-b border-border/80 px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h4 className="text-lg font-bold tracking-tight text-foreground">Son satışlar</h4>
+              <h4 className="text-lg font-extrabold tracking-tight text-foreground">Son satışlar</h4>
               <p className="text-sm text-muted-foreground">Tarih, ürün, kanal ve sipariş bilgileri.</p>
             </div>
             <p className="text-xs font-semibold text-muted">{formatNumber(rows.length)} satır</p>
@@ -950,16 +625,15 @@ export default function SalesHistorySection() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1100px] text-left">
               <thead>
-                <tr className="bg-surface-container text-[10px] uppercase tracking-[0.18em] text-muted">
-                  <th className="px-5 py-3 font-semibold">Tarih</th>
-                  <th className="px-5 py-3 font-semibold">Ürün</th>
-                  <th className="px-5 py-3 font-semibold">Kanal</th>
-                  <th className="px-5 py-3 font-semibold">Sipariş</th>
-                  <th className="px-5 py-3 font-semibold text-right">Adet</th>
-                  <th className="px-5 py-3 font-semibold text-right">Birim</th>
-                  <th className="px-5 py-3 font-semibold text-right">Tutar</th>
-                  <th className="px-5 py-3 font-semibold text-center">Durum</th>
-                  <th className="px-5 py-3 font-semibold text-center">İşlemler</th>
+                <tr className="bg-surface-container text-[10px] uppercase tracking-[0.24em] text-muted">
+                  <th className="px-5 py-3 font-extrabold">Tarih</th>
+                  <th className="px-5 py-3 font-extrabold">Ürün</th>
+                  <th className="px-5 py-3 font-extrabold">Kanal</th>
+                  <th className="px-5 py-3 font-extrabold">Sipariş</th>
+                  <th className="px-5 py-3 font-extrabold text-right">Adet</th>
+                  <th className="px-5 py-3 font-extrabold text-right">Birim</th>
+                  <th className="px-5 py-3 font-extrabold text-right">Tutar</th>
+                  <th className="px-5 py-3 font-extrabold text-center">Durum</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -972,9 +646,9 @@ export default function SalesHistorySection() {
                         <td className="px-5 py-4">
                           <div className="space-y-1">
                             {row.product_id ? (
-                               <Link href={`/urun/${row.product_id}`} className="block text-sm font-semibold text-foreground transition-colors duration-200 hover:text-primary">
-                                 {row.product_name ?? "Ürün"}
-                               </Link>
+                              <Link href={`/products/${row.product_id}`} className="block text-sm font-semibold text-foreground transition-colors duration-200 hover:text-primary">
+                                {row.product_name ?? "Ürün"}
+                              </Link>
                             ) : (
                               <p className="text-sm font-semibold text-foreground">{row.product_name ?? "Ürün"}</p>
                             )}
@@ -999,41 +673,16 @@ export default function SalesHistorySection() {
                         <td className="px-5 py-4 text-right text-sm text-soft">{formatCurrency(row.unit_price)}</td>
                         <td className="px-5 py-4 text-right text-sm font-bold text-primary">{formatCurrency(row.line_total)}</td>
                         <td className="px-5 py-4 text-center">
-                          <span className={cn("inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]", status.className)}>
+                          <span className={cn("inline-flex rounded-full border px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.22em]", status.className)}>
                             {status.label}
                           </span>
-                        </td>
-                        <td className="px-5 py-4 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => openEditSaleForm(row)}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface-container text-muted transition-colors duration-200 hover:text-primary hover:border-primary/20"
-                              title="Düzenle"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteSale(row.order_item_id)}
-                              disabled={isDeletingId === row.order_item_id}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface-container text-muted transition-colors duration-200 hover:text-danger hover:border-danger/20 disabled:opacity-40"
-                              title="Sil"
-                            >
-                              {isDeletingId === row.order_item_id ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-3.5 w-3.5" />
-                              )}
-                            </button>
-                          </div>
                         </td>
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={9} className="px-5 py-8">
+                    <td colSpan={8} className="px-5 py-8">
                       <EmptyState
                         icon={CircleAlert}
                         title="Satış kaydı bulunamadı"
@@ -1112,29 +761,6 @@ export default function SalesHistorySection() {
           )}
         </GlassCard>
       )}
-
-      {/* Edit / New Sale Modal */}
-      <SalesDataForm
-        isOpen={isFormOpen}
-        sale={selectedSale}
-        onClose={() => {
-          setIsFormOpen(false);
-          setSelectedSale(null);
-        }}
-        onSubmit={handleFormSubmit}
-        isSubmitting={isSubmittingForm}
-      />
-
-      {/* Bulk Excel Upload Modal */}
-      <SalesExcelImportModal
-        open={isImportOpen}
-        onClose={() => setIsImportOpen(false)}
-        onImported={() => {
-          void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo, commandSearch);
-        }}
-        onNotify={handleNotify}
-      />
     </div>
   );
 }
-

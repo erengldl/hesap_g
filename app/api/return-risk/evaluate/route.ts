@@ -1,18 +1,10 @@
 import { NextResponse } from "next/server";
-import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 
 import { evaluateReturnRiskModel } from "@/lib/return-risk/server";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
-  const session = await requireAuth(request);
-  if (session instanceof NextResponse) return session;
-  const authUserId = session.authUserId?.trim() || "";
-  if (!authUserId) {
-    return NextResponse.json({ ok: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
-  }
-  primeRequestContextFromApiContext(session);
+export async function GET() {
   try {
     const data = evaluateReturnRiskModel();
 
@@ -26,7 +18,7 @@ export async function GET(request: Request) {
           fallbackActive: true,
           lastTrainedAt: "not-trained",
         },
-        message: "Eğitilmiş iade/fire risk modeli henüz yok. Tahminlerde fallback kullanılır.",
+        message: "Egitilmis iade/fire risk modeli henuz yok. Tahminlerde fallback kullanilir.",
       });
     }
 

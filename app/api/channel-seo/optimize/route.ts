@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
 
 import { isSalesChannel } from "@/lib/channel-seo/channel-rules";
 import { buildChannelSeoQualityWarnings } from "@/lib/channel-seo/mapper";
@@ -56,8 +55,6 @@ function buildOptimizationPayload(input: {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
   try {
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     if (!body) {
@@ -108,7 +105,7 @@ export async function POST(request: NextRequest) {
     const keywords = readStringArray(body.keywords);
     const forbiddenWords = readStringArray(body.forbiddenWords);
 
-    const detail = await getChannelSeoProductDetail(productId);
+    const detail = getChannelSeoProductDetail(productId);
     if (!detail) {
       return NextResponse.json(
         {
@@ -119,7 +116,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existing = await getChannelSeoContent(productId, channel);
+    const existing = getChannelSeoContent(productId, channel);
     if (existing && existing.status === "optimized" && !overwriteExisting) {
       return NextResponse.json({
         ok: true,

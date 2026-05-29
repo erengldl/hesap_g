@@ -72,7 +72,7 @@ export async function runChannelSeoBulkOptimization(
 
   const { productIds, channels, overwriteExisting, userInstructions, tone } = validation.value;
   const total = productIds.length * channels.length;
-  const jobId = await createChannelSeoJob({ totalCount: total, channels, model: getChannelSeoModelName() });
+  const jobId = createChannelSeoJob({ totalCount: total, channels, model: getChannelSeoModelName() });
   const items: ChannelSeoBulkResultItem[] = [];
   const summary = { total, success: 0, error: 0, skipped: 0 };
   const productChunks = chunkArray(productIds, 3);
@@ -81,7 +81,7 @@ export async function runChannelSeoBulkOptimization(
   for (const productChunk of productChunks) {
     const chunkResults = await Promise.all(
       productChunk.map(async (productId) => {
-        const detail = await getChannelSeoProductDetail(productId);
+        const detail = getChannelSeoProductDetail(productId);
         if (!detail) {
           summary.error += channels.length;
           return buildMissingProductItems(productId, channels, "Ürün bulunamadı.");
@@ -90,7 +90,7 @@ export async function runChannelSeoBulkOptimization(
         const productItems: ChannelSeoBulkResultItem[] = [];
 
         for (const channel of channels) {
-          const existing = await getChannelSeoContent(productId, channel);
+          const existing = getChannelSeoContent(productId, channel);
           if (!overwriteExisting && existing?.status === "optimized") {
             summary.skipped += 1;
             productItems.push({
@@ -149,10 +149,10 @@ export async function runChannelSeoBulkOptimization(
       items.push(...resultGroup);
     }
 
-    await updateChannelSeoJob(jobId, summary);
+    updateChannelSeoJob(jobId, summary);
   }
 
-  await finishChannelSeoJob(jobId, summary);
+  finishChannelSeoJob(jobId, summary);
 
   return {
     summary,

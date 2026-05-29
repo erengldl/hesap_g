@@ -227,8 +227,8 @@ function assessHistoryQuality(history: EnrichedHistoryRow[]): HistoryQuality {
   };
 }
 
-async function getLatestCostSnapshots(productId?: number) {
-  const rows = await query<CostSnapshotRow>(`
+function getLatestCostSnapshots(productId?: number) {
+  const rows = query<CostSnapshotRow>(`
     SELECT
       cr.id,
       cr.product_id,
@@ -244,7 +244,7 @@ async function getLatestCostSnapshots(productId?: number) {
     FROM cost_results cr
     LEFT JOIN marketplaces m ON m.marketplace_id = cr.marketplace_id
     ${productId ? "WHERE cr.product_id = ?" : ""}
-    ORDER BY COALESCE(cr.calculated_at, CURRENT_TIMESTAMP) DESC, cr.id DESC
+    ORDER BY datetime(COALESCE(cr.calculated_at, CURRENT_TIMESTAMP)) DESC, cr.id DESC
   `, productId ? [productId] : []);
 
   const latestByProduct = new Map<number, CostSnapshotRow>();
@@ -263,8 +263,8 @@ async function getLatestCostSnapshots(productId?: number) {
   return { rows, latestByProduct, latestByProductAndMarketplace };
 }
 
-async function getSelectedCostSnapshot(productId: number, marketplaceId?: number) {
-  const grouped = await getLatestCostSnapshots(productId);
+function getSelectedCostSnapshot(productId: number, marketplaceId?: number) {
+  const grouped = getLatestCostSnapshots(productId);
   if (marketplaceId) {
     const direct = grouped.latestByProductAndMarketplace.get(`${productId}:${marketplaceId}`);
     if (direct) return direct;
@@ -272,8 +272,8 @@ async function getSelectedCostSnapshot(productId: number, marketplaceId?: number
   return grouped.latestByProduct.get(productId) ?? null;
 }
 
-async function getCurrentStockForProduct(productId: number) {
-  const row = await getOne<{ stock_qty: number | null }>(`
+function getCurrentStockForProduct(productId: number) {
+  const row = getOne<{ stock_qty: number | null }>(`
     SELECT COALESCE(SUM(stock_qty), 0) AS stock_qty
     FROM inventory_daily
     WHERE product_id = ?
@@ -287,8 +287,8 @@ async function getCurrentStockForProduct(productId: number) {
   return roundWhole(safeNumber(row?.stock_qty, 0));
 }
 
-async function getCurrentStockForSelection(productId: number, marketplaceId: number) {
-  const row = await getOne<{ stock_qty: number | null }>(`
+function getCurrentStockForSelection(productId: number, marketplaceId: number) {
+  const row = getOne<{ stock_qty: number | null }>(`
     SELECT COALESCE(SUM(stock_qty), 0) AS stock_qty
     FROM inventory_daily
     WHERE product_id = ?
@@ -303,35 +303,35 @@ async function getCurrentStockForSelection(productId: number, marketplaceId: num
   return roundWhole(safeNumber(row?.stock_qty, 0));
 }
 
-async function getCurrentSalesVolumeForProduct(productId: number) {
-  const row = await getOne<{ units: number | null }>(`
+function getCurrentSalesVolumeForProduct(productId: number) {
+  const row = getOne<{ units: number | null }>(`
     SELECT COALESCE(SUM(oi.quantity), 0) AS units
     FROM orders o
     JOIN order_items oi ON oi.order_id = o.order_id
     WHERE o.product_id = ?
-      AND o.order_date >= CURRENT_DATE - INTERVAL '30 days'
+      AND o.order_date >= date('now', '-30 days')
       AND COALESCE(o.status, 'completed') NOT IN ('cancelled', 'returned', 'pending')
   `, [productId]);
 
   return round2(safeNumber(row?.units, 0) / 30);
 }
 
-async function getCurrentSalesVolumeForSelection(productId: number, marketplaceId: number) {
-  const row = await getOne<{ units: number | null }>(`
+function getCurrentSalesVolumeForSelection(productId: number, marketplaceId: number) {
+  const row = getOne<{ units: number | null }>(`
     SELECT COALESCE(SUM(oi.quantity), 0) AS units
     FROM orders o
     JOIN order_items oi ON oi.order_id = o.order_id
     WHERE o.product_id = ?
       AND o.marketplace_id = ?
-      AND o.order_date >= CURRENT_DATE - INTERVAL '30 days'
+      AND o.order_date >= date('now', '-30 days')
       AND COALESCE(o.status, 'completed') NOT IN ('cancelled', 'returned', 'pending')
   `, [productId, marketplaceId]);
 
   return round2(safeNumber(row?.units, 0) / 30);
 }
 
-async function getOrderHistory(productId: number, marketplaceId: number) {
-  return await query<OrderHistoryRow>(`
+function getOrderHistory(productId: number, marketplaceId: number) {
+  return query<OrderHistoryRow>(`
     SELECT
       o.order_date AS date,
       COALESCE(SUM(oi.quantity), 0) AS units
@@ -345,8 +345,8 @@ async function getOrderHistory(productId: number, marketplaceId: number) {
   `, [productId, marketplaceId]);
 }
 
-async function getInventoryHistory(productId: number, marketplaceId: number) {
-  return await query<InventoryHistoryRow>(`
+function getInventoryHistory(productId: number, marketplaceId: number) {
+  return query<InventoryHistoryRow>(`
     SELECT
       inventory_date AS date,
       COALESCE(SUM(stock_qty), 0) AS stock_qty
@@ -414,9 +414,9 @@ function buildSyntheticHistory(productId: number, marketplaceId: number, product
   return history;
 }
 
-async function buildRealHistory(productId: number, marketplaceId: number, product: Product, currentStock: number) {
-  const orders = await getOrderHistory(productId, marketplaceId);
-  const inventory = await getInventoryHistory(productId, marketplaceId);
+function buildRealHistory(productId: number, marketplaceId: number, product: Product, currentStock: number) {
+  const orders = getOrderHistory(productId, marketplaceId);
+  const inventory = getInventoryHistory(productId, marketplaceId);
 
   if (orders.length === 0 && inventory.length === 0) {
     return buildSyntheticHistory(productId, marketplaceId, product, currentStock);
@@ -651,7 +651,6 @@ function buildForecastSeries(
   const summary: DemandForecastSummary = {
     horizonDays: selection.horizonDays,
     historyWindowDays: history.length,
-    historyDays: history.length,
     currentStock,
     currentSalesVolume: round2(currentSalesVolume),
     currentPrice: round2(currentPrice),
@@ -664,12 +663,10 @@ function buildForecastSeries(
     wmape,
     confidenceScore,
     modelName: "StatisticalBaselineModel",
-    confidenceMethod: "WMAPE bantları ve veri kapsama oranı",
     forecastStartDate: futureRows[0]?.date ?? toDateKey(addDays(new Date(), 1)),
     forecastEndDate: futureRows[futureRows.length - 1]?.date ?? toDateKey(addDays(new Date(), selection.horizonDays)),
     stockWarning,
     dataSource: historyQuality.dataSource,
-    isSyntheticHistory: historyQuality.syntheticShare > 0,
   };
 
   return {
@@ -682,8 +679,8 @@ function buildForecastSeries(
   };
 }
 
-async function getMarketplaceOptions(): Promise<ForecastMarketplaceOption[]> {
-  return (await getMarketplaces())
+function getMarketplaceOptions(): ForecastMarketplaceOption[] {
+  return getMarketplaces()
     .filter((marketplace) => ["trendyol", "hepsiburada", "own_website"].includes(String(marketplace.slug ?? "")))
     .map((marketplace) => ({
       id: marketplace.id,
@@ -700,26 +697,26 @@ async function getMarketplaceOptions(): Promise<ForecastMarketplaceOption[]> {
     });
 }
 
-async function getProductOptions(selectedMarketplaceId?: number): Promise<ForecastProductOption[]> {
-  const products = await getProducts();
-  const latestCostSnapshots = await getLatestCostSnapshots();
+function getProductOptions(selectedMarketplaceId?: number): ForecastProductOption[] {
+  const products = getProducts();
+  const latestCostSnapshots = getLatestCostSnapshots();
 
-  return await Promise.all(products.map(async (product) => {
+  return products.map((product) => {
     const snapshot = selectedMarketplaceId
       ? latestCostSnapshots.latestByProductAndMarketplace.get(`${product.id}:${selectedMarketplaceId}`) ?? null
       : latestCostSnapshots.latestByProduct.get(product.id) ?? null;
     const fallbackUnitCost = round2(safeNumber(product.cost, 0) + safeNumber(product.packaging_cost, 0));
     const currentStock = selectedMarketplaceId
-      ? await getCurrentStockForSelection(product.id, selectedMarketplaceId)
-      : await getCurrentStockForProduct(product.id);
+      ? getCurrentStockForSelection(product.id, selectedMarketplaceId)
+      : getCurrentStockForProduct(product.id);
     const currentSalesVolume = selectedMarketplaceId
-      ? await getCurrentSalesVolumeForSelection(product.id, selectedMarketplaceId)
-      : await getCurrentSalesVolumeForProduct(product.id);
+      ? getCurrentSalesVolumeForSelection(product.id, selectedMarketplaceId)
+      : getCurrentSalesVolumeForProduct(product.id);
     const currentUnitCost = round2(safeNumber(snapshot?.total_unit_cost, fallbackUnitCost));
     const currentPrice = round2(safeNumber(snapshot?.list_price ?? product.sale_price, product.sale_price));
     const currentNetProfit = round2(safeNumber(snapshot?.net_profit, currentPrice - currentUnitCost));
     const stockStatus = stockStatusFromValue(currentStock, Math.max(1, currentSalesVolume));
-    const recentOrders = await query<{ count: number }>(
+    const recentOrders = query<{ count: number }>(
       `
         SELECT COUNT(*) AS count
         FROM orders
@@ -728,7 +725,7 @@ async function getProductOptions(selectedMarketplaceId?: number): Promise<Foreca
       `,
       [product.id]
     );
-    const recentInventory = await query<{ count: number }>(
+    const recentInventory = query<{ count: number }>(
       `
         SELECT COUNT(*) AS count
         FROM inventory_daily
@@ -749,16 +746,16 @@ async function getProductOptions(selectedMarketplaceId?: number): Promise<Foreca
       stock_status: stockStatus,
       sale_price: currentPrice,
     };
-  }));
+  });
 }
 
-async function resolveSelection(input: Partial<DemandForecastRequest>, products: ForecastProductOption[], marketplaces: ForecastMarketplaceOption[]): Promise<DemandForecastSelection> {
-  const defaultProductId = await getDefaultProductId() ?? products[0]?.id ?? 0;
+function resolveSelection(input: Partial<DemandForecastRequest>, products: ForecastProductOption[], marketplaces: ForecastMarketplaceOption[]): DemandForecastSelection {
+  const defaultProductId = getDefaultProductId() ?? products[0]?.id ?? 0;
   const selectedProductId = products.some((product) => product.id === input.productId) ? Number(input.productId) : defaultProductId;
   const selectedMarketplaceId = marketplaces.some((marketplace) => marketplace.id === input.marketplaceId)
     ? Number(input.marketplaceId)
-    : await (async () => {
-        const bestSnapshot = await getSelectedCostSnapshot(selectedProductId);
+    : (() => {
+        const bestSnapshot = getSelectedCostSnapshot(selectedProductId);
         return bestSnapshot?.marketplace_id ?? marketplaces[0]?.id ?? 1;
       })();
   const horizonDays = FORECAST_HORIZONS.includes(input.horizonDays as ForecastHorizon)
@@ -772,13 +769,13 @@ async function resolveSelection(input: Partial<DemandForecastRequest>, products:
   };
 }
 
-async function resolveCurrentSnapshot(selection: DemandForecastSelection, product: Product, marketplace: Marketplace) {
-  const snapshot = await getSelectedCostSnapshot(selection.productId, selection.marketplaceId);
+function resolveCurrentSnapshot(selection: DemandForecastSelection, product: Product, marketplace: Marketplace) {
+  const snapshot = getSelectedCostSnapshot(selection.productId, selection.marketplaceId);
   if (snapshot) return snapshot;
 
-  const maybeRecalculated = await recalculateCostResultsForProductFromDatabase(selection.productId);
+  const maybeRecalculated = recalculateCostResultsForProductFromDatabase(selection.productId);
   if (maybeRecalculated) {
-    const recalculatedSnapshot = await getSelectedCostSnapshot(selection.productId, selection.marketplaceId);
+    const recalculatedSnapshot = getSelectedCostSnapshot(selection.productId, selection.marketplaceId);
     if (recalculatedSnapshot) return recalculatedSnapshot;
   }
 
@@ -797,9 +794,9 @@ async function resolveCurrentSnapshot(selection: DemandForecastSelection, produc
   } satisfies CostSnapshotRow;
 }
 
-async function buildContext(selection: DemandForecastSelection) {
-  const products = await getProductOptions(selection.marketplaceId);
-  const marketplaces = await getMarketplaceOptions();
+function buildContext(selection: DemandForecastSelection) {
+  const products = getProductOptions(selection.marketplaceId);
+  const marketplaces = getMarketplaceOptions();
   const product = products.find((item) => item.id === selection.productId) ?? products[0];
   const marketplace = marketplaces.find((item) => item.id === selection.marketplaceId) ?? marketplaces[0];
 
@@ -807,17 +804,17 @@ async function buildContext(selection: DemandForecastSelection) {
     return null;
   }
 
-  const rawProduct = (await getProducts()).find((item) => item.id === product.id);
+  const rawProduct = getProducts().find((item) => item.id === product.id);
   if (!rawProduct) {
     return null;
   }
 
-  const currentSnapshot = await resolveCurrentSnapshot(selection, rawProduct, marketplace);
+  const currentSnapshot = resolveCurrentSnapshot(selection, rawProduct, marketplace);
   const currentPrice = round2(safeNumber(currentSnapshot.list_price, product.sale_price));
   const currentUnitCost = round2(safeNumber(currentSnapshot.total_unit_cost, product.current_unit_cost));
   const currentNetProfit = round2(safeNumber(currentSnapshot.net_profit, currentPrice - currentUnitCost));
-  const currentStock = await getCurrentStockForSelection(selection.productId, selection.marketplaceId);
-  const currentSalesVolume = await getCurrentSalesVolumeForSelection(selection.productId, selection.marketplaceId);
+  const currentStock = getCurrentStockForSelection(selection.productId, selection.marketplaceId);
+  const currentSalesVolume = getCurrentSalesVolumeForSelection(selection.productId, selection.marketplaceId);
 
   return {
     product,
@@ -832,7 +829,7 @@ async function buildContext(selection: DemandForecastSelection) {
   };
 }
 
-async function persistForecastRows(selection: DemandForecastSelection, result: DemandForecastResult) {
+function persistForecastRows(selection: DemandForecastSelection, result: DemandForecastResult) {
   const db = getDb();
   if (!db) return 0;
 
@@ -856,10 +853,10 @@ async function persistForecastRows(selection: DemandForecastSelection, result: D
     WHERE product_id = ? AND marketplace_id = ? AND horizon_days = ?
   `);
 
-  await db.transaction(async () => {
-    await deleteExisting.run(selection.productId, selection.marketplaceId, selection.horizonDays);
+  const transaction = db.transaction(() => {
+    deleteExisting.run(selection.productId, selection.marketplaceId, selection.horizonDays);
     for (const row of result.tableRows) {
-      await insertRow.run(
+      insertRow.run(
         `${selection.productId}-${selection.marketplaceId}-${selection.horizonDays}-${row.date}`,
         selection.productId,
         selection.marketplaceId,
@@ -873,22 +870,23 @@ async function persistForecastRows(selection: DemandForecastSelection, result: D
     }
   });
 
+  transaction();
   return result.tableRows.length;
 }
 
 export class DemandForecastEngine {
-  async buildBootstrap(input: Partial<DemandForecastRequest> = {}): Promise<DemandForecastBootstrapResponse> {
-    const marketplaces = await getMarketplaceOptions();
-    const selectionProducts = await getProductOptions();
-    const defaults = await resolveSelection(input, selectionProducts, marketplaces);
-    const context = await buildContext(defaults);
+  buildBootstrap(input: Partial<DemandForecastRequest> = {}): DemandForecastBootstrapResponse {
+    const marketplaces = getMarketplaceOptions();
+    const selectionProducts = getProductOptions();
+    const defaults = resolveSelection(input, selectionProducts, marketplaces);
+    const context = buildContext(defaults);
 
     if (!context) {
       throw new Error("Forecast context could not be resolved");
     }
 
-    const products = await getProductOptions(defaults.marketplaceId);
-    const history = enrichHistory(await buildRealHistory(defaults.productId, defaults.marketplaceId, context.rawProduct, context.currentStock));
+    const products = getProductOptions(defaults.marketplaceId);
+    const history = enrichHistory(buildRealHistory(defaults.productId, defaults.marketplaceId, context.rawProduct, context.currentStock));
     const forecast = buildForecastSeries(history, defaults, context.currentStock, context.currentSalesVolume, context.currentPrice, context.currentUnitCost);
     const selectedProduct = products.find((product) => product.id === defaults.productId) ?? products[0];
     const selectedMarketplace = marketplaces.find((marketplace) => marketplace.id === defaults.marketplaceId) ?? marketplaces[0];
@@ -907,11 +905,11 @@ export class DemandForecastEngine {
     };
   }
 
-  async generateForecast(input: Partial<DemandForecastRequest> = {}): Promise<DemandForecastResult> {
-    const marketplaces = await getMarketplaceOptions();
-    const selectionProducts = await getProductOptions();
-    const selection = await resolveSelection(input, selectionProducts, marketplaces);
-    const context = await buildContext(selection);
+  generateForecast(input: Partial<DemandForecastRequest> = {}): DemandForecastResult {
+    const marketplaces = getMarketplaceOptions();
+    const selectionProducts = getProductOptions();
+    const selection = resolveSelection(input, selectionProducts, marketplaces);
+    const context = buildContext(selection);
 
     if (!context) {
       throw new Error("Forecast context could not be resolved");
@@ -919,7 +917,7 @@ export class DemandForecastEngine {
 
     const currentStock = input.currentStock !== undefined ? roundWhole(safeNumber(input.currentStock, context.currentStock)) : context.currentStock;
     const currentSalesVolume = context.currentSalesVolume;
-    const history = enrichHistory(await buildRealHistory(selection.productId, selection.marketplaceId, context.rawProduct, currentStock));
+    const history = enrichHistory(buildRealHistory(selection.productId, selection.marketplaceId, context.rawProduct, currentStock));
     const forecast = buildForecastSeries(
       history,
       selection,
@@ -932,7 +930,7 @@ export class DemandForecastEngine {
     const result = this.buildResult(selection, context, forecast);
 
     if (input.persist !== false) {
-      await persistForecastRows(selection, result);
+      persistForecastRows(selection, result);
     }
 
     return result;
@@ -954,17 +952,17 @@ export class DemandForecastEngine {
   private getMethodology(forecast: ReturnType<typeof buildForecastSeries>) {
     const source = forecast.summary.dataSource;
     const base = source === "real"
-      ? "Gerçek sipariş ve stok verileri kullanılarak"
+      ? "Gerçek order ve inventory verileri kullanılarak"
       : source === "mixed"
         ? "Kısmi gerçek veri, kısmi istatistiksel tamamlamayla"
         : "Gerçek veri bulunamadığı için sentetik baz seri ile";
 
-    return `${base} istatistiksel baseline modeli, censored demand düzeltmesi, lag/rolling feature seti ve kısa vadeli sezonluk sinyaller ile tahmin üretildi.`;
+    return `${base} StatisticalBaselineModel, censored demand düzeltmesi, lag/rolling feature seti ve kısa vadeli sezonluk baseline ile tahmin üretildi.`;
   }
 
   private buildResult(
     selection: DemandForecastSelection,
-    context: NonNullable<Awaited<ReturnType<typeof buildContext>>>,
+    context: NonNullable<ReturnType<typeof buildContext>>,
     forecast: ReturnType<typeof buildForecastSeries>
   ): DemandForecastResult {
     const result: DemandForecastResult = {
@@ -995,22 +993,22 @@ export class DemandForecastEngine {
 
 const sharedForecastEngine = new DemandForecastEngine();
 
-export async function buildDemandForecastBootstrap(productId?: number, marketplaceId?: number, horizonDays: ForecastHorizon = 14) {
-  return await sharedForecastEngine.buildBootstrap({ productId, marketplaceId, horizonDays });
+export function buildDemandForecastBootstrap(productId?: number, marketplaceId?: number, horizonDays: ForecastHorizon = 14) {
+  return sharedForecastEngine.buildBootstrap({ productId, marketplaceId, horizonDays });
 }
 
-export async function generateDemandForecast(input: Partial<DemandForecastRequest> = {}) {
-  return await sharedForecastEngine.generateForecast(input);
+export function generateDemandForecast(input: Partial<DemandForecastRequest> = {}) {
+  return sharedForecastEngine.generateForecast(input);
 }
 
-export async function buildDemandForecast(productId?: number) {
-  return await sharedForecastEngine.generateForecast({ productId, horizonDays: 30, persist: false });
+export function buildDemandForecast(productId?: number) {
+  return sharedForecastEngine.generateForecast({ productId, horizonDays: 30, persist: false });
 }
 
-export async function buildDemandForecastBootstrapResponse(productId?: number, marketplaceId?: number, horizonDays: ForecastHorizon = 14) {
-  return await buildDemandForecastBootstrap(productId, marketplaceId, horizonDays);
+export function buildDemandForecastBootstrapResponse(productId?: number, marketplaceId?: number, horizonDays: ForecastHorizon = 14) {
+  return buildDemandForecastBootstrap(productId, marketplaceId, horizonDays);
 }
 
-export async function persistDemandForecast(selection: DemandForecastSelection, result: DemandForecastResult) {
-  return await persistForecastRows(selection, result);
+export function persistDemandForecast(selection: DemandForecastSelection, result: DemandForecastResult) {
+  return persistForecastRows(selection, result);
 }

@@ -16,11 +16,11 @@ export async function POST(_request: Request, { params }: RouteParams) {
   try {
     const user = await getAuthenticatedUserFromRequest(_request);
     if (!user) {
-      return NextResponse.json({ success: false, error: "Oturum bulunamadı." }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Oturum bulunamadi." }, { status: 401 });
     }
 
     const { id } = await params;
-    const detail = await getManualAdCampaignDetail(user.userId, id);
+    const detail = getManualAdCampaignDetail(user.userId, id);
     if (!detail) {
       return NextResponse.json({ success: false, error: "Kampanya bulunamadı." }, { status: 404 });
     }
@@ -41,8 +41,8 @@ export async function POST(_request: Request, { params }: RouteParams) {
       messages: detail.messages,
     });
 
-    const report = await createManualAdReportRecord(id, generated);
-    const assistantMessage = await appendManualAdMessage(id, "assistant", `Analiz raporu oluşturuldu: ${report.summary}`, {
+    const report = createManualAdReportRecord(id, generated);
+    const assistantMessage = appendManualAdMessage(id, "assistant", `Analiz raporu oluşturuldu: ${report.summary}`, {
       kind: "report_generated",
       reportId: report.id,
       decision: report.decision,

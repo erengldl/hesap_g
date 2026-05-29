@@ -70,7 +70,7 @@ export function ManualAdCollectedContextPanel({
       </div>
 
       {latestReport ? (
-        <div className="mt-4 rounded-2xl border border-primary/15 bg-primary/5 p-4">
+        <div className="mt-4 rounded-2xl border border-primary/15 bg-primary/[0.05] p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">Son rapor</p>

@@ -112,26 +112,26 @@ function topRiskFactors(input: ReturnRiskPredictionInput, probability: number) {
   const factors: string[] = [];
 
   if (probability >= 0.12) {
-    factors.push("Model iade/fire olasılığını yüksek görüyor");
+    factors.push("Model iade/fire olasiligini yuksek goruyor");
   }
 
   if (stats.category.returnRate >= 0.12) {
-    factors.push("Kategori iade/fire oranı yüksek");
+    factors.push("Kategori iade/fire orani yuksek");
   }
 
   if (finite(vector.values.price_change_rate) > 0.2) {
-    factors.push("Fiyat son ortalamanın belirgin üzerinde");
+    factors.push("Fiyat son ortalamanin belirgin uzerinde");
   }
 
   if (stats.product.orderCount < 30) {
-    factors.push("Ürün geçmiş verisi sınırlı");
+    factors.push("Urun gecmis verisi sinirli");
   }
 
   if (finite(vector.values.high_shipping_cost_flag) > 0) {
-    factors.push("Kargo maliyeti satış fiyatına göre yüksek");
+    factors.push("Kargo maliyeti satis fiyatina gore yuksek");
   }
 
-  return factors.length > 0 ? factors.slice(0, 4) : ["Model belirgin bir risk baskısı bulmadı"];
+  return factors.length > 0 ? factors.slice(0, 4) : ["Model belirgin bir risk baskisi bulmadi"];
 }
 
 function buildPrediction(input: ReturnRiskPredictionInput): ReturnRiskPrediction | null {
@@ -159,7 +159,7 @@ function buildPrediction(input: ReturnRiskPredictionInput): ReturnRiskPrediction
     modelType: artifact.modelType,
     usedFallback: false,
     topRiskFactors: topRiskFactors(input, returnProbability),
-    explanation: `İade/fire maliyeti eğitilmiş model ile sipariş başına ${expectedReturnRiskCost.toFixed(2)} TL tahmin edildi.`,
+    explanation: `Iade/fire maliyeti egitilmis model ile siparis basina ${expectedReturnRiskCost.toFixed(2)} TL tahmin edildi.`,
   };
 }
 
@@ -228,8 +228,8 @@ export function predictReturnRiskForProfitPricing(
       modelVersion: "manual-return-risk-cost",
       modelType: "manual-override",
       usedFallback: false,
-      topRiskFactors: ["Manuel iade/fire risk maliyeti kullanıldı"],
-      explanation: "İade/fire risk maliyeti manuel girdiden alındı.",
+      topRiskFactors: ["Manuel iade/fire risk maliyeti kullanildi"],
+      explanation: "Iade/fire risk maliyeti manuel girdiden alindi.",
     };
   }
 
@@ -255,8 +255,8 @@ export function predictReturnRiskForProfitPricing(
       modelVersion: "manual-return-rate-fallback",
       modelType: "manual-return-rate",
       usedFallback: true,
-      topRiskFactors: ["İade/fire riski manuel oran varsayımıyla hesaplandı"],
-      explanation: "İade/fire risk maliyeti manuel iade oranı ve iade başına maliyetle tahmini hesaplandı.",
+      topRiskFactors: ["Iade/fire riski manuel oran varsayimiyla hesaplandi"],
+      explanation: "Iade/fire risk maliyeti manuel iade orani ve iade basina maliyetle tahmini hesaplandi.",
     };
   }
 

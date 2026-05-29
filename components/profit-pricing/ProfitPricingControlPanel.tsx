@@ -7,8 +7,13 @@ import type {
   EditableProfitPricingField,
   ProfitPricingBootstrapProduct,
   ProfitPricingChannelProfile,
+  ProfitPricingResult,
   SalesChannel,
 } from "@/lib/profit-pricing/types";
+import {
+  formatProfitPricingCurrency,
+  formatProfitPricingPercent,
+} from "@/lib/profit-pricing/formatters";
 import { channelLabel } from "@/lib/profit-pricing/utils";
 import { cn } from "@/lib/utils";
 
@@ -44,26 +49,26 @@ function StatusBadge(props: {
   optimizationReady: boolean;
 }) {
   const tone = props.busy
-    ? "border-slate-200 bg-white text-slate-500"
+    ? "border-border/80 bg-surface-container/70 text-muted"
     : props.syncState === "error"
-      ? "border-rose-200 bg-rose-50 text-rose-600"
+      ? "border-danger/25 bg-danger/10 text-danger"
       : props.syncState === "saved"
-        ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+        ? "border-success/25 bg-success/10 text-success"
         : props.optimizationReady
-          ? "border-primary/20 bg-primary/10 text-primary"
-          : "border-slate-200 bg-white text-slate-500";
+          ? "border-primary/25 bg-primary/10 text-primary"
+          : "border-border/80 bg-surface-container/70 text-muted";
 
   const label = props.busy
-    ? "Hazirlaniyor"
+    ? "Ürün seçimi hazırlanıyor..."
     : props.syncState === "saving"
-      ? "Kaydediliyor"
+      ? "Veri Merkezi güncelleniyor..."
       : props.syncState === "saved"
-        ? "Guncel"
+        ? "Veri Merkezi güncel"
         : props.syncState === "error"
-          ? "Hata"
+          ? "Kayıt hatası"
           : props.optimizationReady
-            ? "Oneriler hazir"
-            : "Canli onizleme";
+            ? "Öneriler güncel"
+            : "Canlı önizleme";
 
   return (
     <span
@@ -89,7 +94,7 @@ function ChannelInput(props: {
 }) {
   return (
     <label className="space-y-1.5">
-      <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+      <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
         {props.label}
       </span>
       <input
@@ -97,16 +102,19 @@ function ChannelInput(props: {
         type="number"
         step="0.01"
         value={toInputValue(props.value)}
-        onChange={(event) => createNumberParser(props.onChange, true)(event.target.value)}
+        onChange={(event) =>
+          createNumberParser(props.onChange, true)(event.target.value)
+        }
         className="form-input"
       />
-      <span className="block text-[11px] leading-5 text-slate-500">{props.hint}</span>
+      <span className="block text-[10px] leading-4 text-muted/600">{props.hint}</span>
     </label>
   );
 }
 
 function ChannelCard(props: {
   profile: ProfitPricingChannelProfile;
+  result: ProfitPricingResult | undefined;
   active: boolean;
   onSelect: (channel: SalesChannel) => void;
   onChangeField: (
@@ -115,53 +123,54 @@ function ChannelCard(props: {
     value: number | undefined
   ) => void;
 }) {
-  const { profile, active } = props;
+  const { profile, result, active } = props;
   const isWebsite = profile.channel === "website";
 
   return (
-    <button
-      type="button"
+    <div
       onClick={() => props.onSelect(profile.channel)}
       className={cn(
-        "h-full rounded-[24px] border p-4 text-left transition-all duration-200",
+        "h-full cursor-pointer rounded-2xl border bg-panel/72 p-3 text-left transition-all duration-200",
         active
-          ? "border-primary/30 bg-[linear-gradient(180deg,#f8fbff,#ffffff)] shadow-[0_20px_50px_rgba(15,23,42,0.08)]"
-          : "border-slate-200 bg-white hover:border-slate-300"
+          ? "border-primary/35 shadow-[var(--shadow-primary)]"
+          : "border-border/70 hover:border-border-strong"
       )}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-sm font-semibold text-slate-900">{channelLabel(profile.channel)}</p>
-          <p className="mt-1 text-[11px] leading-5 text-slate-500">
-            Grafigi ve maliyet dagilimini bu kanal belirler.
+          <p className="text-xs font-semibold text-foreground">
+            {channelLabel(profile.channel)}
+          </p>
+          <p className="mt-1 text-[10px] text-muted/600">
+            Grafikleri bu kartı seçerek değiştir.
           </p>
         </div>
         <span
           className={cn(
-            "rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em]",
+            "rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em]",
             active
-              ? "border-primary/20 bg-primary/10 text-primary"
-              : "border-slate-200 bg-slate-50 text-slate-500"
+              ? "border-primary/25 bg-primary/10 text-primary"
+              : "border-border/70 bg-surface-container/70 text-muted/650"
           )}
         >
-          {active ? "Secili" : "Kanal"}
+          {active ? "Seçili kanal" : "Kanal"}
         </span>
       </div>
 
-      <div className="mt-4 grid gap-3">
+      <div className="mt-2.5 space-y-2">
         <ChannelInput
-          label="Satis fiyati"
+          label="Satış fiyatı"
           value={profile.input.salePrice}
-          hint="Bu kanal icin aktif satis fiyati."
+          hint="Bu kanal için güncel satış fiyatı."
           onChange={(value) => props.onChangeField(profile.channel, "salePrice", value)}
         />
         <ChannelInput
-          label={isWebsite ? "Kargo maliyeti" : "Buybox fiyati"}
+          label={isWebsite ? "Kargo fiyatı" : "Buybox fiyatı"}
           value={isWebsite ? profile.input.shippingCost : profile.input.buyboxPrice}
           hint={
             isWebsite
-              ? "Web sitesi siparislerinde kullanilan manuel kargo maliyeti."
-              : "Buybox dengesi bu esigin altinda kalmaya calisir."
+              ? "Web sitesi siparişlerinde kullanılan manuel kargo maliyeti."
+              : "Buybox dengesi önerisi bu eşik altında kalmaya çalışır."
           }
           onChange={(value) =>
             props.onChangeField(
@@ -172,13 +181,38 @@ function ChannelCard(props: {
           }
         />
       </div>
-    </button>
+
+      <div className="mt-2.5 grid gap-2 sm:grid-cols-3">
+        <div className="rounded-xl border border-border/70 bg-surface-container/70 px-2.5 py-2">
+          <p className="text-[9px] uppercase tracking-[0.14em] text-muted/600">Net kâr</p>
+          <p className="mt-1 text-xs font-semibold text-foreground">
+            {formatProfitPricingCurrency(result?.netProfit ?? 0)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-border/70 bg-surface-container/70 px-2.5 py-2">
+          <p className="text-[9px] uppercase tracking-[0.14em] text-muted/600">Marj</p>
+          <p className="mt-1 text-xs font-semibold text-foreground">
+            {formatProfitPricingPercent(result?.profitMargin ?? null)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-border/70 bg-surface-container/70 px-2.5 py-2">
+          <p className="text-[9px] uppercase tracking-[0.14em] text-muted/600">Toplam kâr</p>
+          <p className="mt-1 text-xs font-semibold text-foreground">
+            {formatProfitPricingCurrency(
+              result?.priceGrid.find((point) => point.price === profile.input.salePrice)
+                ?.estimatedTotalProfit ?? result?.priceScenarios[0]?.estimatedTotalProfit ?? 0
+            )}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
 export default function ProfitPricingControlPanel(props: {
   products: ProfitPricingBootstrapProduct[];
   channelProfiles: ProfitPricingChannelProfile[];
+  resultsByChannel: Partial<Record<SalesChannel, ProfitPricingResult>>;
   selectedChannel: SalesChannel;
   busy: boolean;
   syncState: SyncState;
@@ -196,19 +230,16 @@ export default function ProfitPricingControlPanel(props: {
   const activeProductId = props.channelProfiles[0]?.input.productId ?? "";
 
   return (
-    <GlassCard className="rounded-[30px] border border-slate-200 bg-white">
-      <div className="flex w-full flex-col gap-5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+    <GlassCard className="border-border/80">
+      <div className="flex w-full flex-col gap-4">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Kontrol merkezi
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/600">
+              Ürün seçimi
             </p>
-            <h2 className="mt-2 text-[1.8rem] font-semibold tracking-[-0.05em] text-slate-900">
-              Tek urun, coklu kanal, tek optimizasyon akisi
+            <h2 className="mt-2 text-xl font-semibold tracking-tight text-foreground">
+              Tek ürün, üç kanal, tek optimizasyon akışı
             </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-500">
-              Urunu sec, kanal fiyatlarini duzenle ve onerileri tek butonla olustur.
-            </p>
           </div>
           <StatusBadge
             syncState={props.syncState}
@@ -217,13 +248,13 @@ export default function ProfitPricingControlPanel(props: {
           />
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+        <div className="flex w-full flex-col gap-2">
           <label className="space-y-2">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-              Urun sec
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
+              Ürün seç
             </span>
             <select
-              aria-label="Urun sec"
+              aria-label="Ürün seç"
               value={activeProductId}
               onChange={(event) => props.onSelectProduct(event.target.value)}
               className="form-select"
@@ -241,33 +272,34 @@ export default function ProfitPricingControlPanel(props: {
             type="button"
             onClick={props.onOptimize}
             disabled={props.busy || props.channelProfiles.length === 0}
-            className="btn-primary h-[52px] w-full self-end px-5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-primary)] transition-transform duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Sparkles className="h-4 w-4" />
-            Fiyatlari Optimize Et
+            Fiyatları Optimize Et
           </button>
         </div>
 
         {props.feedback ? (
           <div
             className={cn(
-              "rounded-[22px] border px-4 py-3 text-sm",
+              "rounded-2xl border px-4 py-3 text-sm",
               props.feedback.tone === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                ? "border-success/25 bg-success/10 text-success"
                 : props.feedback.tone === "error"
-                  ? "border-rose-200 bg-rose-50 text-rose-700"
-                  : "border-sky-200 bg-sky-50 text-sky-700"
+                  ? "border-danger/25 bg-danger/10 text-danger"
+                  : "border-primary/25 bg-primary/10 text-primary"
             )}
           >
             {props.feedback.text}
           </div>
         ) : null}
 
-        <div className="grid w-full gap-3 xl:grid-cols-3">
+        <div className="grid w-full gap-3 md:grid-cols-3">
           {props.channelProfiles.map((profile) => (
             <ChannelCard
               key={profile.channel}
               profile={profile}
+              result={props.resultsByChannel[profile.channel]}
               active={props.selectedChannel === profile.channel}
               onSelect={props.onSelectChannel}
               onChangeField={props.onChangeField}

@@ -1,11 +1,15 @@
+import { getDb } from "@/lib/db";
+import { verifyPassword, hashPassword, verifyToken, getTokenFromCookies } from "@/lib/auth";
 import { badRequest, unauthorized, serverError, ok } from "@/lib/api-helpers";
-import { getAuthenticatedUserFromRequest } from "@/lib/request-auth";
-import { createStatelessSupabaseClient, createSupabaseServerClient } from "@/lib/supabase/server";
-import { getSupabaseErrorMessage } from "@/lib/supabase/errors";
 
 export async function POST(request: Request) {
   try {
-    const user = await getAuthenticatedUserFromRequest(request);
+    // Authenticate from cookie
+    const cookieHeader = request.headers.get("cookie") || "";
+    const token = getTokenFromCookies(cookieHeader);
+    if (!token) return unauthorized();
+
+    const user = await verifyToken(token);
     if (!user) return unauthorized();
 
     const { currentPassword, newPassword } = (await request.json()) as {
@@ -25,24 +29,27 @@ export async function POST(request: Request) {
       return badRequest("Yeni sifre mevcut sifre ile ayni olamaz.");
     }
 
-    const verificationClient = createStatelessSupabaseClient();
-    const verificationResult = await verificationClient.auth.signInWithPassword({
-      email: user.email,
-      password: currentPassword,
-    });
+    const db = getDb();
+    if (!db) return serverError();
 
-    if (verificationResult.error) {
+    const row = db.prepare("SELECT password_hash FROM users WHERE user_id = ?").get(user.userId) as {
+      password_hash: string;
+    } | undefined;
+
+    if (!row) {
+      return unauthorized("Kullanici bulunamadi.");
+    }
+
+    const isValid = await verifyPassword(currentPassword, row.password_hash);
+    if (!isValid) {
       return badRequest("Mevcut sifre hatali.");
     }
 
-    const supabase = await createSupabaseServerClient();
-    const updateResult = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-
-    if (updateResult.error) {
-      return badRequest(getSupabaseErrorMessage(updateResult.error, "Sifre guncellenemedi."));
-    }
+    const newHash = await hashPassword(newPassword);
+    db.prepare("UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE user_id = ?").run(
+      newHash,
+      user.userId
+    );
 
     return ok(undefined, { message: "Sifre basariyla guncellendi." });
   } catch (error) {

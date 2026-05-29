@@ -1,8 +1,11 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import ProfitPricingPage from "@/components/profit-pricing/ProfitPricingPage";
-import { createProfitPricingBootstrap } from "@/test/lib/profit-pricing/fixtures";
+import { formatProfitPricingCurrency } from "@/lib/profit-pricing/formatters";
+import { calculateProfitPricing } from "@/lib/profit-pricing/orchestrator";
+import { createBaseProfitPricingInput, createProfitPricingBootstrap } from "@/test/lib/profit-pricing/fixtures";
 
 vi.mock("@/components/profit-pricing/CostBreakdownChart", () => ({
   default: () => <div>CostBreakdownChart</div>,

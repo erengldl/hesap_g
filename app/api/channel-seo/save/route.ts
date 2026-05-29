@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
 
 import { upsertChannelSeoContents } from "@/lib/channel-seo/repository";
 import { validateChannelSeoSavePayload } from "@/lib/channel-seo/validation";
@@ -7,8 +6,6 @@ import { validateChannelSeoSavePayload } from "@/lib/channel-seo/validation";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
   try {
     const body = await request.json().catch(() => null);
     const validation = validateChannelSeoSavePayload(body);
@@ -23,7 +20,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const saved = await upsertChannelSeoContents(validation.value);
+    const saved = upsertChannelSeoContents(validation.value);
     return NextResponse.json({
       ok: true,
       data: {

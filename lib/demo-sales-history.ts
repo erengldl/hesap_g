@@ -1,6 +1,5 @@
-import { getDb, isTransactionActive } from "./db";
+import { getDb } from "./db";
 import { getCampaignPlatformConfig, resolveCampaignPlatformFromProduct } from "./ad-analysis";
-import { requireCurrentAuthUserId } from "./tenant";
 
 type Database = NonNullable<ReturnType<typeof getDb>>;
 
@@ -21,10 +20,8 @@ type DemoSalesChannelRow = {
 
 export type DemoSalesGenerationOptions = {
   days?: number;
-  months?: number;
   resetSalesTables?: boolean;
   startDate?: Date;
-  authUserId?: string;
 };
 
 export type DemoSalesGenerationSummary = {
@@ -77,14 +74,6 @@ function addDays(date: Date, days: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
   return next;
-}
-
-function buildCompletedMonthWindow(baseDate: Date, months: number) {
-  const normalizedBase = stripTime(baseDate);
-  const endDate = new Date(normalizedBase.getFullYear(), normalizedBase.getMonth(), 0);
-  const startDate = new Date(endDate.getFullYear(), endDate.getMonth() - (months - 1), 1);
-  const days = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1);
-  return { startDate, endDate, days };
 }
 
 function seededRandom(seed: number) {
@@ -196,24 +185,22 @@ function resolveBuyerName(rand: () => number) {
   return BUYER_NAMES[Math.floor(rand() * BUYER_NAMES.length)] ?? "Demo Alıcı";
 }
 
-async function resetSalesTables(db: Database, authUserId: string) {
-  await db.prepare("DELETE FROM order_items WHERE user_id = ?").run(authUserId);
-  await db.prepare("DELETE FROM orders WHERE user_id = ?").run(authUserId);
-  await db.prepare("DELETE FROM inventory_daily WHERE user_id = ?").run(authUserId);
+function resetSalesTables(db: Database) {
+  db.prepare("DELETE FROM order_items").run();
+  db.prepare("DELETE FROM orders").run();
+  db.prepare("DELETE FROM inventory_daily").run();
 }
 
-export async function generateDemoSalesHistory(db: Database, options: DemoSalesGenerationOptions = {}): Promise<DemoSalesGenerationSummary> {
-  const authUserId = options.authUserId ?? requireCurrentAuthUserId();
-  const monthWindow = buildCompletedMonthWindow(options.startDate ?? new Date(), Math.max(1, Math.trunc(options.months ?? 3)));
-  const days = Math.max(1, Math.trunc(options.days ?? monthWindow.days));
-  const endDate = options.days ? stripTime(options.startDate ?? new Date()) : monthWindow.endDate;
-  const startDate = options.days ? addDays(endDate, -(days - 1)) : monthWindow.startDate;
+export function generateDemoSalesHistory(db: Database, options: DemoSalesGenerationOptions = {}): DemoSalesGenerationSummary {
+  const days = Math.max(1, Math.trunc(options.days ?? 90));
+  const endDate = stripTime(options.startDate ?? new Date());
+  const startDate = addDays(endDate, -(days - 1));
 
   if (options.resetSalesTables) {
-    await resetSalesTables(db, authUserId);
+    resetSalesTables(db);
   }
 
-  const rows = await db.prepare(
+  const rows = db.prepare(
     `
       SELECT
         p.product_id,
@@ -232,10 +219,9 @@ export async function generateDemoSalesHistory(db: Database, options: DemoSalesG
       JOIN product_marketplace_settings pms ON pms.product_id = p.product_id
       JOIN marketplaces m ON m.marketplace_id = pms.marketplace_id
       WHERE COALESCE(p.status, 'active') <> 'deleted'
-        AND p.user_id = ?
       ORDER BY p.product_id, m.marketplace_id
     `
-  ).all(authUserId) as DemoSalesChannelRow[];
+  ).all() as DemoSalesChannelRow[];
 
   if (rows.length === 0) {
     return {
@@ -257,7 +243,7 @@ export async function generateDemoSalesHistory(db: Database, options: DemoSalesG
     rowsByProduct.set(row.product_id, list);
   }
 
-  const runGeneration = async () => {
+  const transaction = db.transaction(() => {
     const orderInsert = db.prepare(
       `
         INSERT INTO orders (
@@ -290,11 +276,10 @@ export async function generateDemoSalesHistory(db: Database, options: DemoSalesG
           utm_campaign,
           platform_reported_revenue,
           platform_reported_roas,
-          user_id,
           last_synced_at,
           updated_at
         ) VALUES (
-          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
         )
       `
     );
@@ -316,9 +301,8 @@ export async function generateDemoSalesHistory(db: Database, options: DemoSalesG
           shipping_cost,
           transaction_type,
           raw_payload_json,
-          user_id,
           updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `
     );
 
@@ -329,9 +313,8 @@ export async function generateDemoSalesHistory(db: Database, options: DemoSalesG
           marketplace_id,
           inventory_date,
           stock_qty,
-          reserved_qty,
-          user_id
-        ) VALUES (?, ?, ?, ?, ?, ?)
+          reserved_qty
+        ) VALUES (?, ?, ?, ?, ?)
       `
     );
 
@@ -422,7 +405,7 @@ export async function generateDemoSalesHistory(db: Database, options: DemoSalesG
                   : "İptal edildi";
           const rowBarcode = channel.barcode ?? channel.sku ?? `BAR-${channel.product_id}`;
 
-          const orderResult = await orderInsert.run(
+          const orderResult = orderInsert.run(
             channel.product_id,
             channel.marketplace_id,
             currentDateKey,
@@ -464,12 +447,11 @@ export async function generateDemoSalesHistory(db: Database, options: DemoSalesG
             utmMedium,
             utmCampaign,
             platformReportedRevenue,
-            platformReportedRoas,
-            authUserId,
+            platformReportedRoas
           );
 
           const orderId = Number(orderResult.lastInsertRowid);
-          await itemInsert.run(
+          itemInsert.run(
             orderId,
             externalOrderNumber,
             externalPackageNumber,
@@ -494,8 +476,7 @@ export async function generateDemoSalesHistory(db: Database, options: DemoSalesG
               },
               null,
               0
-            ),
-            authUserId,
+            )
           );
 
           ordersInserted += 1;
@@ -519,20 +500,20 @@ export async function generateDemoSalesHistory(db: Database, options: DemoSalesG
           }
           const reservedQty = Math.max(0, Math.round(stock * 0.06));
           inventoryState.set(inventoryKey, stock);
-          await inventoryInsert.run(channel.product_id, channel.marketplace_id, currentDateKey, stock, reservedQty, authUserId);
+          inventoryInsert.run(channel.product_id, channel.marketplace_id, currentDateKey, stock, reservedQty);
           inventoryRowsInserted += 1;
         }
       }
     }
 
-      return {
-        ordersInserted,
-        orderItemsInserted,
-        inventoryRowsInserted,
-      };
-  };
+    return {
+      ordersInserted,
+      orderItemsInserted,
+      inventoryRowsInserted,
+    };
+  });
 
-  const counts = isTransactionActive() ? await runGeneration() : await db.transaction(runGeneration);
+  const counts = transaction();
 
   return {
     days,

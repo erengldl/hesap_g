@@ -6,19 +6,17 @@ import { loadLatestReturnRiskModelArtifact } from "./model-registry";
 import { trainReturnRiskModelFromDataCenter } from "./trainer";
 import { getReturnRiskEvaluationSummary } from "./evaluator";
 import type { ReturnRiskPredictionInput } from "./types";
-import { requireCurrentAuthUserId } from "@/lib/tenant";
 
-export async function predictReturnRiskFromDataCenter(
+export function predictReturnRiskFromDataCenter(
   input: Omit<ReturnRiskPredictionInput, "context" | "modelArtifact"> & {
     context?: ReturnRiskPredictionInput["context"];
   }
 ) {
-  const authUserId = requireCurrentAuthUserId();
-  const dataCenterContext = await buildReturnRiskContextForProduct({
+  const dataCenterContext = buildReturnRiskContextForProduct({
     productId: input.productId,
     channel: input.channel,
   });
-  const modelArtifact = loadLatestReturnRiskModelArtifact(authUserId);
+  const modelArtifact = loadLatestReturnRiskModelArtifact();
 
   return predictReturnRisk({
     ...input,
@@ -31,10 +29,10 @@ export async function predictReturnRiskFromDataCenter(
   });
 }
 
-export async function trainReturnRiskModel() {
-  return await trainReturnRiskModelFromDataCenter();
+export function trainReturnRiskModel() {
+  return trainReturnRiskModelFromDataCenter();
 }
 
 export function evaluateReturnRiskModel() {
-  return getReturnRiskEvaluationSummary(requireCurrentAuthUserId());
+  return getReturnRiskEvaluationSummary();
 }

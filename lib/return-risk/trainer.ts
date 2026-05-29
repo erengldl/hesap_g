@@ -3,12 +3,10 @@ import "server-only";
 import { listReturnRiskTrainingRows } from "./repository";
 import { trainReturnRiskLogisticModel } from "./model";
 import { saveReturnRiskModelArtifact } from "./model-registry";
-import { requireCurrentAuthUserId } from "@/lib/tenant";
 import type { ReturnRiskTrainingResult } from "./types";
 
-export async function trainReturnRiskModelFromDataCenter(): Promise<ReturnRiskTrainingResult> {
-  const authUserId = requireCurrentAuthUserId();
-  const rows = await listReturnRiskTrainingRows();
+export function trainReturnRiskModelFromDataCenter(): ReturnRiskTrainingResult {
+  const rows = listReturnRiskTrainingRows();
   const positiveRows = rows.filter((row) => row.isReturnedOrLost).length;
   const trained = trainReturnRiskLogisticModel(rows);
 
@@ -24,7 +22,7 @@ export async function trainReturnRiskModelFromDataCenter(): Promise<ReturnRiskTr
     };
   }
 
-  saveReturnRiskModelArtifact(trained.artifact, authUserId);
+  saveReturnRiskModelArtifact(trained.artifact);
 
   return {
     ok: true,

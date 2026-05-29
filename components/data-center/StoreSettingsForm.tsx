@@ -106,12 +106,12 @@ export default function StoreSettingsForm() {
           <div className="mt-8 p-6 rounded-2xl bg-primary/5 border border-primary/20 relative overflow-hidden">
              <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
                 <div className="text-center md:text-left">
-                   <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Toplam Aylık Gider</p>
+                   <p className="text-primary/70 text-[10px] font-bold uppercase tracking-widest mb-1">Toplam Aylık Gider</p>
                    <p className="text-3xl font-extrabold text-foreground">{formatCurrency(totalMonthlyExpense)}</p>
                 </div>
                 <div className="h-10 w-px bg-primary/20 hidden md:block" />
                 <div className="text-center md:text-left">
-                   <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Ürün Başı Sabit Gider</p>
+                   <p className="text-primary/70 text-[10px] font-bold uppercase tracking-widest mb-1">Ürün Başı Sabit Gider</p>
                    <p className="text-3xl font-extrabold text-primary">{formatCurrency(unitFixedCost)}</p>
                 </div>
              </div>

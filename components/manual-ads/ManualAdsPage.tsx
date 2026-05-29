@@ -31,7 +31,7 @@ export function ManualAdsPage({ campaigns }: ManualAdsPageProps) {
         <WarningBadge>API bağlantısı yok</WarningBadge>
       </PageHeader>
 
-      <GlassCard className="border border-primary/20 bg-primary/5">
+      <GlassCard className="border border-primary/20 bg-primary/[0.04]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">Manuel analiz</p>

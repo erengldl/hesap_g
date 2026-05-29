@@ -1,5 +1,4 @@
 import { query } from "@/lib/db";
-import { requireCurrentAuthUserId } from "@/lib/tenant";
 
 type TrendRow = {
   date: string;
@@ -77,9 +76,8 @@ function buildContinuousSeries(rows: TrendRow[], days: number) {
   return series;
 }
 
-export async function getProductSalesTrend(productId: number, days: 30 | 90 = 30, marketplaceId?: number) {
-  const authUserId = requireCurrentAuthUserId();
-  const rows = await query<TrendRow>(
+export function getProductSalesTrend(productId: number, days: 30 | 90 = 30, marketplaceId?: number) {
+  const rows = query<TrendRow>(
     `
       SELECT
         o.order_date AS date,
@@ -88,26 +86,21 @@ export async function getProductSalesTrend(productId: number, days: 30 | 90 = 30
         COUNT(DISTINCT o.order_id) AS order_count
       FROM orders o
       JOIN order_items oi ON oi.order_id = o.order_id
-      JOIN products p ON p.product_id = o.product_id
       WHERE o.product_id = ?
-        AND p.user_id = ?
         AND COALESCE(o.status, 'completed') NOT IN ('cancelled', 'returned', 'pending')
-        AND o.order_date >= CURRENT_DATE + CAST(? AS interval)
+        AND o.order_date >= date('now', ?)
         ${marketplaceId ? "AND o.marketplace_id = ?" : ""}
       GROUP BY o.order_date
       ORDER BY o.order_date ASC
     `,
-    marketplaceId
-      ? [productId, authUserId, `-${days - 1} days`, marketplaceId]
-      : [productId, authUserId, `-${days - 1} days`]
+    marketplaceId ? [productId, `-${days - 1} days`, marketplaceId] : [productId, `-${days - 1} days`]
   );
 
   return buildContinuousSeries(rows, days);
 }
 
-export async function getProductOrderHistory(productId: number, limit = 20) {
-  const authUserId = requireCurrentAuthUserId();
-  return (await query<OrderHistoryRow>(
+export function getProductOrderHistory(productId: number, limit = 20) {
+  return query<OrderHistoryRow>(
     `
       SELECT
         o.order_id,
@@ -123,14 +116,13 @@ export async function getProductOrderHistory(productId: number, limit = 20) {
         oi.barcode
       FROM orders o
       JOIN order_items oi ON oi.order_id = o.order_id
-      JOIN products p ON p.product_id = o.product_id
       LEFT JOIN marketplaces m ON m.marketplace_id = o.marketplace_id
-      WHERE o.product_id = ? AND p.user_id = ?
+      WHERE o.product_id = ?
       ORDER BY o.order_date DESC, o.order_id DESC, oi.order_item_id DESC
       LIMIT ?
     `,
-    [productId, authUserId, limit]
-  )).map((row) => ({
+    [productId, limit]
+  ).map((row) => ({
     ...row,
     quantity: roundWhole(row.quantity),
     unit_price: round2(Number(row.unit_price ?? 0)),
@@ -138,31 +130,25 @@ export async function getProductOrderHistory(productId: number, limit = 20) {
   }));
 }
 
-export async function getProductSalesVelocity(productId: number, days = 30, marketplaceId?: number) {
-  const authUserId = requireCurrentAuthUserId();
-  const row = (await query<{ units: number }>(
+export function getProductSalesVelocity(productId: number, days = 30, marketplaceId?: number) {
+  const row = query<{ units: number }>(
     `
       SELECT COALESCE(SUM(oi.quantity), 0) AS units
       FROM orders o
       JOIN order_items oi ON oi.order_id = o.order_id
-      JOIN products p ON p.product_id = o.product_id
       WHERE o.product_id = ?
-        AND p.user_id = ?
         AND COALESCE(o.status, 'completed') NOT IN ('cancelled', 'returned', 'pending')
-        AND o.order_date >= CURRENT_DATE + CAST(? AS interval)
+        AND o.order_date >= date('now', ?)
         ${marketplaceId ? "AND o.marketplace_id = ?" : ""}
     `,
-    marketplaceId
-      ? [productId, authUserId, `-${days - 1} days`, marketplaceId]
-      : [productId, authUserId, `-${days - 1} days`]
-  ))[0];
+    marketplaceId ? [productId, `-${days - 1} days`, marketplaceId] : [productId, `-${days - 1} days`]
+  )[0];
 
   return round2((row?.units ?? 0) / Math.max(1, days));
 }
 
-export async function getProductMarginSnapshots(productId: number) {
-  const authUserId = requireCurrentAuthUserId();
-  return (await query<CostResultRow>(
+export function getProductMarginSnapshots(productId: number) {
+  return query<CostResultRow>(
     `
       SELECT
         cr.marketplace_id,
@@ -174,11 +160,11 @@ export async function getProductMarginSnapshots(productId: number) {
         cr.profit_margin_percent,
         cr.warning_notes
       FROM cost_results cr
-      WHERE cr.product_id = ? AND cr.user_id = ?
+      WHERE cr.product_id = ?
       ORDER BY cr.profit_margin_percent DESC, cr.marketplace_id ASC
     `,
-    [productId, authUserId]
-  )).map((row) => ({
+    [productId]
+  ).map((row) => ({
     ...row,
     list_price: round2(Number(row.list_price ?? 0)),
     total_unit_cost: round2(Number(row.total_unit_cost ?? 0)),

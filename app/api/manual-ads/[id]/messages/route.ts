@@ -19,11 +19,11 @@ export async function GET(request: Request, { params }: RouteParams) {
   try {
     const user = await getAuthenticatedUserFromRequest(request);
     if (!user) {
-      return NextResponse.json({ success: false, error: "Oturum bulunamadı." }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Oturum bulunamadi." }, { status: 401 });
     }
 
     const { id } = await params;
-    const detail = await getManualAdCampaignDetail(user.userId, id);
+    const detail = getManualAdCampaignDetail(user.userId, id);
     if (!detail) {
       return NextResponse.json({ success: false, error: "Kampanya bulunamadı." }, { status: 404 });
     }
@@ -45,11 +45,11 @@ export async function POST(request: Request, { params }: RouteParams) {
   try {
     const user = await getAuthenticatedUserFromRequest(request);
     if (!user) {
-      return NextResponse.json({ success: false, error: "Oturum bulunamadı." }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Oturum bulunamadi." }, { status: 401 });
     }
 
     const { id } = await params;
-    const detail = await getManualAdCampaignDetail(user.userId, id);
+    const detail = getManualAdCampaignDetail(user.userId, id);
     if (!detail) {
       return NextResponse.json({ success: false, error: "Kampanya bulunamadı." }, { status: 404 });
     }
@@ -69,7 +69,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         : "Kreatif eklendi.";
 
     const lastAssistantMessage = [...detail.messages].reverse().find((message) => message.role === "assistant") ?? null;
-    const userMessage = await appendManualAdMessage(id, "user", messageContent, {
+    const userMessage = appendManualAdMessage(id, "user", messageContent, {
       kind: "reply",
       promptGroup: lastAssistantMessage?.metadata?.promptGroup,
       promptKey: lastAssistantMessage?.metadata?.promptKey,
@@ -82,9 +82,9 @@ export async function POST(request: Request, { params }: RouteParams) {
     const updatedMessages = [...detail.messages, userMessage];
     const conversationState = buildManualAdConversationState(updatedMessages);
     const assistantReply = buildManualAdAssistantReply(conversationState);
-    const assistantMessage = await appendManualAdMessage(id, "assistant", assistantReply.content, assistantReply.metadata);
+    const assistantMessage = appendManualAdMessage(id, "assistant", assistantReply.content, assistantReply.metadata);
 
-    const refreshed = await getManualAdCampaignDetail(user.userId, id);
+    const refreshed = getManualAdCampaignDetail(user.userId, id);
     if (!refreshed) {
       return NextResponse.json({ success: false, error: "Kampanya bulunamadı." }, { status: 404 });
     }

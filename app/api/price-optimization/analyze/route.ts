@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
 import {
   savePriceOptimizationRun,
   runPriceOptimization,
@@ -30,8 +29,6 @@ function parseInput(payload: Partial<PriceOptimizationInput>) {
 }
 
 export async function POST(request: Request) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
   try {
     const body = (await request.json().catch(() => ({}))) as Partial<PriceOptimizationInput> & { persist?: boolean };
     const input = parseInput(body);
@@ -39,12 +36,12 @@ export async function POST(request: Request) {
 
     if (!input.productId || !input.marketplaceId || input.minPrice <= 0 || input.maxPrice <= 0) {
       return NextResponse.json(
-        { success: false, error: "productId, marketplaceId, minPrice ve maxPrice alanları zorunludur." },
+        { success: false, error: "productId, marketplaceId, minPrice and maxPrice are required" },
         { status: 400 }
       );
     }
 
-    const result = await runPriceOptimization(input);
+    const result = runPriceOptimization(input);
     if (!result) {
       return NextResponse.json({ success: false, error: "Fiyat optimizasyonu hesaplanamadı." }, { status: 404 });
     }
@@ -56,7 +53,7 @@ export async function POST(request: Request) {
 
     let runId: string | undefined;
     if (shouldPersist) {
-      runId = await savePriceOptimizationRun(draftResult) ?? undefined;
+      runId = savePriceOptimizationRun(draftResult) ?? undefined;
       if (!runId) {
         return NextResponse.json({ success: false, error: "Optimizasyon kaydı oluşturulamadı." }, { status: 500 });
       }

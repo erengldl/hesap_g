@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from "@/lib/api-auth";
-import {
+import { 
   getCommissionTariffsByMarketplace, 
   getCommissionForCategory, 
   getCommissionTariffSummaryByMarketplace,
@@ -10,8 +9,6 @@ import {
 } from '@/lib/database-readers';
 
 export async function GET(request: Request) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type');
   const marketplace = searchParams.get('marketplace');
@@ -25,7 +22,7 @@ export async function GET(request: Request) {
 
   try {
     if (type === 'carriers') {
-      const carriers = await getCarriersByMarketplace(marketplace);
+      const carriers = getCarriersByMarketplace(marketplace);
       return NextResponse.json({
         success: true,
         carriers: carriers.map(c => ({ id: c.shipping_company_id, name: c.name })),
@@ -33,7 +30,7 @@ export async function GET(request: Request) {
     }
 
     if (type === 'cheapest_carrier' && desi) {
-      const result = await getCheapestCarrierForDesi(marketplace, parseFloat(desi));
+      const result = getCheapestCarrierForDesi(marketplace, parseFloat(desi));
       return NextResponse.json({
         success: true,
         cheapest: result,
@@ -42,12 +39,12 @@ export async function GET(request: Request) {
 
     if (type === 'commission') {
       if (categoryId) {
-        const commission = await getCommissionForCategory(marketplace, parseInt(categoryId));
+        const commission = getCommissionForCategory(marketplace, parseInt(categoryId));
         return NextResponse.json({ success: true, commission });
       }
 
       if (queryText) {
-        const tariffs = (await getCommissionTariffsByMarketplace(marketplace)) as Array<{
+        const tariffs = getCommissionTariffsByMarketplace(marketplace) as Array<{
           category_name?: string | null;
           category_path?: string | null;
           raw_category_name?: string | null;
@@ -60,11 +57,11 @@ export async function GET(request: Request) {
         return NextResponse.json({ success: true, tariffs: filteredTariffs, mode: 'detail' });
       }
 
-      const summary = await getCommissionTariffSummaryByMarketplace(marketplace);
-      const tariffs = await getCommissionTariffsByMarketplace(marketplace);
+      const summary = getCommissionTariffSummaryByMarketplace(marketplace);
+      const tariffs = getCommissionTariffsByMarketplace(marketplace);
       return NextResponse.json({ success: true, summary, tariffs, mode: 'summary' });
     } else if (type === 'shipping') {
-      const matrix = await getShippingTariffMatrix(marketplace);
+      const matrix = getShippingTariffMatrix(marketplace);
       return NextResponse.json({ success: true, matrix });
     }
 

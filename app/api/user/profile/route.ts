@@ -1,10 +1,14 @@
 import { getDb } from "@/lib/db";
+import { verifyToken, getTokenFromCookies } from "@/lib/auth";
 import { badRequest, unauthorized, serverError, ok } from "@/lib/api-helpers";
-import { getAuthenticatedUserFromRequest } from "@/lib/request-auth";
 
 export async function PATCH(request: Request) {
   try {
-    const user = await getAuthenticatedUserFromRequest(request);
+    const cookieHeader = request.headers.get("cookie") || "";
+    const token = getTokenFromCookies(cookieHeader);
+    if (!token) return unauthorized();
+
+    const user = await verifyToken(token);
     if (!user) return unauthorized();
 
     const { name, company, phone } = (await request.json()) as {
@@ -20,8 +24,8 @@ export async function PATCH(request: Request) {
     const db = getDb();
     if (!db) return serverError();
 
-    await db.prepare(
-      "UPDATE users SET name = ?, company = ?, phone = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?"
+    db.prepare(
+      "UPDATE users SET name = ?, company = ?, phone = ?, updated_at = datetime('now') WHERE user_id = ?"
     ).run(name.trim(), company?.trim() || null, phone?.trim() || null, user.userId);
 
     return ok(undefined, {

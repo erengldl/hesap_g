@@ -1,42 +1,33 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { getAuthenticatedUserFromCookieHeader } from "@/lib/request-auth";
-import { TOKEN_COOKIE_NAME } from "@/lib/auth";
-
-const EXPIRED_COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
-  path: "/",
-  maxAge: 0,
-};
-
-function getSupabaseCookieNames(cookieHeader: string) {
-  const names = new Set<string>();
-
-  for (const part of cookieHeader.split(";")) {
-    const trimmed = part.trim();
-    if (!trimmed) {
-      continue;
-    }
-
-    const separatorIndex = trimmed.indexOf("=");
-    const name = separatorIndex >= 0 ? trimmed.slice(0, separatorIndex).trim() : trimmed;
-    if (name.startsWith("sb-")) {
-      names.add(name);
-    }
-  }
-
-  return [...names];
-}
+import { verifyToken } from "@/lib/auth";
 
 export async function GET(request: Request) {
   try {
     const cookieHeader = request.headers.get("cookie") || "";
-    const user = await getAuthenticatedUserFromCookieHeader(cookieHeader);
+    const tokenCookie = cookieHeader
+      .split("; ")
+      .find((c) => c.startsWith("hg_token="));
+
+    if (!tokenCookie) {
+      return NextResponse.json(
+        { success: false, error: "Oturum bulunamadi." },
+        { status: 401 }
+      );
+    }
+
+    const token = tokenCookie.split("=")[1];
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: "Gecersiz oturum." },
+        { status: 401 }
+      );
+    }
+
+    const user = await verifyToken(token);
     if (!user) {
       return NextResponse.json(
-        { success: false, error: "Oturum bulunamadı." },
+        { success: false, error: "Oturum suresi dolmus." },
         { status: 401 }
       );
     }
@@ -46,7 +37,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, user });
     }
 
-    const profile = await db.prepare(`
+    const profile = db.prepare(`
       SELECT company, phone
       FROM users
       WHERE user_id = ?
@@ -64,21 +55,20 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Auth check error:", error);
     return NextResponse.json(
-      { success: false, error: "Sunucu hatası." },
+      { success: false, error: "Sunucu hatasi." },
       { status: 500 }
     );
   }
 }
 
-export async function DELETE(request: Request) {
-  const cookieHeader = request.headers.get("cookie") || "";
+export async function DELETE() {
   const response = NextResponse.json({ success: true });
-  response.cookies.set(TOKEN_COOKIE_NAME, "", EXPIRED_COOKIE_OPTIONS);
-  response.cookies.set("hg_session", "", EXPIRED_COOKIE_OPTIONS);
-
-  for (const cookieName of getSupabaseCookieNames(cookieHeader)) {
-    response.cookies.set(cookieName, "", EXPIRED_COOKIE_OPTIONS);
-  }
-
+  response.cookies.set("hg_token", "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
   return response;
 }

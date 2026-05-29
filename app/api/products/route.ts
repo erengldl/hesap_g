@@ -3,89 +3,58 @@ import { getProducts } from '@/lib/database-readers';
 import { DEMO_PRODUCTS } from '@/lib/demo-data';
 import { recalculateCostResultsForProduct } from '@/lib/portfolio-analytics';
 import type { ProductUpsertInput } from '@/lib/types';
-import { normalizeCreateProductPayload, validateCreateProductPayload } from './payload';
 import { saveProductRecord } from './service';
-import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 
 export const dynamic = 'force-dynamic';
 
-function shouldAllowDemoFallback() {
-  return process.env.NODE_ENV !== "production" && process.env.ALLOW_DEMO_FALLBACK === "true";
-}
-
 export async function GET(request: NextRequest) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
-  const authUserId = session.authUserId?.trim() || "";
-  if (!authUserId) {
-    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
-  }
-  primeRequestContextFromApiContext(session);
   try {
-    const url = new URL(request.url);
-    const dbProducts = await getProducts();
-    const limit = Number(url.searchParams.get("limit") ?? 0);
-    const query = (url.searchParams.get("q") ?? "").trim().toLocaleLowerCase("tr");
-    const products = dbProducts;
-    const filteredProducts = query.length > 0
-      ? products.filter((product) => {
-          const haystack = [
-            product.name,
-            product.sku,
-            product.barcode,
-            product.category_name,
-            product.category_path,
-          ]
-            .filter(Boolean)
-            .join(" ")
-            .toLocaleLowerCase("tr");
-
-          return haystack.includes(query);
-        })
-      : products;
-    const limitedProducts =
-      Number.isFinite(limit) && limit > 0 ? filteredProducts.slice(0, limit) : filteredProducts;
+    const dbProducts = getProducts();
+    const limit = Number(new URL(request.url).searchParams.get("limit") ?? 0);
+    const products = dbProducts.length > 0 ? dbProducts : DEMO_PRODUCTS;
+    const limitedProducts = Number.isFinite(limit) && limit > 0 ? products.slice(0, limit) : products;
     
     return NextResponse.json({ 
       success: true, 
       products: limitedProducts,
       count: limitedProducts.length,
     });
-  } catch (error) {
-    console.error("Products API error:", error);
-
-    if (shouldAllowDemoFallback()) {
-      return NextResponse.json({
-        success: true,
-        products: DEMO_PRODUCTS,
-        count: DEMO_PRODUCTS.length,
-        warning: "Database unavailable, using demo data",
-      });
-    }
-
-    return NextResponse.json({ success: false, error: "Ürünler yüklenemedi." }, { status: 503 });
+  } catch {
+    return NextResponse.json({ 
+      success: true, 
+      products: DEMO_PRODUCTS,
+      count: DEMO_PRODUCTS.length,
+      warning: 'Database unavailable, using demo data'
+    });
   }
 }
 
 export async function POST(request: Request) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
-  const authUserId = session.authUserId?.trim() || "";
-  if (!authUserId) {
-    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
-  }
-  primeRequestContextFromApiContext(session);
   try {
     const body = await request.json() as Partial<ProductUpsertInput>;
-    const payload = normalizeCreateProductPayload(body);
-    const validationErrors = validateCreateProductPayload(payload);
+    const parsedCategoryId = Number(body.category_id ?? 0);
+    const payload: ProductUpsertInput = {
+      name: String(body.name ?? '').trim(),
+      sku: String(body.sku ?? '').trim() || undefined,
+      barcode: String(body.barcode ?? body.sku ?? '').trim() || undefined,
+      image_url: String(body.image_url ?? '').trim() || undefined,
+      category_id: Number.isFinite(parsedCategoryId) && parsedCategoryId > 0 ? parsedCategoryId : null,
+      category_path: String(body.category_path ?? '').trim(),
+      description: String(body.description ?? '').trim() || undefined,
+      cost: Number(body.cost ?? 0),
+      packaging_cost: Number(body.packaging_cost ?? 0),
+      desi: Number(body.desi ?? 0),
+      sale_price: Number(body.sale_price ?? 0),
+      active_channels: Array.isArray(body.active_channels) ? body.active_channels.map(String) : [],
+      status: (body.status === 'passive' || body.status === 'draft' ? body.status : 'active'),
+    };
 
-    if (validationErrors.length > 0) {
-      return NextResponse.json({ success: false, error: validationErrors.join(" ") }, { status: 400 });
+    if (!payload.name || !payload.category_path) {
+      return NextResponse.json({ success: false, error: 'Product name and category are required' }, { status: 400 });
     }
 
-    const productId = await saveProductRecord(payload);
-    const results = await recalculateCostResultsForProduct(productId);
+    const productId = saveProductRecord(payload);
+    const results = recalculateCostResultsForProduct(productId);
 
     return NextResponse.json({
       success: true,

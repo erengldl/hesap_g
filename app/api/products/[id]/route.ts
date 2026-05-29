@@ -4,16 +4,10 @@ import { recalculateCostResultsForProductFromDatabase } from "@/lib/cost-engine"
 import { getProductMarginSnapshots, getProductOrderHistory, getProductSalesTrend, summarizeProductTrend, buildProductDescriptionFallback } from "@/lib/product-history";
 import { buildDemoProductDetailResponse } from "@/lib/demo-product-detail";
 import { deleteProductImageUpload } from "@/lib/product-image-upload";
-import { requireCurrentAuthUserId } from "@/lib/tenant";
 import type { ProductUpsertInput } from "@/lib/types";
 import { deleteProductRecord, saveProductRecord } from "../service";
-import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
-
-function shouldAllowDemoFallback() {
-  return process.env.NODE_ENV !== "production" && process.env.ALLOW_DEMO_FALLBACK === "true";
-}
 
 type ExistingProductRow = {
   product_id: number;
@@ -43,7 +37,7 @@ function parseProductId(value: string | undefined | null) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
-async function getExistingProductChannelState(productId: number) {
+function getExistingProductChannelState(productId: number) {
   const db = getDb();
   if (!db) {
     return {
@@ -51,19 +45,17 @@ async function getExistingProductChannelState(productId: number) {
       salePrice: undefined as number | undefined,
     };
   }
-  const authUserId = requireCurrentAuthUserId();
 
-  const rows = await db.prepare(`
+  const rows = db.prepare(`
     SELECT
       m.slug,
       pms.sale_price
       , pms.shipping_company_id
     FROM product_marketplace_settings pms
-    JOIN products p ON p.product_id = pms.product_id
     JOIN marketplaces m ON pms.marketplace_id = m.marketplace_id
-    WHERE pms.product_id = ? AND p.user_id = ?
+    WHERE pms.product_id = ?
     ORDER BY CASE WHEN m.slug = 'own_website' THEN 0 ELSE 1 END, pms.marketplace_id ASC
-  `).all(productId, authUserId) as ExistingProductChannelRow[];
+  `).all(productId) as ExistingProductChannelRow[];
 
   const activeChannels = rows
     .map((row) => (row.slug === "own_website" ? "my_website" : row.slug))
@@ -117,14 +109,13 @@ function parseProductPayload(
   };
 }
 
-async function getExistingProduct(productId: number) {
+function getExistingProduct(productId: number) {
   const db = getDb();
   if (!db) {
     return null;
   }
-  const authUserId = requireCurrentAuthUserId();
 
-  return await db.prepare(`
+  return db.prepare(`
     SELECT
       p.product_id,
       p.name,
@@ -149,15 +140,12 @@ async function getExistingProduct(productId: number) {
           )
       ) AS stock_qty
     FROM products p
-    WHERE p.product_id = ? AND p.user_id = ?
+    WHERE p.product_id = ?
     LIMIT 1
-  `).get(productId, authUserId) as ExistingProductRow | undefined ?? null;
+  `).get(productId) as ExistingProductRow | undefined ?? null;
 }
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
-  primeRequestContextFromApiContext(session);
   let productId: number | null = null;
   try {
     const { id } = await params;
@@ -168,14 +156,10 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
     const db = getDb();
     if (!db) {
-      if (shouldAllowDemoFallback()) {
-        return NextResponse.json(buildDemoProductDetailResponse(productId));
-      }
-
-      return NextResponse.json({ success: false, error: "Ürün yüklenemedi." }, { status: 503 });
+      return NextResponse.json(buildDemoProductDetailResponse(productId));
     }
 
-    const product = await db.prepare(`
+    const product = db.prepare(`
       SELECT
         p.product_id,
         p.name,
@@ -189,8 +173,6 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         p.packaging_cost,
         p.desi,
         p.status,
-        c.name AS category_name,
-        c.path AS category_path_full,
         (
           SELECT COALESCE(SUM(id.stock_qty - COALESCE(id.reserved_qty, 0)), 0)
           FROM inventory_daily id
@@ -200,22 +182,22 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
               FROM inventory_daily id2
               WHERE id2.product_id = p.product_id
             )
-        ) AS stock_qty
+        ) AS stock_qty,
+        c.name AS category_name,
+        c.path AS category_path_full
       FROM products p
-      LEFT JOIN categories c ON c.category_id = p.category_id
-      WHERE p.product_id = ? AND p.user_id = ?
+      LEFT JOIN categories c ON p.category_id = c.category_id
+      WHERE p.product_id = ?
       LIMIT 1
-    `).get(productId, requireCurrentAuthUserId()) as (ExistingProductRow & { category_name: string | null; category_path_full: string | null }) | undefined;
+    `).get(productId) as
+      | (ExistingProductRow & { category_name: string | null; category_path_full: string | null })
+      | undefined;
 
     if (!product) {
-      if (shouldAllowDemoFallback()) {
-        return NextResponse.json(buildDemoProductDetailResponse(productId));
-      }
-
-      return NextResponse.json({ success: false, error: "Ürün bulunamadı." }, { status: 404 });
+      return NextResponse.json(buildDemoProductDetailResponse(productId));
     }
 
-    const channels = await db.prepare(`
+    const channels = db.prepare(`
       SELECT
         m.marketplace_id,
         m.name AS channel_name,
@@ -226,26 +208,25 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         pms.manual_shipping_cost,
         pms.shipping_mode
       FROM product_marketplace_settings pms
-      JOIN products p ON p.product_id = pms.product_id
-      JOIN marketplaces m ON m.marketplace_id = pms.marketplace_id
-      WHERE pms.product_id = ? AND p.user_id = ?
-      ORDER BY CASE WHEN m.slug = 'own_website' THEN 0 ELSE 1 END, m.marketplace_id ASC
-    `).all(productId, requireCurrentAuthUserId()) as Array<{
+      JOIN marketplaces m ON pms.marketplace_id = m.marketplace_id
+      WHERE pms.product_id = ?
+      ORDER BY m.marketplace_id ASC
+    `).all(productId) as Array<{
       marketplace_id: number;
       channel_name: string;
-      slug: string;
-      sale_price: number | null;
-      buybox_price: number | null;
-      shipping_company_id: number | null;
-      manual_shipping_cost: number | null;
-      shipping_mode: string | null;
+        slug: string;
+        sale_price: number | null;
+        buybox_price: number | null;
+        shipping_company_id: number | null;
+        manual_shipping_cost: number | null;
+        shipping_mode: string | null;
     }>;
 
-    const costResults = await recalculateCostResultsForProductFromDatabase(productId);
-    const marginSnapshots = await getProductMarginSnapshots(productId);
-    const salesTrend30 = await getProductSalesTrend(productId, 30);
-    const salesTrend90 = await getProductSalesTrend(productId, 90);
-    const orderHistory = await getProductOrderHistory(productId, 24);
+    const costResults = recalculateCostResultsForProductFromDatabase(productId);
+    const marginSnapshots = getProductMarginSnapshots(productId);
+    const salesTrend30 = getProductSalesTrend(productId, 30);
+    const salesTrend90 = getProductSalesTrend(productId, 90);
+    const orderHistory = getProductOrderHistory(productId, 24);
     const summary30 = summarizeProductTrend(salesTrend30);
     const summary90 = summarizeProductTrend(salesTrend90);
     const bestChannel = marginSnapshots[0] ?? null;
@@ -306,18 +287,14 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     });
   } catch (error) {
     console.error("Product detail API error:", error);
-    if (productId && shouldAllowDemoFallback()) {
+    if (productId) {
       return NextResponse.json(buildDemoProductDetailResponse(productId));
     }
-
-    return NextResponse.json({ success: false, error: "Ürün yüklenemedi." }, { status: 503 });
+    return NextResponse.json({ success: false, error: "Failed" }, { status: 500 });
   }
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
-  primeRequestContextFromApiContext(session);
   try {
     const { id } = await params;
     const productId = parseProductId(id);
@@ -325,17 +302,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, error: "Geçersiz ürün kimliği." }, { status: 400 });
     }
 
-    const existing = await getExistingProduct(productId);
+    const existing = getExistingProduct(productId);
     if (!existing) {
       return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 });
     }
 
-    const authUserId = session.authUserId?.trim() || "";
-    if (!authUserId) {
-      return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
-    }
-
-    const channelState = await getExistingProductChannelState(productId);
+    const channelState = getExistingProductChannelState(productId);
     const body = (await request.json().catch(() => ({}))) as Partial<ProductUpsertInput>;
     const imageUrlProvided = Object.prototype.hasOwnProperty.call(body, "image_url");
     const previousImageUrl = existing.image_url?.trim() || null;
@@ -347,17 +319,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     if (imageUrlProvided && previousImageUrl && previousImageUrl !== (payload.image_url ?? null)) {
       try {
-        await deleteProductImageUpload(previousImageUrl, {
-          authUserId,
-          allowLegacyDeletion: true,
-        });
+        await deleteProductImageUpload(previousImageUrl);
       } catch (cleanupError) {
         console.warn("Product image cleanup warning:", cleanupError);
       }
     }
 
-    const updatedProductId = await saveProductRecord(payload, productId);
-    const results = await recalculateCostResultsForProductFromDatabase(updatedProductId);
+    const updatedProductId = saveProductRecord(payload, productId);
+    const results = recalculateCostResultsForProductFromDatabase(updatedProductId);
 
     return NextResponse.json({
       success: true,
@@ -371,9 +340,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
-  primeRequestContextFromApiContext(session);
   try {
     const { id } = await params;
     const productId = parseProductId(id);
@@ -381,12 +347,12 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       return NextResponse.json({ success: false, error: "Geçersiz ürün kimliği." }, { status: 400 });
     }
 
-    const existing = await getExistingProduct(productId);
+    const existing = getExistingProduct(productId);
     if (!existing) {
       return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 });
     }
 
-    await deleteProductRecord(productId);
+    deleteProductRecord(productId);
 
     return NextResponse.json({
       success: true,

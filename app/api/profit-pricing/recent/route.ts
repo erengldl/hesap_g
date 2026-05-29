@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 
 import { listProfitPricingRuns } from "@/lib/profit-pricing/server";
 
@@ -16,9 +15,6 @@ function parseLimit(value: string | null) {
 }
 
 export async function GET(request: Request) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
-  primeRequestContextFromApiContext(session);
   try {
     const url = new URL(request.url);
     const productId = parseProductId(url.searchParams.get("productId"));
@@ -26,7 +22,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      data: await listProfitPricingRuns(limit, productId),
+      data: listProfitPricingRuns(limit, productId),
     });
   } catch (error) {
     console.error("Profit pricing recent GET error:", error);

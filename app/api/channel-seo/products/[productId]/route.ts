@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
 
 import { getChannelSeoProductDetail } from "@/lib/channel-seo/repository";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ productId: string }> }) {
-  const session = await requireAuth();
-  if (session instanceof NextResponse) return session;
   try {
     const { productId } = await params;
     const normalizedProductId = typeof productId === "string" ? productId.trim() : "";
@@ -21,7 +18,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       );
     }
 
-    const detail = await getChannelSeoProductDetail(normalizedProductId);
+    const detail = getChannelSeoProductDetail(normalizedProductId);
     if (!detail) {
       return NextResponse.json(
         {

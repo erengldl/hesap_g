@@ -4,7 +4,6 @@ import { query } from "@/lib/db";
 import { mapMarketplaceSlugToSalesChannel } from "@/lib/profit-pricing/utils";
 import type { SalesChannel } from "@/lib/profit-pricing/types";
 import { calculateReturnRate, normalizeReturnRiskStats } from "./feature-builder";
-import { requireCurrentAuthUserId } from "@/lib/tenant";
 import type { ReturnRiskContext, ReturnRiskTrainingRow } from "./types";
 
 type ReturnRiskOrderRow = {
@@ -49,7 +48,7 @@ type CachedContextEntry = {
 };
 
 const RETURN_RISK_CACHE_TTL_MS = 5 * 60 * 1000;
-const datasetCache = new Map<string, CachedDatasetEntry>();
+const datasetCache = new Map<number, CachedDatasetEntry>();
 const contextCache = new Map<string, CachedContextEntry>();
 
 function finite(value: number | null | undefined, fallback = 0) {
@@ -92,10 +91,9 @@ function toTrainingRow(row: ReturnRiskOrderRow): ReturnRiskTrainingRow | null {
   };
 }
 
-export async function listReturnRiskTrainingRows(limit = 10000): Promise<ReturnRiskTrainingRow[]> {
-  const authUserId = requireCurrentAuthUserId();
+export function listReturnRiskTrainingRows(limit = 10000): ReturnRiskTrainingRow[] {
   try {
-    const rows = await query<ReturnRiskOrderRow>(
+    const rows = query<ReturnRiskOrderRow>(
       `
         SELECT
           o.order_id,
@@ -120,23 +118,20 @@ export async function listReturnRiskTrainingRows(limit = 10000): Promise<ReturnR
             SELECT COALESCE(SUM(id.stock_qty - COALESCE(id.reserved_qty, 0)), 0)
             FROM inventory_daily id
             WHERE id.product_id = o.product_id
-              AND id.user_id = o.user_id
               AND id.inventory_date = (
                 SELECT MAX(id2.inventory_date)
                 FROM inventory_daily id2
                 WHERE id2.product_id = o.product_id
-                  AND id2.user_id = o.user_id
               )
           ) AS stock_level
         FROM orders o
         LEFT JOIN marketplaces m ON m.marketplace_id = o.marketplace_id
-        LEFT JOIN products p ON p.product_id = o.product_id AND p.user_id = o.user_id
+        LEFT JOIN products p ON p.product_id = o.product_id
         LEFT JOIN categories c ON c.category_id = p.category_id
-        WHERE o.user_id = ?
         ORDER BY o.order_date DESC, o.order_id DESC
         LIMIT ?
       `,
-      [authUserId, Math.max(1, Math.min(50000, Math.round(limit)))]
+      [Math.max(1, Math.min(50000, Math.round(limit)))]
     );
 
     return rows
@@ -198,19 +193,17 @@ function buildDataset(rows: ReturnRiskTrainingRow[]): ReturnRiskDataset {
   };
 }
 
-async function getCachedDataset(limit = 10000) {
-  const authUserId = requireCurrentAuthUserId();
+function getCachedDataset(limit = 10000) {
   const normalizedLimit = Math.max(1, Math.min(50000, Math.round(limit)));
-  const cacheKey = `${authUserId}:${normalizedLimit}`;
   const now = Date.now();
-  const cached = datasetCache.get(cacheKey);
+  const cached = datasetCache.get(normalizedLimit);
   if (cached && cached.expiresAt > now) {
     return cached.dataset;
   }
 
-  const rows = await listReturnRiskTrainingRows(normalizedLimit);
+  const rows = listReturnRiskTrainingRows(normalizedLimit);
   const dataset = buildDataset(rows);
-  datasetCache.set(cacheKey, {
+  datasetCache.set(normalizedLimit, {
     dataset,
     expiresAt: now + RETURN_RISK_CACHE_TTL_MS,
   });
@@ -229,20 +222,19 @@ function makeSlice(rows: ReturnRiskTrainingRow[]) {
   };
 }
 
-export async function buildReturnRiskContextForProduct(params: {
+export function buildReturnRiskContextForProduct(params: {
   productId: string | number;
   channel: SalesChannel;
-}): Promise<ReturnRiskContext> {
-  const authUserId = requireCurrentAuthUserId();
+}): ReturnRiskContext {
   const productId = String(params.productId);
-  const cacheKey = `${authUserId}:${productId}:${params.channel}`;
+  const cacheKey = `${productId}:${params.channel}`;
   const now = Date.now();
   const cached = contextCache.get(cacheKey);
   if (cached && cached.expiresAt > now) {
     return cached.context;
   }
 
-  const dataset = await getCachedDataset();
+  const dataset = getCachedDataset();
   const productRows = dataset.byProduct.get(productId) ?? [];
   const categoryId = dataset.productMeta.get(productId)?.categoryId;
   const categoryRows = categoryId ? dataset.byCategory.get(categoryId) ?? [] : [];

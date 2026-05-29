@@ -19,7 +19,7 @@ export function GlassCard({
       {...props}
       className={cn(
         elevated ? "glass-panel" : "glass-card",
-        "rounded-[24px] p-4 sm:p-5",
+        "rounded-xl p-4 sm:p-5",
         className
       )}
     >
@@ -27,31 +27,6 @@ export function GlassCard({
     </div>
   );
 }
-
-type KpiTone = "default" | "primary" | "success" | "warning" | "danger";
-
-const KPI_CARD_TONES: Record<KpiTone, { card: string; icon: string }> = {
-  default: {
-    card: "border-slate-200 bg-white",
-    icon: "border-slate-200 bg-slate-50 text-slate-500",
-  },
-  primary: {
-    card: "border-primary/15 bg-[linear-gradient(180deg,#f3fbf9,#ffffff)]",
-    icon: "border-primary/20 bg-primary text-primary-foreground shadow-[var(--shadow-primary)]",
-  },
-  success: {
-    card: "border-success/20 bg-emerald-50/80",
-    icon: "border-success/20 bg-emerald-100 text-success",
-  },
-  warning: {
-    card: "border-warning/20 bg-amber-50/80",
-    icon: "border-warning/20 bg-amber-100 text-warning",
-  },
-  danger: {
-    card: "border-danger/20 bg-red-50/80",
-    icon: "border-danger/20 bg-red-100 text-danger",
-  },
-};
 
 interface KpiCardProps {
   title: string;
@@ -62,56 +37,38 @@ interface KpiCardProps {
     value: string;
     isPositive: boolean;
   };
-  tone?: KpiTone;
   className?: string;
-  goldRim?: boolean;
 }
 
-export function KpiCard({
-  title,
-  value,
-  subValue,
-  icon: Icon,
-  trend,
-  tone = "default",
-  className,
-  goldRim = false,
-}: KpiCardProps) {
-  const toneStyles = KPI_CARD_TONES[tone];
-
+export function KpiCard({ title, value, subValue, icon: Icon, trend, className }: KpiCardProps) {
   return (
-    <GlassCard
-      className={cn(
-        "group relative h-full overflow-hidden",
-        toneStyles.card,
-        goldRim && "gold-rim",
-        className
-      )}
-    >
-      <div className="relative flex items-start justify-between gap-4">
+    <GlassCard className={cn("group relative h-full overflow-hidden border-border/70 transition-transform duration-200 hover:-translate-y-0.5", className)}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/45 to-transparent" />
+      <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">{title}</p>
-          <h3 className="mt-3 max-w-full truncate text-[1.65rem] font-semibold leading-none tracking-[-0.05em] text-foreground sm:text-[1.9rem]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted/60">{title}</p>
+          <h3 className="font-heading mt-3 max-w-full truncate text-[1.65rem] font-semibold leading-none tracking-[-0.05em] text-foreground sm:text-[1.9rem]">
             {value}
           </h3>
-          {subValue && <p className="mt-2 text-[12px] leading-5 text-slate-500">{subValue}</p>}
-          {trend && (
+          {subValue && <p className="mt-2 text-[12px] font-medium text-muted/60">{subValue}</p>}
+          {(trend || subValue) && (
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <span
                 className={cn(
                   "rounded-md border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]",
-                  trend.isPositive
+                  trend?.isPositive
                     ? "border-success/20 bg-success/10 text-success"
                     : "border-danger/20 bg-danger/10 text-danger"
                 )}
               >
-                {trend.value}
+                {trend?.value ?? "Durum"}
               </span>
+              {subValue && <span className="text-[11px] text-muted/60">Güncel akış</span>}
             </div>
           )}
         </div>
-        <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border", toneStyles.icon)}>
-          <Icon className="h-5 w-5" />
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-[var(--shadow-primary)] transition-transform duration-200 group-hover:scale-[1.03]">
+          <Icon className="h-4 w-4" />
         </div>
       </div>
     </GlassCard>
@@ -137,8 +94,8 @@ export function MetricBadge({
 
   return (
     <div className={cn("flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em]", colors[type])}>
-      <span className="opacity-80">{label}</span>
-      <span className="text-[8px] opacity-60">•</span>
+      <span className="opacity-60">{label}</span>
+      <span className="text-[8px] opacity-50">•</span>
       <span>{value}</span>
     </div>
   );
@@ -158,37 +115,6 @@ export function WarningBadge({ children, className }: { children: React.ReactNod
   );
 }
 
-type EyebrowBadgeVariant = "default" | "primary";
-
-interface EyebrowBadgeProps {
-  children: React.ReactNode;
-  variant?: EyebrowBadgeVariant;
-  className?: string;
-}
-
-export function EyebrowBadge({
-  children,
-  variant = "default",
-  className,
-}: EyebrowBadgeProps) {
-  const variantStyles: Record<EyebrowBadgeVariant, string> = {
-    default: "border border-slate-200 bg-white text-slate-500",
-    primary: "border border-primary/20 bg-primary/10 text-primary",
-  };
-
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em]",
-        variantStyles[variant],
-        className
-      )}
-    >
-      {children}
-    </span>
-  );
-}
-
 export function PageHeader({
   title,
   description,
@@ -201,17 +127,20 @@ export function PageHeader({
   eyebrow?: string;
 }) {
   return (
-    <div className="mb-5 flex flex-col gap-4 lg:mb-6 lg:flex-row lg:items-end lg:justify-between">
+    <div className="mb-6 flex flex-col gap-4 lg:mb-7 lg:flex-row lg:items-end lg:justify-between">
       <div className="max-w-3xl space-y-2">
         {eyebrow && (
-          <EyebrowBadge variant="default">{eyebrow}</EyebrowBadge>
+          <div className="inline-flex items-center gap-2 rounded-md border border-border/80 bg-surface-container/70 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted/60">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            {eyebrow}
+          </div>
         )}
         <div className="space-y-2">
-          <h1 className="text-[2rem] font-semibold tracking-[-0.06em] text-foreground sm:text-[2.35rem] lg:text-[2.6rem]">
+          <h1 className="font-heading text-[2.15rem] font-semibold tracking-[-0.06em] text-foreground sm:text-[2.65rem] lg:text-[2.95rem]">
             {title}
           </h1>
           {description && (
-            <p className="max-w-2xl text-sm leading-7 text-slate-500 sm:text-[15px]">
+            <p className="max-w-2xl text-sm leading-6 text-muted/60 sm:text-[15px]">
               {description}
             </p>
           )}
@@ -220,20 +149,6 @@ export function PageHeader({
       <div className="flex flex-wrap items-center gap-2.5 lg:justify-end">{children}</div>
     </div>
   );
-}
-
-interface MobileCardListProps<T> {
-  data: T[];
-  renderItem: (item: T, index: number) => React.ReactNode;
-  className?: string;
-}
-
-export function MobileCardList<T>({
-  data,
-  renderItem,
-  className,
-}: MobileCardListProps<T>) {
-  return <div className={cn("space-y-2", className)}>{data.map((item, index) => renderItem(item, index))}</div>;
 }
 
 // ─── Loading & Empty States ─────────────────────────────────────────
@@ -268,7 +183,7 @@ export function SkeletonCard({
   return (
     <div
       className={cn(
-        "skeleton-shimmer border border-slate-200 bg-slate-100",
+        "skeleton-shimmer border border-border/70 bg-surface-container",
         variant === "card"
           ? "rounded-xl"
           : variant === "table-row"
@@ -318,24 +233,24 @@ export function EmptyState({
   return (
     <GlassCard
       className={cn(
-        "border-dashed border-slate-200 bg-slate-50/60 text-center",
+        "border-dashed border-border/70 text-center",
         isInline ? "p-5 sm:p-6" : "p-7 sm:p-9",
         className
       )}
     >
       <div
         className={cn(
-          "mx-auto mb-4 inline-flex items-center justify-center rounded-2xl bg-primary/10 text-primary",
-        isInline ? "h-11 w-11" : "h-14 w-14"
-      )}
+          "mx-auto mb-4 inline-flex items-center justify-center rounded-xl bg-primary/10 text-primary",
+          isInline ? "h-11 w-11" : "h-14 w-14"
+        )}
       >
         <Icon className={cn(isInline ? "h-[18px] w-[18px]" : "h-5 w-5")} />
       </div>
-      <h3 className={cn("font-semibold tracking-[-0.04em] text-foreground", isInline ? "text-base" : "text-lg")}>
+      <h3 className={cn("font-heading font-semibold tracking-[-0.04em] text-foreground", isInline ? "text-base" : "text-lg")}>
         {title}
       </h3>
       {description && (
-        <p className={cn("mx-auto mt-2 leading-6 text-slate-500", isInline ? "max-w-xs text-xs" : "max-w-sm text-sm")}>
+        <p className={cn("mx-auto mt-2 leading-6 text-muted/60", isInline ? "max-w-xs text-xs" : "max-w-sm text-sm")}>
           {description}
         </p>
       )}
@@ -360,14 +275,14 @@ export function ErrorStateCard({
   icon: Icon = AlertTriangle,
 }: ErrorStateCardProps) {
   return (
-    <GlassCard className={cn("border-danger/20 bg-red-50/80 p-6", className)}>
+    <GlassCard className={cn("border-danger/30 bg-danger/5 p-6", className)}>
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-danger/20 bg-danger/10 text-danger">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-danger/30 bg-danger/10 text-danger">
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-semibold text-foreground">{title}</h3>
-          <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
+          <p className="mt-1 text-sm leading-6 text-muted/60">{description}</p>
           {action ? <div className="mt-4 flex flex-wrap gap-2">{action}</div> : null}
         </div>
       </div>

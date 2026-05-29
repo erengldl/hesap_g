@@ -41,9 +41,9 @@ type CurveTooltipProps = {
 };
 
 const STRATEGY_TONES: Record<OptimizationStrategyKey, string> = {
-  high_sales: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  buybox_balance: "border-primary/20 bg-primary/10 text-primary",
-  premium_balance: "border-amber-200 bg-amber-50 text-amber-700",
+  high_sales: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
+  buybox_balance: "border-primary/30 bg-primary/10 text-primary",
+  premium_balance: "border-warning/30 bg-warning/10 text-warning",
 };
 
 const STRATEGY_POINT_COLORS: Record<OptimizationStrategyKey, string> = {
@@ -51,55 +51,6 @@ const STRATEGY_POINT_COLORS: Record<OptimizationStrategyKey, string> = {
   buybox_balance: "#7c5cff",
   premium_balance: "#f59e0b",
 };
-
-type ChartBadgeTone = "default" | "primary" | "success" | "warning";
-
-const CHART_BADGE_STYLES: Record<ChartBadgeTone, { dot: string; shell: string }> = {
-  default: {
-    dot: "bg-slate-400",
-    shell: "border-slate-200 bg-white text-slate-500",
-  },
-  primary: {
-    dot: "bg-primary",
-    shell: "border-primary/20 bg-primary/10 text-primary",
-  },
-  success: {
-    dot: "bg-success",
-    shell: "border-success/20 bg-success/10 text-success",
-  },
-  warning: {
-    dot: "bg-warning",
-    shell: "border-warning/20 bg-warning/10 text-warning",
-  },
-};
-
-function ChartBadge(props: {
-  label: string;
-  value?: string;
-  tone?: ChartBadgeTone;
-  className?: string;
-}) {
-  const tone = props.tone ?? "default";
-  const toneStyles = CHART_BADGE_STYLES[tone];
-
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]",
-        toneStyles.shell,
-        props.className
-      )}
-    >
-      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", toneStyles.dot)} />
-      <span>{props.label}</span>
-      {props.value ? (
-        <span className="text-[10px] font-medium normal-case tracking-normal text-foreground/85">
-          {props.value}
-        </span>
-      ) : null}
-    </span>
-  );
-}
 
 function CurveTooltip({ active, payload }: CurveTooltipProps) {
   if (!active || !payload?.length) {
@@ -112,29 +63,29 @@ function CurveTooltip({ active, payload }: CurveTooltipProps) {
   }
 
   return (
-    <div className="w-[240px] rounded-2xl border border-border/70 bg-panel/95 p-3 text-sm text-foreground shadow-[var(--shadow-card)]">
+    <div className="w-[220px] rounded-2xl border border-border bg-[var(--panel-bg)] p-2.5 text-sm text-foreground shadow-[var(--shadow-card)]">
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
         Fiyat adayı
       </p>
-      <h4 className="mt-2 text-base font-semibold tracking-[-0.03em] text-foreground">
+      <h4 className="mt-2 text-base font-semibold text-foreground">
         {formatProfitPricingCurrency(point.price)}
       </h4>
       <div className="mt-3 space-y-2 text-[12px] text-soft">
         <div>
           <p className="text-[10px] uppercase tracking-[0.14em] text-muted/600">Talep</p>
-          <p className="mt-1 font-semibold text-foreground">
+          <p className="mt-1 font-medium text-foreground">
             {formatProfitPricingNumber(point.demand)}
           </p>
         </div>
         <div>
           <p className="text-[10px] uppercase tracking-[0.14em] text-muted/600">Toplam kâr</p>
-          <p className="mt-1 font-semibold text-foreground">
+          <p className="mt-1 font-medium text-foreground">
             {formatProfitPricingCurrency(point.totalProfit)}
           </p>
         </div>
         <div>
           <p className="text-[10px] uppercase tracking-[0.14em] text-muted/600">Birim net kâr</p>
-          <p className="mt-1 font-semibold text-foreground">
+          <p className="mt-1 font-medium text-foreground">
             {formatProfitPricingCurrency(point.unitProfit)}
           </p>
         </div>
@@ -159,7 +110,7 @@ function StrategyButton(props: {
   return (
     <article
       className={cn(
-        "h-full rounded-[22px] border p-3 text-left transition-colors duration-200",
+        "h-full rounded-2xl border p-2.5 text-left transition-all duration-200",
         STRATEGY_TONES[props.strategy.key],
         props.active ? "ring-1 ring-current shadow-[var(--shadow-primary)]" : "",
         props.strategy.disabled ? "opacity-60" : ""
@@ -208,7 +159,7 @@ function StrategyButton(props: {
         type="button"
         disabled={props.strategy.disabled || props.anyApplying}
         onClick={() => props.onApply(props.strategy.key)}
-        className="mt-2.5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-current/20 bg-current/10 px-2 py-1.5 text-[10px] font-semibold text-inherit transition-colors hover:bg-current/15 disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-2.5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-current/20 bg-current/10 px-2 py-1.5 text-[10px] font-semibold text-inherit transition hover:bg-current/15 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {props.applying ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -250,45 +201,21 @@ export default function PriceProfitCurve(props: {
   const hasTotalProfit = curveData.some((point) => point.totalProfit !== null);
 
   return (
-    <GlassCard className="overflow-hidden rounded-[28px] border border-slate-200 bg-white">
-      <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#f8fbff,#ffffff)] px-5 py-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
-              Fiyat talep eğrisi
-            </p>
-            <h3 className="mt-2 text-lg font-semibold text-foreground">
-              Üç farklı optimizasyon önerisi tek tıkla uygulanır
-            </h3>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-soft">
-              Seçili kanal için talep ve toplam kâr eğrisi gösterilir. Üstteki öneri
-              butonlarından biri seçildiğinde aynı strateji ürünün tüm kanallarına kaydedilir.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <ChartBadge
-              tone="default"
-              label="Seçili kanal"
-              value={channelLabel(props.selectedChannel)}
-            />
-            <ChartBadge
-              tone="primary"
-              label="Satış fiyatı"
-              value={formatProfitPricingCurrency(result.input.salePrice)}
-            />
-            {result.input.buyboxPrice != null ? (
-              <ChartBadge
-                tone="warning"
-                label={result.input.channel === "website" ? "Kargo" : "Buybox"}
-                value={formatProfitPricingCurrency(result.input.buyboxPrice)}
-              />
-            ) : null}
-          </div>
+    <GlassCard className="border-border/80">
+      <div className="flex flex-col gap-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
+            Fiyat talep eğrisi
+          </p>
+          <h3 className="mt-2 text-lg font-semibold text-foreground">
+            Üç farklı optimizasyon önerisi tek tıkla uygulanır
+          </h3>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-soft">
+            Seçili kanal için talep ve toplam kâr eğrisi gösterilir. Üstteki öneri
+            butonlarından biri seçildiğinde aynı strateji ürünün tüm kanallarına kaydedilir.
+          </p>
         </div>
-      </div>
 
-      <div className="p-3 sm:p-4">
         <div className="grid w-full gap-3 md:grid-cols-3">
           {strategies.map((strategy) => (
             <StrategyButton
@@ -302,179 +229,115 @@ export default function PriceProfitCurve(props: {
             />
           ))}
         </div>
+      </div>
 
-        <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50/70 p-3 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap gap-2">
-              <ChartBadge tone="success" label="Tahmini toplam kâr" />
-              <ChartBadge tone="primary" label="Birim net kâr" />
-              {hasDemand ? <ChartBadge tone="warning" label="Tahmini talep" /> : null}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <ChartBadge
-                tone="default"
-                label="Mevcut fiyat"
-                value={formatProfitPricingCurrency(result.input.salePrice)}
+      <div className="mt-4 h-[320px] min-w-0">
+        {isMounted ? (
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={320}>
+          <LineChart data={curveData} margin={{ top: 18, right: 22, left: 8, bottom: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
+            <XAxis
+              type="number"
+              dataKey="price"
+              domain={["dataMin", "dataMax"]}
+              stroke="var(--text-muted)"
+              tickFormatter={(value) => formatProfitPricingCurrency(Number(value))}
+            />
+            <YAxis
+              yAxisId="profit"
+              stroke="var(--text-muted)"
+              tickFormatter={(value) => formatProfitPricingCurrency(Number(value))}
+            />
+            {hasDemand ? (
+              <YAxis
+                yAxisId="demand"
+                orientation="right"
+                stroke="var(--warning)"
+                tickFormatter={(value) => formatProfitPricingNumber(Number(value))}
               />
-              {result.input.buyboxPrice != null ? (
-                <ChartBadge
-                  tone="default"
-                  label={result.input.channel === "website" ? "Kargo" : "Buybox"}
-                  value={formatProfitPricingCurrency(result.input.buyboxPrice)}
+            ) : null}
+            <Tooltip content={<CurveTooltip />} />
+
+            <ReferenceLine
+              x={result.input.salePrice}
+              stroke="var(--accent)"
+              strokeDasharray="4 4"
+              label="Mevcut fiyat"
+            />
+            {result.input.buyboxPrice ? (
+              <ReferenceLine
+                x={result.input.buyboxPrice}
+                stroke="var(--warning)"
+                strokeDasharray="4 4"
+                label="Buybox"
+              />
+            ) : null}
+
+            {strategies.map((strategy) => {
+              const selectedTarget =
+                strategy.channelTargets.find(
+                  (target) => target.channel === props.selectedChannel
+                ) ?? strategy.channelTargets[0];
+
+              if (!selectedTarget?.price) {
+                return null;
+              }
+
+              const profitPoint =
+                curveData.find((point) => point.price === selectedTarget.price) ?? null;
+
+              return (
+                <ReferenceDot
+                  key={`${strategy.key}-${selectedTarget.price}`}
+                  x={selectedTarget.price}
+                  y={profitPoint?.totalProfit ?? 0}
+                  yAxisId="profit"
+                  r={activeStrategy === strategy.key ? 7 : 5}
+                  fill={STRATEGY_POINT_COLORS[strategy.key]}
+                  stroke="var(--text-main)"
+                  strokeWidth={1.5}
+                  ifOverflow="extendDomain"
                 />
-              ) : null}
-            </div>
-          </div>
+              );
+            })}
 
-          <div className="mt-3 rounded-[22px] border border-slate-200 bg-white p-2 sm:p-3">
-            <div className="h-[340px] min-w-0">
-              {isMounted ? (
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={340}>
-                  <LineChart data={curveData} margin={{ top: 14, right: 28, left: 14, bottom: 10 }}>
-                    <CartesianGrid strokeDasharray="4 8" stroke="var(--grid-line)" />
-                    <XAxis
-                      type="number"
-                      dataKey="price"
-                      domain={["dataMin", "dataMax"]}
-                      axisLine={false}
-                      tickLine={false}
-                      tickMargin={10}
-                      stroke="var(--text-muted)"
-                      tick={{ fill: "var(--text-muted)", fontSize: 11 }}
-                      tickFormatter={(value) => formatProfitPricingCurrency(Number(value))}
-                    />
-                    <YAxis
-                      yAxisId="profit"
-                      width={92}
-                      axisLine={false}
-                      tickLine={false}
-                      tickMargin={10}
-                      stroke="var(--text-muted)"
-                      tick={{ fill: "var(--text-muted)", fontSize: 11 }}
-                      tickFormatter={(value) => formatProfitPricingCurrency(Number(value))}
-                    />
-                    {hasDemand ? (
-                      <YAxis
-                        yAxisId="demand"
-                        orientation="right"
-                        width={60}
-                        axisLine={false}
-                        tickLine={false}
-                        tickMargin={10}
-                        stroke="var(--text-muted)"
-                        tick={{ fill: "var(--text-muted)", fontSize: 11 }}
-                        tickFormatter={(value) => formatProfitPricingNumber(Number(value))}
-                      />
-                    ) : null}
-                    <Tooltip
-                      content={<CurveTooltip />}
-                      cursor={{ stroke: "var(--border-strong)", strokeDasharray: "4 4" }}
-                    />
-
-                    <ReferenceLine
-                      x={result.input.salePrice}
-                      stroke="var(--primary)"
-                      strokeDasharray="4 4"
-                      strokeOpacity={0.7}
-                    />
-                    {result.input.buyboxPrice != null ? (
-                      <ReferenceLine
-                        x={result.input.buyboxPrice}
-                        stroke="var(--warning)"
-                        strokeDasharray="4 4"
-                        strokeOpacity={0.7}
-                      />
-                    ) : null}
-
-                    {strategies.map((strategy) => {
-                      const selectedTarget =
-                        strategy.channelTargets.find(
-                          (target) => target.channel === props.selectedChannel
-                        ) ?? strategy.channelTargets[0];
-
-                      if (!selectedTarget?.price) {
-                        return null;
-                      }
-
-                      const profitPoint =
-                        curveData.find((point) => point.price === selectedTarget.price) ?? null;
-
-                      return (
-                        <ReferenceDot
-                          key={`${strategy.key}-${selectedTarget.price}`}
-                          x={selectedTarget.price}
-                          y={profitPoint?.totalProfit ?? 0}
-                          yAxisId="profit"
-                          r={activeStrategy === strategy.key ? 7 : 5}
-                          fill={STRATEGY_POINT_COLORS[strategy.key]}
-                          stroke="var(--panel-bg)"
-                          strokeWidth={2}
-                          ifOverflow="extendDomain"
-                        />
-                      );
-                    })}
-
-                    {hasTotalProfit ? (
-                      <Line
-                        yAxisId="profit"
-                        type="monotone"
-                        dataKey="totalProfit"
-                        stroke="var(--success)"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={3}
-                        dot={{ r: 2, strokeWidth: 0, fill: "var(--success)" }}
-                        activeDot={{
-                          r: 5,
-                          stroke: "var(--panel-bg)",
-                          strokeWidth: 2,
-                          fill: "var(--success)",
-                        }}
-                        name="Tahmini toplam kâr"
-                      />
-                    ) : null}
-                    <Line
-                      yAxisId="profit"
-                      type="monotone"
-                      dataKey="unitProfit"
-                      stroke="var(--primary)"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.4}
-                      dot={{ r: 1.8, strokeWidth: 0, fill: "var(--primary)" }}
-                      activeDot={{
-                        r: 4.8,
-                        stroke: "var(--panel-bg)",
-                        strokeWidth: 2,
-                        fill: "var(--primary)",
-                      }}
-                      name="Birim net kâr"
-                    />
-                    {hasDemand ? (
-                      <Line
-                        yAxisId="demand"
-                        type="monotone"
-                        dataKey="demand"
-                        stroke="var(--warning)"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.4}
-                        dot={{ r: 1.8, strokeWidth: 0, fill: "var(--warning)" }}
-                        activeDot={{
-                          r: 4.5,
-                          stroke: "var(--panel-bg)",
-                          strokeWidth: 2,
-                          fill: "var(--warning)",
-                        }}
-                        name="Tahmini talep"
-                      />
-                    ) : null}
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : null}
-            </div>
-          </div>
-        </div>
+            {hasTotalProfit ? (
+              <Line
+                yAxisId="profit"
+                type="monotone"
+                dataKey="totalProfit"
+                stroke="var(--success)"
+                strokeWidth={2.8}
+                dot={{ r: 1.8, strokeWidth: 0, fill: "var(--success)" }}
+                activeDot={{ r: 5, strokeWidth: 0, fill: "var(--success)" }}
+                name="Tahmini toplam kâr"
+              />
+            ) : null}
+            <Line
+              yAxisId="profit"
+              type="monotone"
+              dataKey="unitProfit"
+              stroke="var(--primary)"
+              strokeWidth={2.2}
+              dot={{ r: 1.6, strokeWidth: 0, fill: "var(--primary)" }}
+              activeDot={{ r: 4.6, strokeWidth: 0, fill: "var(--primary)" }}
+              name="Birim net kâr"
+            />
+            {hasDemand ? (
+              <Line
+                yAxisId="demand"
+                type="monotone"
+                dataKey="demand"
+                stroke="var(--warning)"
+                strokeWidth={2.4}
+                dot={{ r: 1.4, strokeWidth: 0, fill: "var(--warning)" }}
+                activeDot={{ r: 4.2, strokeWidth: 0, fill: "var(--warning)" }}
+                name="Tahmini talep"
+              />
+            ) : null}
+          </LineChart>
+        </ResponsiveContainer>
+        ) : null}
       </div>
     </GlassCard>
   );

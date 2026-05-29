@@ -212,8 +212,8 @@ function mapSummary(row: CampaignSummaryRow): ManualAdCampaignSummary {
   };
 }
 
-async function getCampaignRow(db: ReturnType<typeof requireDb>, userId: number, campaignId: string) {
-  return await db
+function getCampaignRow(db: ReturnType<typeof requireDb>, userId: number, campaignId: string) {
+  return db
     .prepare(
       `
         SELECT *
@@ -225,50 +225,50 @@ async function getCampaignRow(db: ReturnType<typeof requireDb>, userId: number, 
     .get(campaignId, userId) as ManualAdCampaignRow | undefined;
 }
 
-async function getLatestReportRow(db: ReturnType<typeof requireDb>, campaignId: string) {
-  return await db
+function getLatestReportRow(db: ReturnType<typeof requireDb>, campaignId: string) {
+  return db
     .prepare(
       `
         SELECT *
         FROM manual_ad_ai_reports
         WHERE campaign_id = ?
-        ORDER BY created_at DESC, id DESC
+        ORDER BY datetime(created_at) DESC, rowid DESC
         LIMIT 1
       `
     )
     .get(campaignId) as ManualAdReportRow | undefined;
 }
 
-async function getMessages(db: ReturnType<typeof requireDb>, campaignId: string) {
-  return await db
+function getMessages(db: ReturnType<typeof requireDb>, campaignId: string) {
+  return db
     .prepare(
       `
         SELECT *
         FROM manual_ad_chat_messages
         WHERE campaign_id = ?
-        ORDER BY created_at ASC, id ASC
+        ORDER BY datetime(created_at) ASC, rowid ASC
       `
     )
     .all(campaignId) as ManualAdMessageRow[];
 }
 
-export async function listManualAdCampaignSummaries(userId: number) {
+export function listManualAdCampaignSummaries(userId: number) {
   const db = requireDb();
-  const rows = await db
+  const rows = db
     .prepare(
       `
         SELECT
           c.*,
           (SELECT COUNT(*) FROM manual_ad_chat_messages m WHERE m.campaign_id = c.id) AS message_count,
           (SELECT COUNT(*) FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id) AS report_count,
-          (SELECT r.id FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_report_id,
-          (SELECT r.decision FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_decision,
-          (SELECT r.score FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_score,
-          (SELECT r.summary FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_summary,
-          (SELECT r.created_at FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_report_created_at
+          (SELECT r.id FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_report_id,
+          (SELECT r.decision FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_decision,
+          (SELECT r.score FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_score,
+          (SELECT r.summary FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_summary,
+          (SELECT r.created_at FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_report_created_at
         FROM manual_ad_campaigns c
         WHERE c.user_id = ?
-        ORDER BY c.updated_at DESC, c.created_at DESC
+        ORDER BY datetime(c.updated_at) DESC, datetime(c.created_at) DESC
       `
     )
     .all(userId) as CampaignSummaryRow[];
@@ -276,20 +276,20 @@ export async function listManualAdCampaignSummaries(userId: number) {
   return rows.map(mapSummary);
 }
 
-export async function getManualAdCampaignSummary(userId: number, campaignId: string) {
+export function getManualAdCampaignSummary(userId: number, campaignId: string) {
   const db = requireDb();
-  const row = await db
+  const row = db
     .prepare(
       `
         SELECT
           c.*,
           (SELECT COUNT(*) FROM manual_ad_chat_messages m WHERE m.campaign_id = c.id) AS message_count,
           (SELECT COUNT(*) FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id) AS report_count,
-          (SELECT r.id FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_report_id,
-          (SELECT r.decision FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_decision,
-          (SELECT r.score FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_score,
-          (SELECT r.summary FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_summary,
-          (SELECT r.created_at FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY r.created_at DESC, r.id DESC LIMIT 1) AS latest_report_created_at
+          (SELECT r.id FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_report_id,
+          (SELECT r.decision FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_decision,
+          (SELECT r.score FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_score,
+          (SELECT r.summary FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_summary,
+          (SELECT r.created_at FROM manual_ad_ai_reports r WHERE r.campaign_id = c.id ORDER BY datetime(r.created_at) DESC, r.rowid DESC LIMIT 1) AS latest_report_created_at
         FROM manual_ad_campaigns c
         WHERE c.user_id = ? AND c.id = ?
         LIMIT 1
@@ -300,21 +300,21 @@ export async function getManualAdCampaignSummary(userId: number, campaignId: str
   return row ? mapSummary(row) : null;
 }
 
-export async function listManualAdMessages(campaignId: string) {
+export function listManualAdMessages(campaignId: string) {
   const db = requireDb();
-  return (await getMessages(db, campaignId)).map(mapMessage);
+  return getMessages(db, campaignId).map(mapMessage);
 }
 
-export async function getManualAdCampaignDetail(userId: number, campaignId: string): Promise<ManualAdCampaignDetail | null> {
+export function getManualAdCampaignDetail(userId: number, campaignId: string): ManualAdCampaignDetail | null {
   const db = requireDb();
-  const campaignRow = await getCampaignRow(db, userId, campaignId);
+  const campaignRow = getCampaignRow(db, userId, campaignId);
   if (!campaignRow) {
     return null;
   }
 
-  const messages = (await getMessages(db, campaignId)).map(mapMessage);
+  const messages = getMessages(db, campaignId).map(mapMessage);
   const conversationState = buildManualAdConversationState(messages);
-  const latestReportRow = await getLatestReportRow(db, campaignId);
+  const latestReportRow = getLatestReportRow(db, campaignId);
 
   return {
     campaign: mapCampaign(campaignRow),
@@ -324,12 +324,12 @@ export async function getManualAdCampaignDetail(userId: number, campaignId: stri
   };
 }
 
-export async function getManualAdCampaign(userId: number, campaignId: string) {
-  const detail = await getManualAdCampaignDetail(userId, campaignId);
+export function getManualAdCampaign(userId: number, campaignId: string) {
+  const detail = getManualAdCampaignDetail(userId, campaignId);
   return detail?.campaign ?? null;
 }
 
-export async function createManualAdCampaign(userId: number, input: ManualAdCampaignInput): Promise<ManualAdCampaignDetail> {
+export function createManualAdCampaign(userId: number, input: ManualAdCampaignInput): ManualAdCampaignDetail {
   const validation = validateManualAdCampaignInput(input);
   if (!validation.ok) {
     const error = new Error("Manual ad campaign input is invalid.");
@@ -357,8 +357,8 @@ export async function createManualAdCampaign(userId: number, input: ManualAdCamp
   });
   const seedReply = buildManualAdSeedReply(seedState, validation.value);
 
-  await db.transaction(async () => {
-    await db.prepare(
+  const transaction = db.transaction(() => {
+    db.prepare(
       `
         INSERT INTO manual_ad_campaigns (
           id, user_id, name, platform, start_date, end_date, total_spend, orders_from_ads,
@@ -383,7 +383,7 @@ export async function createManualAdCampaign(userId: number, input: ManualAdCamp
       validation.value.notes ?? null
     );
 
-    await db.prepare(
+    db.prepare(
       `
         INSERT INTO manual_ad_chat_messages (id, campaign_id, role, content, metadata_json, created_at)
         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -391,7 +391,9 @@ export async function createManualAdCampaign(userId: number, input: ManualAdCamp
     ).run(randomUUID(), campaignId, "assistant", seedReply.content, toJson(seedReply.metadata));
   });
 
-  const detail = await getManualAdCampaignDetail(userId, campaignId);
+  transaction();
+
+  const detail = getManualAdCampaignDetail(userId, campaignId);
   if (!detail) {
     throw new Error("Manual ad campaign could not be created.");
   }
@@ -399,11 +401,11 @@ export async function createManualAdCampaign(userId: number, input: ManualAdCamp
   return detail;
 }
 
-export async function updateManualAdCampaign(
+export function updateManualAdCampaign(
   userId: number,
   campaignId: string,
   input: ManualAdCampaignInput
-): Promise<ManualAdCampaignDetail | null> {
+): ManualAdCampaignDetail | null {
   const validation = validateManualAdCampaignInput(input);
   if (!validation.ok) {
     const error = new Error("Manual ad campaign input is invalid.");
@@ -412,12 +414,12 @@ export async function updateManualAdCampaign(
   }
 
   const db = requireDb();
-  const existing = await getCampaignRow(db, userId, campaignId);
+  const existing = getCampaignRow(db, userId, campaignId);
   if (!existing) {
     return null;
   }
 
-  await db.prepare(
+  db.prepare(
     `
       UPDATE manual_ad_campaigns
       SET name = ?,
@@ -452,18 +454,18 @@ export async function updateManualAdCampaign(
     userId
   );
 
-  return await getManualAdCampaignDetail(userId, campaignId);
+  return getManualAdCampaignDetail(userId, campaignId);
 }
 
-export async function deleteManualAdCampaign(userId: number, campaignId: string) {
+export function deleteManualAdCampaign(userId: number, campaignId: string) {
   const db = requireDb();
-  const result = await db
+  const result = db
     .prepare("DELETE FROM manual_ad_campaigns WHERE id = ? AND user_id = ?")
     .run(campaignId, userId);
   return result.changes > 0;
 }
 
-export async function appendManualAdMessage(
+export function appendManualAdMessage(
   campaignId: string,
   role: "user" | "assistant",
   content: string,
@@ -471,14 +473,14 @@ export async function appendManualAdMessage(
 ) {
   const db = requireDb();
   const id = randomUUID();
-  await db.prepare(
+  db.prepare(
     `
       INSERT INTO manual_ad_chat_messages (id, campaign_id, role, content, metadata_json, created_at)
       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `
   ).run(id, campaignId, role, content, metadata ? toJson(metadata) : null);
 
-  await db.prepare(
+  db.prepare(
     `
       UPDATE manual_ad_campaigns
       SET updated_at = CURRENT_TIMESTAMP
@@ -486,7 +488,7 @@ export async function appendManualAdMessage(
     `
   ).run(campaignId);
 
-  const row = await db
+  const row = db
     .prepare(
       `
         SELECT *
@@ -504,19 +506,19 @@ export async function appendManualAdMessage(
   return mapMessage(row);
 }
 
-export async function storeManualAdMessage(
+export function storeManualAdMessage(
   campaignId: string,
   role: "user" | "assistant",
   content: string,
   metadata?: ManualAdMessageMetadata | null
 ) {
-  return await appendManualAdMessage(campaignId, role, content, metadata);
+  return appendManualAdMessage(campaignId, role, content, metadata);
 }
 
-export async function createManualAdConversationReply(campaignId: string, messages: ManualAdChatMessage[]) {
+export function createManualAdConversationReply(campaignId: string, messages: ManualAdChatMessage[]) {
   const conversationState = buildManualAdConversationState(messages);
   const reply = buildManualAdAssistantReply(conversationState);
-  const assistantMessage = await appendManualAdMessage(campaignId, "assistant", reply.content, reply.metadata);
+  const assistantMessage = appendManualAdMessage(campaignId, "assistant", reply.content, reply.metadata);
   return {
     assistantMessage,
     conversationState,
@@ -524,25 +526,25 @@ export async function createManualAdConversationReply(campaignId: string, messag
   };
 }
 
-export async function getManualAdConversationState(campaignId: string) {
-  const messages = await listManualAdMessages(campaignId);
+export function getManualAdConversationState(campaignId: string) {
+  const messages = listManualAdMessages(campaignId);
   return buildManualAdConversationState(messages);
 }
 
-export async function getLatestManualAdReport(campaignId: string) {
+export function getLatestManualAdReport(campaignId: string) {
   const db = requireDb();
-  const row = await getLatestReportRow(db, campaignId);
+  const row = getLatestReportRow(db, campaignId);
   return row ? mapReport(row) : null;
 }
 
-export async function createManualAdReportRecord(
+export function createManualAdReportRecord(
   campaignId: string,
   generated: ManualAdGeneratedReport
 ) {
   const db = requireDb();
   const reportId = randomUUID();
 
-  await db.prepare(
+  db.prepare(
     `
       INSERT INTO manual_ad_ai_reports (
         id, campaign_id, decision, score, summary, metrics_json, conversation_state_json,
@@ -561,7 +563,7 @@ export async function createManualAdReportRecord(
     toJson(generated.recommendations)
   );
 
-  await db.prepare(
+  db.prepare(
     `
       UPDATE manual_ad_campaigns
       SET updated_at = CURRENT_TIMESTAMP
@@ -569,7 +571,7 @@ export async function createManualAdReportRecord(
     `
   ).run(campaignId);
 
-  const row = await db
+  const row = db
     .prepare(
       `
         SELECT *
@@ -587,14 +589,14 @@ export async function createManualAdReportRecord(
   return mapReport(row);
 }
 
-export async function generateAndStoreManualAdReport(
+export function generateAndStoreManualAdReport(
   campaign: ManualAdCampaign,
   conversationState: ManualAdConversationState,
   messages: ManualAdChatMessage[]
 ) {
   const metrics = calculateManualAdMetrics(campaign, conversationState);
   const decision = evaluateManualAdDecision(campaign, metrics, conversationState);
-  const generated = await generateManualAdReport({
+  return generateManualAdReport({
     campaign,
     metrics,
     decision,
@@ -606,9 +608,8 @@ export async function generateAndStoreManualAdReport(
           : "missing",
     conversationState,
     messages,
-  });
-  return {
+  }).then((generated) => ({
     generated,
-    report: await createManualAdReportRecord(campaign.id, generated),
-  };
+    report: createManualAdReportRecord(campaign.id, generated),
+  }));
 }

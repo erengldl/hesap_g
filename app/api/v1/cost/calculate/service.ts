@@ -1,10 +1,12 @@
-import { getProductSnapshot } from "@/lib/database-readers";
+import { getProducts } from "@/lib/database-readers";
 import {
   buildCostBootstrap,
   calculateAllChannels,
   calculateChannelCost,
+  persistCostResults,
   type CalculationInput,
 } from "@/lib/cost-engine";
+import { persistNetCostDefaultsFromCalculation, persistNetCostDefaultsFromForm } from "@/lib/net-cost-defaults";
 import { getMarketplaceById, getProductMarketplaceSetting } from "@/lib/database-readers";
 import { NextResponse } from "next/server";
 
@@ -23,7 +25,7 @@ function normalizeChannels(payload: unknown): CalculationInput["channels"] | nul
   return payload as CalculationInput["channels"];
 }
 
-async function resolveSingleMarketplaceChannel(
+function resolveSingleMarketplaceChannel(
   productId: number,
   product: CalculationInput["product"],
   body: Record<string, unknown>
@@ -33,12 +35,12 @@ async function resolveSingleMarketplaceChannel(
     return null;
   }
 
-  const marketplace = await getMarketplaceById(marketplaceId);
+  const marketplace = getMarketplaceById(marketplaceId);
   if (!marketplace) {
     return null;
   }
 
-  const productSetting = await getProductMarketplaceSetting(productId, marketplaceId);
+  const productSetting = getProductMarketplaceSetting(productId, marketplaceId);
   const salePrice = Number(body.salePrice ?? body.sale_price ?? productSetting?.sale_price ?? product.sale_price ?? 0);
   const carrierName = typeof body.carrierName === "string" ? body.carrierName : typeof body.carrier_name === "string" ? body.carrier_name : undefined;
   const shipmentType = body.shipmentType === "fast" ? "fast" : "normal";
@@ -83,23 +85,27 @@ async function calculateWithBody(request: Request, body: Record<string, unknown>
     return NextResponse.json({ success: false, error: "Product id is required" }, { status: 400 });
   }
 
-  const product = await getProductSnapshot(productId);
+  const product = getProducts().find((item) => item.id === productId);
   if (!product) {
     return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 });
   }
 
   if (body.persistDefaultsOnly === true) {
+    const persisted = persistNetCostDefaultsFromForm(productId, body);
+    if (!persisted) {
+      return NextResponse.json({ success: false, error: "Defaults could not be saved" }, { status: 500 });
+    }
+
     return NextResponse.json({
       success: true,
-      persisted: false,
+      persisted: true,
       product,
-      message: "Lite mode: defaults are not persisted.",
     });
   }
 
   const channels = normalizeChannels(body.channels);
   if (channels) {
-    const calculation = await calculateAllChannels({
+    const calculation = calculateAllChannels({
       product,
       channels,
     });
@@ -108,16 +114,19 @@ async function calculateWithBody(request: Request, body: Record<string, unknown>
       return NextResponse.json({ success: false, error: "At least one active channel is required" }, { status: 400 });
     }
 
+    persistCostResults(productId, calculation.results);
+    persistNetCostDefaultsFromCalculation(productId, body, calculation.results);
+
     return NextResponse.json({
       success: true,
       ...calculation,
     });
   }
 
-  const singleChannel = await resolveSingleMarketplaceChannel(productId, product, body);
+  const singleChannel = resolveSingleMarketplaceChannel(productId, product, body);
   if (singleChannel) {
-    const marketplace = await getMarketplaceById(Number(body.marketplaceId ?? body.marketplace_id));
-    const result = await calculateChannelCost(marketplace?.name ?? "Kendi Websitem", {
+    const marketplace = getMarketplaceById(Number(body.marketplaceId ?? body.marketplace_id));
+    const result = calculateChannelCost(marketplace?.name ?? "Kendi Websitem", {
       product,
       salePrice: singleChannel.salePrice,
       carrierName: (singleChannel as CalculationInput["channels"]["trendyol"]).carrierName,
@@ -129,12 +138,15 @@ async function calculateWithBody(request: Request, body: Record<string, unknown>
       manualShippingCost: (singleChannel as CalculationInput["channels"]["my_website"]).shippingCost,
       paymentGatewayRate: (singleChannel as CalculationInput["channels"]["my_website"]).gatewayRate,
       paymentGatewayFixedFee: (singleChannel as CalculationInput["channels"]["my_website"]).gatewayFixedFee,
-      productSetting: await getProductMarketplaceSetting(productId, Number(body.marketplaceId ?? body.marketplace_id)),
+      productSetting: getProductMarketplaceSetting(productId, Number(body.marketplaceId ?? body.marketplace_id)),
     });
 
     if (!result) {
       return NextResponse.json({ success: false, error: "Calculation failed" }, { status: 500 });
     }
+
+    persistCostResults(productId, [result]);
+    persistNetCostDefaultsFromCalculation(productId, body, [result]);
 
     return NextResponse.json({
       success: true,
@@ -151,7 +163,7 @@ async function calculateWithBody(request: Request, body: Record<string, unknown>
 export async function handleCostBootstrap(request: Request) {
   const url = new URL(request.url);
   const productId = Number(url.searchParams.get("productId") ?? url.searchParams.get("product_id") ?? 0);
-  const bootstrap = await buildCostBootstrap(Number.isFinite(productId) && productId > 0 ? productId : undefined);
+  const bootstrap = buildCostBootstrap(Number.isFinite(productId) && productId > 0 ? productId : undefined);
 
   return NextResponse.json({
     success: true,

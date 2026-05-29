@@ -3,8 +3,6 @@ import { getCommissionForCategory, getDefaultProductId, getOwnWebsiteGatewayRule
 import { buildDemandForecast as buildDemandForecastEngine } from "./demand-forecast";
 import { recalculateAllCostResultsFromDatabase, recalculateCostResultsForProfileFromDatabase, recalculateCostResultsForProductFromDatabase } from "./cost-engine";
 import { getProductSalesVelocity } from "./product-history";
-import { calculateVatEstimate } from "./tax-calculator";
-import { requireCurrentAuthUserId } from "./tenant";
 import type { AdMetrics, ChannelCostResult, Product } from "./types";
 
 type ProductRow = {
@@ -18,6 +16,12 @@ type ProductRow = {
   packaging_cost: number | null;
   desi: number | null;
   status: string | null;
+};
+
+type MarketplaceRow = {
+  marketplace_id: number;
+  name: string;
+  slug: string | null;
 };
 
 type ProductSettingRow = {
@@ -136,29 +140,32 @@ function toProductModel(row: ProductRow, salePrice: number, activeChannels: stri
   };
 }
 
-async function getMarketplaceShippingCompanyId(marketplaceId: number) {
-  const row = await getOne<{ shipping_company_id: number }>(
+function getMarketplaceById(marketplaceId: number) {
+  return getOne<MarketplaceRow>("SELECT marketplace_id, name, slug FROM marketplaces WHERE marketplace_id = ? LIMIT 1", [marketplaceId]);
+}
+
+function getMarketplaceShippingCompanyId(marketplaceId: number) {
+  const row = getOne<{ shipping_company_id: number }>(
     "SELECT shipping_company_id FROM marketplace_shipping_options WHERE marketplace_id = ? ORDER BY shipping_company_id ASC LIMIT 1",
     [marketplaceId]
   );
   return row?.shipping_company_id ?? null;
 }
 
-async function getShippingCompanyName(shippingCompanyId: number | null) {
+function getShippingCompanyName(shippingCompanyId: number | null) {
   if (!shippingCompanyId) return null;
-  const row = await getOne<ShippingCompanyRow>(
+  const row = getOne<ShippingCompanyRow>(
     "SELECT shipping_company_id, name FROM shipping_companies WHERE shipping_company_id = ? LIMIT 1",
     [shippingCompanyId]
   );
   return row?.name ?? null;
 }
 
-async function getProductContext(productId?: number): Promise<ProductContext | null> {
-  const authUserId = requireCurrentAuthUserId();
-  const resolvedProductId = productId ?? await getDefaultProductId();
+function getProductContext(productId?: number): ProductContext | null {
+  const resolvedProductId = productId ?? getDefaultProductId();
   if (!resolvedProductId) return null;
 
-  const product = await getOne<ProductRow>(`
+  const product = getOne<ProductRow>(`
     SELECT
       p.product_id AS id,
       p.name,
@@ -172,13 +179,13 @@ async function getProductContext(productId?: number): Promise<ProductContext | n
       p.status
     FROM products p
     LEFT JOIN categories c ON c.category_id = p.category_id
-    WHERE p.product_id = ? AND p.user_id = ?
+    WHERE p.product_id = ?
     LIMIT 1
-  `, [resolvedProductId, authUserId]);
+  `, [resolvedProductId]);
 
   if (!product) return null;
 
-  const rawSettings = await query<ProductSettingRow>(`
+  const rawSettings = query<ProductSettingRow>(`
     SELECT
       ms.setting_id,
       ms.product_id,
@@ -191,13 +198,12 @@ async function getProductContext(productId?: number): Promise<ProductContext | n
       m.name AS marketplace_name,
       m.slug AS marketplace_slug
     FROM product_marketplace_settings ms
-    JOIN products p ON p.product_id = ms.product_id AND p.user_id = ms.user_id
     LEFT JOIN marketplaces m ON m.marketplace_id = ms.marketplace_id
-    WHERE ms.product_id = ? AND p.user_id = ?
+    WHERE ms.product_id = ?
     ORDER BY ms.marketplace_id ASC
-  `, [resolvedProductId, authUserId]);
+  `, [resolvedProductId]);
 
-  const sellerProfile = await getOne<SellerProfileRow>(`
+  const sellerProfile = getOne<SellerProfileRow>(`
     SELECT
       profile_id,
       company_type,
@@ -207,11 +213,11 @@ async function getProductContext(productId?: number): Promise<ProductContext | n
       monthly_other_expenses,
       expected_monthly_order_count
     FROM seller_profiles
-    WHERE profile_id = ? AND user_id = ?
+    WHERE profile_id = ?
     LIMIT 1
-  `, [product.profile_id ?? 1, authUserId]) ?? DEFAULT_SELLER_PROFILE;
+  `, [product.profile_id ?? 1]) ?? DEFAULT_SELLER_PROFILE;
 
-  const websiteGateway = await getOwnWebsiteGatewayRule() ?? DEFAULT_WEBSITE_GATEWAY;
+  const websiteGateway = getOwnWebsiteGatewayRule() ?? DEFAULT_WEBSITE_GATEWAY;
 
   let settings = rawSettings;
   if (settings.length === 0) {
@@ -221,7 +227,7 @@ async function getProductContext(productId?: number): Promise<ProductContext | n
         setting_id: 0,
         product_id: product.id,
         marketplace_id: 1,
-        shipping_company_id: await getMarketplaceShippingCompanyId(1),
+        shipping_company_id: getMarketplaceShippingCompanyId(1),
         sale_price: fallbackSalePrice,
         manual_shipping_cost: null,
         payment_gateway_rule_id: null,
@@ -233,7 +239,7 @@ async function getProductContext(productId?: number): Promise<ProductContext | n
         setting_id: 0,
         product_id: product.id,
         marketplace_id: 2,
-        shipping_company_id: await getMarketplaceShippingCompanyId(2),
+        shipping_company_id: getMarketplaceShippingCompanyId(2),
         sale_price: fallbackSalePrice,
         manual_shipping_cost: null,
         payment_gateway_rule_id: null,
@@ -271,29 +277,29 @@ async function getProductContext(productId?: number): Promise<ProductContext | n
   };
 }
 
-async function resolveRecentMonthlyOrders(productId: number, fallbackOrders: number) {
-  const historyOrders = Math.round((await getProductSalesVelocity(productId, 30)) * 30);
+function resolveRecentMonthlyOrders(productId: number, fallbackOrders: number) {
+  const historyOrders = Math.round(getProductSalesVelocity(productId, 30) * 30);
   return Math.max(1, historyOrders || fallbackOrders);
 }
 
-async function getSellerFixedCostPerUnit(productId: number, profileId: number, sellerProfile: SellerProfileRow) {
-  const totalFixedCost = await getStoreExpenseMonthlyTotal(profileId);
-  const orders = await resolveRecentMonthlyOrders(productId, Number(sellerProfile.expected_monthly_order_count ?? 1));
+function getSellerFixedCostPerUnit(productId: number, profileId: number, sellerProfile: SellerProfileRow) {
+  const totalFixedCost = getStoreExpenseMonthlyTotal(profileId);
+  const orders = resolveRecentMonthlyOrders(productId, Number(sellerProfile.expected_monthly_order_count ?? 1));
   return round2(totalFixedCost / orders);
 }
 
-async function getDefaultShippingCost(product: ProductRow, context: ProductContext, setting: ProductSettingRow) {
+function getDefaultShippingCost(product: ProductRow, context: ProductContext, setting: ProductSettingRow) {
   const marketplaceSlug = setting.marketplace_slug ?? "";
   if (marketplaceSlug === "own_website") {
     return round2(Number(setting.manual_shipping_cost ?? context.websiteGateway?.manual_shipping_cost ?? DEFAULT_WEBSITE_GATEWAY.manual_shipping_cost));
   }
 
-  const shippingCompanyId = setting.shipping_company_id ?? await getMarketplaceShippingCompanyId(setting.marketplace_id);
+  const shippingCompanyId = setting.shipping_company_id ?? getMarketplaceShippingCompanyId(setting.marketplace_id);
   if (!shippingCompanyId) {
     return round2(Number(setting.manual_shipping_cost ?? context.websiteGateway?.manual_shipping_cost ?? DEFAULT_WEBSITE_GATEWAY.manual_shipping_cost));
   }
 
-  const shippingRate = await getOne<{ price: number }>(
+  const shippingRate = getOne<{ price: number }>(
     `SELECT price
      FROM shipping_rate_rules
      WHERE marketplace_id = ? AND shipping_company_id = ? AND ? BETWEEN desi_min AND desi_max
@@ -309,8 +315,8 @@ async function getDefaultShippingCost(product: ProductRow, context: ProductConte
   return round2(Number(setting.manual_shipping_cost ?? context.websiteGateway?.manual_shipping_cost ?? DEFAULT_WEBSITE_GATEWAY.manual_shipping_cost));
 }
 
-async function getPlatformFeeCost(marketplaceId: number, salePrice: number, shippingMode: string | null) {
-  const feeRows = await query<PlatformFeeRow>(
+function getPlatformFeeCost(marketplaceId: number, salePrice: number, shippingMode: string | null) {
+  const feeRows = query<PlatformFeeRow>(
     `SELECT marketplace_id, fee_type, fee_value_net, fee_value_gross, fee_rate_percent_net, fee_rate_percent_gross, shipment_type, is_active
      FROM platform_fee_rules
      WHERE marketplace_id = ? AND is_active = 1`,
@@ -338,7 +344,7 @@ async function getPlatformFeeCost(marketplaceId: number, salePrice: number, ship
   );
 }
 
-async function getCommissionCost(marketplaceName: string, categoryId: number | null, salePrice: number) {
+function getCommissionCost(marketplaceName: string, categoryId: number | null, salePrice: number) {
   if (!categoryId) {
     const fallbackRate = 15;
     return {
@@ -349,7 +355,7 @@ async function getCommissionCost(marketplaceName: string, categoryId: number | n
     };
   }
 
-  const commission = await getCommissionForCategory(marketplaceName, categoryId);
+  const commission = getCommissionForCategory(marketplaceName, categoryId);
   const rate = Number(commission?.commissionRate ?? 0);
   return {
     rate,
@@ -359,10 +365,9 @@ async function getCommissionCost(marketplaceName: string, categoryId: number | n
   };
 }
 
-export async function calculateChannelCosts(context: ProductContext) {
-  const unitFixedCost = await getSellerFixedCostPerUnit(context.product.id, context.product.profile_id ?? 1, context.sellerProfile);
-  type ResolvedChannelCost = Omit<ChannelCostResult, "is_fallback"> & {
-    is_fallback: boolean;
+export function calculateChannelCosts(context: ProductContext) {
+    const unitFixedCost = getSellerFixedCostPerUnit(context.product.id, context.product.profile_id ?? 1, context.sellerProfile);
+  const results: Array<ChannelCostResult & {
     marketplace_id: number;
     marketplace_slug: string;
     shipping_company_id: number | null;
@@ -371,128 +376,115 @@ export async function calculateChannelCosts(context: ProductContext) {
     shipping_mode: string;
     manual_shipping_cost: number | null;
     warning_notes: string | null;
-  };
+  }> = [];
 
-  const results = await Promise.all(
-    context.settings.map(async (setting) => {
-      const salePrice = round2(Number(setting.sale_price ?? 0));
-      const marketplaceName = setting.marketplace_name ?? "Pazar Yeri";
-      const marketplaceSlug = setting.marketplace_slug ?? "";
-      const isOwnWebsite = marketplaceSlug === "own_website" || marketplaceName === "Kendi Websitem";
-      const shippingMode = setting.shipping_mode ?? (isOwnWebsite ? "manual" : "marketplace_rate");
-      const shippingCompanyId = isOwnWebsite ? null : (setting.shipping_company_id ?? await getMarketplaceShippingCompanyId(setting.marketplace_id));
-      const shippingCompanyLookup = getShippingCompanyName(shippingCompanyId);
-      const shippingCostLookup = getDefaultShippingCost(context.product, context, {
-        ...setting,
-        marketplace_name: marketplaceName,
-        marketplace_slug: marketplaceSlug,
-        shipping_company_id: shippingCompanyId,
-      });
-      const commissionLookup = isOwnWebsite
-        ? Promise.resolve({ rate: 0, cost: 0, warning: null, matchType: "manual" as const })
-        : getCommissionCost(marketplaceName, context.product.category_id, salePrice);
-      const platformFeeLookup = isOwnWebsite
-        ? Promise.resolve(0)
-        : getPlatformFeeCost(setting.marketplace_id, salePrice, shippingMode);
-      const vatEstimateLookup = calculateVatEstimate({
-        salePrice,
-        productCost: Number(context.product.cost ?? 0),
-        packagingCost: Number(context.product.packaging_cost ?? 0),
-        categoryId: context.product.category_id,
-      });
+  for (const setting of context.settings) {
+    const marketplace = getMarketplaceById(setting.marketplace_id);
+    if (!marketplace) continue;
 
-      const [shippingCompanyName, shippingCost, commission, platformFeeCost, vatEstimate] = await Promise.all([
-        shippingCompanyLookup,
-        shippingCostLookup,
-        commissionLookup,
-        platformFeeLookup,
-        vatEstimateLookup,
-      ]);
+    const salePrice = round2(Number(setting.sale_price ?? 0));
+    const marketplaceSlug = setting.marketplace_slug ?? marketplace.slug ?? "";
+    const isOwnWebsite = marketplaceSlug === "own_website" || marketplace.name === "Kendi Websitem";
+    const shippingMode = setting.shipping_mode ?? (isOwnWebsite ? "manual" : "marketplace_rate");
+    const shippingCompanyId = isOwnWebsite ? null : (setting.shipping_company_id ?? getMarketplaceShippingCompanyId(setting.marketplace_id));
+    const shippingCompanyName = getShippingCompanyName(shippingCompanyId);
+    const shippingCost = getDefaultShippingCost(context.product, context, {
+      ...setting,
+      marketplace_name: marketplace.name,
+      marketplace_slug: marketplaceSlug,
+      shipping_company_id: shippingCompanyId,
+    });
 
-      const gatewayRule = isOwnWebsite ? context.websiteGateway : null;
-      const baseGatewayCost = salePrice * (Number(gatewayRule?.fee_rate_percent ?? 0) / 100) + Number(gatewayRule?.fixed_fee_per_order ?? 0);
-      const paymentGatewayCost = gatewayRule
-        ? round2(
-          Boolean(gatewayRule.fee_values_include_vat)
-            ? baseGatewayCost
-            : baseGatewayCost * (1 + Number(gatewayRule.vat_rate_percent ?? 0) / 100)
-        )
-        : 0;
+    const commission = isOwnWebsite
+      ? { rate: 0, cost: 0, warning: null, matchType: "manual" }
+      : getCommissionCost(marketplace.name, context.product.category_id, salePrice);
 
-      const unitAdCost = isOwnWebsite ? round2(Number(gatewayRule?.avg_ad_cost ?? 0)) : 0;
-      const unitCost =
-        Number(context.product.cost ?? 0) +
-        Number(context.product.packaging_cost ?? 0) +
-        shippingCost +
-        commission.cost +
-        platformFeeCost +
-        paymentGatewayCost +
-        unitAdCost +
-        unitFixedCost;
+    const platformFeeCost = isOwnWebsite
+      ? 0
+      : getPlatformFeeCost(setting.marketplace_id, salePrice, shippingMode);
 
-      const netProfit = round2(salePrice - unitCost);
-      const profitMarginPercent = salePrice > 0 ? round2((netProfit / salePrice) * 100) : 0;
-      const channelName =
-        marketplaceName === "Trendyol"
-          ? shippingMode === "fast"
-            ? "Trendyol Hızlı"
-            : "Trendyol Normal"
-          : isOwnWebsite
-            ? "Kendi Websitem"
-            : marketplaceName;
+    const gatewayRule = isOwnWebsite ? context.websiteGateway : null;
+    const baseGatewayCost = salePrice * (Number(gatewayRule?.fee_rate_percent ?? 0) / 100) + Number(gatewayRule?.fixed_fee_per_order ?? 0);
+    const paymentGatewayCost = gatewayRule
+      ? round2(
+        Boolean(gatewayRule.fee_values_include_vat)
+          ? baseGatewayCost
+          : baseGatewayCost * (1 + Number(gatewayRule.vat_rate_percent ?? 0) / 100)
+      )
+      : 0;
 
-      const warningParts: string[] = [];
-      if (commission.warning) warningParts.push(commission.warning);
-      if (vatEstimate.warning) warningParts.push(vatEstimate.warning);
-      if (!shippingCompanyName && !isOwnWebsite) {
-        warningParts.push("Kargo şirketi bulunamadı, varsayılan manuel kargo kullanıldı.");
-      }
+    const unitAdCost = isOwnWebsite ? round2(Number(gatewayRule?.avg_ad_cost ?? 0)) : 0;
+    const unitCost =
+      Number(context.product.cost ?? 0) +
+      Number(context.product.packaging_cost ?? 0) +
+      shippingCost +
+      commission.cost +
+      platformFeeCost +
+      paymentGatewayCost +
+      unitAdCost +
+      unitFixedCost;
 
-      return {
-        channel_name: channelName,
-        sale_price: salePrice,
-        product_cost: Number(context.product.cost ?? 0),
-        packaging_cost: Number(context.product.packaging_cost ?? 0),
-        shipping_cost: shippingCost,
-        commission_cost: commission.cost,
-        platform_fee_cost: platformFeeCost,
-        payment_gateway_cost: paymentGatewayCost,
-        traffic_ad_cost: isOwnWebsite ? unitAdCost : 0,
-        unit_ad_cost: isOwnWebsite ? 0 : unitAdCost,
-        unit_fixed_cost: unitFixedCost,
-        expected_return_cost: 0,
-        total_unit_cost: round2(unitCost),
-        net_profit: netProfit,
-        profit_margin_percent: profitMarginPercent,
-        output_vat: vatEstimate.outputVat,
-        input_vat: vatEstimate.inputVat,
-        estimated_vat_payable: vatEstimate.estimatedVatPayable,
-        is_fallback: warningParts.length > 0,
-        marketplace_id: setting.marketplace_id,
-        marketplace_slug: marketplaceSlug,
-        shipping_company_id: shippingCompanyId,
-        shipping_company_name: shippingCompanyName,
-        payment_gateway_rule_id: gatewayRule?.id ?? setting.payment_gateway_rule_id ?? null,
-        shipping_mode: shippingMode,
-        manual_shipping_cost: isOwnWebsite ? round2(Number(setting.manual_shipping_cost ?? gatewayRule?.manual_shipping_cost ?? DEFAULT_WEBSITE_GATEWAY.manual_shipping_cost)) : null,
-        warning_notes: warningParts.length > 0 ? warningParts.join(" ") : null,
-      } satisfies ResolvedChannelCost;
-    })
-  );
+    const netProfit = round2(salePrice - unitCost);
+    const profitMarginPercent = salePrice > 0 ? round2((netProfit / salePrice) * 100) : 0;
+    const channelName =
+      marketplace.name === "Trendyol"
+        ? shippingMode === "fast"
+          ? "Trendyol Hızlı"
+          : "Trendyol Normal"
+        : isOwnWebsite
+          ? "Kendi Websitem"
+          : marketplace.name;
 
-  return results.filter((result): result is ResolvedChannelCost => Boolean(result));
+    const warningParts: string[] = [];
+    if (commission.warning) warningParts.push(commission.warning);
+    if (!shippingCompanyName && !isOwnWebsite) {
+      warningParts.push("Kargo şirketi bulunamadı, varsayılan manuel kargo kullanıldı.");
+    }
+
+    results.push({
+      channel_name: channelName,
+      sale_price: salePrice,
+      product_cost: Number(context.product.cost ?? 0),
+      packaging_cost: Number(context.product.packaging_cost ?? 0),
+      shipping_cost: shippingCost,
+      commission_cost: commission.cost,
+      platform_fee_cost: platformFeeCost,
+      payment_gateway_cost: paymentGatewayCost,
+      traffic_ad_cost: isOwnWebsite ? unitAdCost : 0,
+      unit_ad_cost: isOwnWebsite ? 0 : unitAdCost,
+      unit_fixed_cost: unitFixedCost,
+      expected_return_cost: 0,
+      total_unit_cost: round2(unitCost),
+      net_profit: netProfit,
+      profit_margin_percent: profitMarginPercent,
+      output_vat: 0,
+      input_vat: 0,
+      estimated_vat_payable: 0,
+      is_fallback: warningParts.length > 0,
+      marketplace_id: setting.marketplace_id,
+      marketplace_slug: marketplaceSlug,
+      shipping_company_id: shippingCompanyId,
+      shipping_company_name: shippingCompanyName,
+      payment_gateway_rule_id: gatewayRule?.id ?? setting.payment_gateway_rule_id ?? null,
+      shipping_mode: shippingMode,
+      manual_shipping_cost: isOwnWebsite ? round2(Number(setting.manual_shipping_cost ?? gatewayRule?.manual_shipping_cost ?? DEFAULT_WEBSITE_GATEWAY.manual_shipping_cost)) : null,
+      warning_notes: warningParts.length > 0 ? warningParts.join(" ") : null,
+    });
+  }
+
+  return results;
 }
 
-export async function recalculateCostResultsForProduct(productId?: number) {
-  return await recalculateCostResultsForProductFromDatabase(productId);
+export function recalculateCostResultsForProduct(productId?: number) {
+  return recalculateCostResultsForProductFromDatabase(productId);
 }
 
-export async function recalculateAllCostResults() {
-  return await recalculateAllCostResultsFromDatabase();
+export function recalculateAllCostResults() {
+  return recalculateAllCostResultsFromDatabase();
 }
 
-export async function recalculateCostResultsForProfile(profileId: number) {
-  return await recalculateCostResultsForProfileFromDatabase(profileId);
+export function recalculateCostResultsForProfile(profileId: number) {
+  return recalculateCostResultsForProfileFromDatabase(profileId);
 }
 
 export function getMostProfitableChannel(results: ChannelCostResult[]) {
@@ -500,13 +492,13 @@ export function getMostProfitableChannel(results: ChannelCostResult[]) {
   return results.reduce((best, current) => (current.net_profit > best.net_profit ? current : best));
 }
 
-export async function buildDashboardSnapshot(productId?: number) {
-  const context = await getProductContext(productId);
+export function buildDashboardSnapshot(productId?: number) {
+  const context = getProductContext(productId);
   if (!context) {
     return null;
   }
 
-  const results = await calculateChannelCosts(context);
+  const results = calculateChannelCosts(context);
   const bestChannel = getMostProfitableChannel(results);
 
   if (!bestChannel) {
@@ -542,14 +534,14 @@ export async function buildDashboardSnapshot(productId?: number) {
   };
 }
 
-export type DashboardSnapshot = NonNullable<Awaited<ReturnType<typeof buildDashboardSnapshot>>>;
+export type DashboardSnapshot = NonNullable<ReturnType<typeof buildDashboardSnapshot>>;
 
-export async function buildPriceSimulation(productId?: number) {
-  const snapshot = await buildDashboardSnapshot(productId);
+export function buildPriceSimulation(productId?: number) {
+  const snapshot = buildDashboardSnapshot(productId);
   if (!snapshot) return null;
 
   const { product, bestChannel } = snapshot;
-  const baseDemand = Math.max(10, Math.round((await getProductSalesVelocity(product.id, 30)) * 30) || Math.round(Number(product.sale_price ?? 0) / 8) || 10);
+  const baseDemand = Math.max(10, Math.round(getProductSalesVelocity(product.id, 30) * 30) || Math.round(Number(product.sale_price ?? 0) / 8) || 10);
   const slope = 0.3;
   const offsets = [-100, -50, 0, 50, 100, 150];
 
@@ -597,16 +589,16 @@ export async function buildPriceSimulation(productId?: number) {
   };
 }
 
-export async function buildDemandForecast(productId?: number) {
-  return await buildDemandForecastEngine(productId);
+export function buildDemandForecast(productId?: number) {
+  return buildDemandForecastEngine(productId);
 }
 
-export async function buildAdAnalysis(productId?: number, snapshot?: DashboardSnapshot | null) {
-  const resolvedSnapshot = snapshot ?? await buildDashboardSnapshot(productId);
+export function buildAdAnalysis(productId?: number, snapshot?: DashboardSnapshot | null) {
+  const resolvedSnapshot = snapshot ?? buildDashboardSnapshot(productId);
   if (!resolvedSnapshot) return null;
 
-  const websiteGateway = await getOwnWebsiteGatewayRule() ?? DEFAULT_WEBSITE_GATEWAY;
-  const sales = Math.max(1, Math.round((await getProductSalesVelocity(resolvedSnapshot.product.id, 30)) * 30) || 1);
+  const websiteGateway = getOwnWebsiteGatewayRule() ?? DEFAULT_WEBSITE_GATEWAY;
+  const sales = Math.max(1, Math.round(getProductSalesVelocity(resolvedSnapshot.product.id, 30) * 30) || 1);
   const ctr = 2.5;
   const conversionRate = Number(websiteGateway.avg_conversion_rate ?? 2.6);
   const clicks = Math.max(1, Math.round(sales / (conversionRate / 100)));
@@ -661,10 +653,10 @@ type ProductProfitRow = {
   total_revenue: number;
   total_orders: number;
   total_quantity: number;
+  avg_margin: number;
   cost: number;
   packaging_cost: number;
-  total_cost_exact: number;
-  missing_cost_lines: number;
+  sale_price: number;
 };
 
 type DailySalesRow = {
@@ -688,105 +680,42 @@ export type AggregateDashboard = {
   avgMargin: number;
   totalProfit: number;
   channelBreakdown: Array<{ name: string; slug: string; revenue: number; orders: number; pct: number }>;
-  topProducts: Array<{ id: number; name: string; sku: string; revenue: number; orders: number; qty: number; margin: number; marginConfidence: "exact" | "estimated" }>;
+  topProducts: Array<{ id: number; name: string; sku: string; revenue: number; orders: number; qty: number; margin: number }>;
   salesTrend: Array<{ date: string; revenue: number; orders: number }>;
   stockAlerts: Array<{ id: number; name: string; sku: string; stock: number; channel: string }>;
   methodology: string;
 };
 
-export async function buildAggregateDashboard(): Promise<AggregateDashboard | null> {
-  const authUserId = requireCurrentAuthUserId();
-  const db = await getDb();
+export function buildAggregateDashboard(): AggregateDashboard | null {
+  const db = getDb();
   if (!db) return null;
 
-  const [
-    totals,
-    channelRows,
-    topProductRows,
-    trendRows,
-    stockAlertRows,
-    avgMarginFromProducts,
-  ] = await Promise.all([
-    db.prepare(`
-      SELECT
-        COALESCE(SUM(oi.line_total), 0) as total_revenue,
-        COUNT(DISTINCT o.order_id) as total_orders,
-        COUNT(DISTINCT p.product_id) as total_products
-      FROM orders o
-      JOIN order_items oi ON o.order_id = oi.order_id
-      JOIN products p ON o.product_id = p.product_id
-      WHERE o.status = 'completed' AND o.user_id = ?
-    `).get(authUserId) as Promise<{ total_revenue: number; total_orders: number; total_products: number }>,
-    db.prepare(`
-      SELECT
-        m.name as channel_name,
-        m.slug as channel_slug,
-        COALESCE(SUM(oi.line_total), 0) as total_revenue,
-        COUNT(DISTINCT o.order_id) as total_orders
-      FROM orders o
-      JOIN order_items oi ON o.order_id = oi.order_id
-      JOIN marketplaces m ON o.marketplace_id = m.marketplace_id
-      WHERE o.status = 'completed' AND o.user_id = ?
-      GROUP BY m.marketplace_id
-      ORDER BY total_revenue DESC
-    `).all(authUserId) as Promise<OrderAggregateRow[]>,
-    db.prepare(`
-      SELECT
-        p.product_id,
-        p.name as product_name,
-        p.sku,
-        COALESCE(SUM(oi.line_total), 0) as total_revenue,
-        COUNT(DISTINCT o.order_id) as total_orders,
-        SUM(oi.quantity) as total_quantity,
-        COALESCE(MAX(p.cost), 0) as cost,
-        COALESCE(MAX(p.packaging_cost), 0) as packaging_cost,
-        COALESCE(SUM(CASE WHEN cr.total_unit_cost IS NOT NULL THEN oi.quantity * cr.total_unit_cost ELSE 0 END), 0) as total_cost_exact,
-        COALESCE(SUM(CASE WHEN cr.total_unit_cost IS NULL THEN 1 ELSE 0 END), 0) as missing_cost_lines
-      FROM orders o
-      JOIN order_items oi ON o.order_id = oi.order_id
-      JOIN products p ON COALESCE(oi.product_id, o.product_id) = p.product_id
-      LEFT JOIN cost_results cr
-        ON cr.product_id = p.product_id
-        AND cr.marketplace_id = o.marketplace_id
-      WHERE o.status = 'completed' AND o.user_id = ?
-      GROUP BY p.product_id
-      ORDER BY total_revenue DESC
-      LIMIT 5
-    `).all(authUserId) as Promise<ProductProfitRow[]>,
-    db.prepare(`
-      SELECT
-        o.order_date,
-        COALESCE(SUM(oi.line_total), 0) as total_revenue,
-        COUNT(DISTINCT o.order_id) as order_count
-      FROM orders o
-      JOIN order_items oi ON o.order_id = oi.order_id
-      WHERE o.status = 'completed' AND o.user_id = ? AND o.order_date >= CURRENT_DATE - INTERVAL '30 days'
-      GROUP BY o.order_date
-      ORDER BY o.order_date
-    `).all(authUserId) as Promise<DailySalesRow[]>,
-    db.prepare(`
-      SELECT
-        p.product_id,
-        p.name as product_name,
-        p.sku,
-        id.stock_qty,
-        m.name as marketplace_name
-      FROM inventory_daily id
-      JOIN products p ON id.product_id = p.product_id
-      JOIN marketplaces m ON id.marketplace_id = m.marketplace_id
-      WHERE id.inventory_date = (SELECT MAX(inventory_date) FROM inventory_daily)
-        AND id.user_id = ?
-        AND id.stock_qty < 20
-      ORDER BY id.stock_qty ASC
-      LIMIT 10
-    `).all(authUserId) as Promise<StockAlertRow[]>,
-    db.prepare(`
-      SELECT AVG((pms.sale_price - p.cost - p.packaging_cost) / pms.sale_price) * 100 as avg_margin
-      FROM products p
-      JOIN product_marketplace_settings pms ON p.product_id = pms.product_id AND pms.user_id = p.user_id
-      WHERE p.user_id = ?
-    `).get(authUserId) as Promise<{ avg_margin: number } | undefined>,
-  ]);
+  // Total metrics
+  const totals = db.prepare(`
+    SELECT
+      COALESCE(SUM(oi.line_total), 0) as total_revenue,
+      COUNT(DISTINCT o.order_id) as total_orders,
+      COUNT(DISTINCT p.product_id) as total_products
+    FROM orders o
+    JOIN order_items oi ON o.order_id = oi.order_id
+    JOIN products p ON o.product_id = p.product_id
+    WHERE o.status = 'completed'
+  `).get() as { total_revenue: number; total_orders: number; total_products: number };
+
+  // Channel breakdown
+  const channelRows = db.prepare(`
+    SELECT
+      m.name as channel_name,
+      m.slug as channel_slug,
+      COALESCE(SUM(oi.line_total), 0) as total_revenue,
+      COUNT(DISTINCT o.order_id) as total_orders
+    FROM orders o
+    JOIN order_items oi ON o.order_id = oi.order_id
+    JOIN marketplaces m ON o.marketplace_id = m.marketplace_id
+    WHERE o.status = 'completed'
+    GROUP BY m.marketplace_id
+    ORDER BY total_revenue DESC
+  `).all() as OrderAggregateRow[];
 
   const channelBreakdown = channelRows.map((row) => ({
     name: row.channel_name,
@@ -796,34 +725,80 @@ export async function buildAggregateDashboard(): Promise<AggregateDashboard | nu
     pct: totals.total_revenue > 0 ? Math.round((row.total_revenue / totals.total_revenue) * 100) : 0,
   }));
 
-  const topProducts = topProductRows.map((row) => {
-    const revenue = Number(row.total_revenue ?? 0);
-    const quantity = Number(row.total_quantity ?? 0);
-    const exactCost = Number(row.total_cost_exact ?? 0);
-    const fallbackUnitCost = Number(row.cost ?? 0) + Number(row.packaging_cost ?? 0);
-    const fallbackTotalCost = fallbackUnitCost * quantity;
-    const hasExactMargin = Number(row.missing_cost_lines ?? 0) === 0 && quantity > 0;
-    const marginConfidence: "exact" | "estimated" = hasExactMargin ? "exact" : "estimated";
-    const marginBaseCost = hasExactMargin ? exactCost : fallbackTotalCost;
-    const margin = revenue > 0 ? ((revenue - marginBaseCost) / revenue) * 100 : 0;
+  // Top 5 products
+  const topProductRows = db.prepare(`
+    SELECT
+      p.product_id,
+      p.name as product_name,
+      p.sku,
+      COALESCE(SUM(oi.line_total), 0) as total_revenue,
+      COUNT(DISTINCT o.order_id) as total_orders,
+      SUM(oi.quantity) as total_quantity,
+      COALESCE(MAX(p.cost), 0) as cost,
+      COALESCE(MAX(p.packaging_cost), 0) as packaging_cost,
+      COALESCE(MAX(pms.sale_price), 0) as sale_price
+    FROM orders o
+    JOIN order_items oi ON o.order_id = oi.order_id
+    JOIN products p ON o.product_id = p.product_id
+    LEFT JOIN (
+      SELECT product_id, COALESCE(MAX(sale_price), 0) AS sale_price
+      FROM product_marketplace_settings
+      GROUP BY product_id
+    ) pms ON p.product_id = pms.product_id
+    WHERE o.status = 'completed'
+    GROUP BY p.product_id
+    ORDER BY total_revenue DESC
+    LIMIT 5
+  `).all() as ProductProfitRow[];
 
+  const topProducts = topProductRows.map((row) => {
+    const margin = row.sale_price > 0 ? ((row.sale_price - row.cost - row.packaging_cost) / row.sale_price) * 100 : 0;
     return {
       id: row.product_id,
       name: row.product_name,
       sku: row.sku ?? "",
-      revenue,
-      orders: Number(row.total_orders ?? 0),
-      qty: quantity,
+      revenue: row.total_revenue,
+      orders: row.total_orders,
+      qty: row.total_quantity,
       margin: Math.round(margin * 10) / 10,
-      marginConfidence,
     };
   });
+
+  // Last 30 days sales trend
+  const trendRows = db.prepare(`
+    SELECT
+      o.order_date,
+      COALESCE(SUM(oi.line_total), 0) as total_revenue,
+      COUNT(DISTINCT o.order_id) as order_count
+    FROM orders o
+    JOIN order_items oi ON o.order_id = oi.order_id
+    WHERE o.status = 'completed' AND o.order_date >= date('now', '-30 days')
+    GROUP BY o.order_date
+    ORDER BY o.order_date
+  `).all() as DailySalesRow[];
 
   const salesTrend = trendRows.map((row) => ({
     date: row.order_date,
     revenue: row.total_revenue,
     orders: row.order_count,
   }));
+
+  // Stock alerts (products with < 20 stock)
+  const stockAlertRows = db.prepare(`
+    SELECT
+      p.product_id,
+      p.name as product_name,
+      p.sku,
+      id.stock_qty,
+      m.name as marketplace_name
+    FROM inventory_daily id
+    JOIN products p ON id.product_id = p.product_id
+    JOIN marketplaces m ON id.marketplace_id = m.marketplace_id
+    WHERE id.inventory_date = (SELECT MAX(inventory_date) FROM inventory_daily)
+      AND id.stock_qty < 20
+    ORDER BY id.stock_qty ASC
+    LIMIT 10
+  `).all() as StockAlertRow[];
 
   const stockAlerts = stockAlertRows.map((row) => ({
     id: row.product_id,
@@ -832,6 +807,13 @@ export async function buildAggregateDashboard(): Promise<AggregateDashboard | nu
     stock: row.stock_qty,
     channel: row.marketplace_name,
   }));
+
+  // Estimated total profit (using avg margin)
+  const avgMarginFromProducts = db.prepare(`
+    SELECT AVG((pms.sale_price - p.cost - p.packaging_cost) / pms.sale_price) * 100 as avg_margin
+    FROM products p
+    JOIN product_marketplace_settings pms ON p.product_id = pms.product_id
+  `).get() as { avg_margin: number } | undefined;
 
   const avgMargin = Math.round((avgMarginFromProducts?.avg_margin ?? 35) * 10) / 10;
   const totalProfit = Math.round(totals.total_revenue * (avgMargin / 100));
@@ -846,7 +828,7 @@ export async function buildAggregateDashboard(): Promise<AggregateDashboard | nu
     topProducts,
     salesTrend,
     stockAlerts,
-    methodology: "Ciro ve sipariş hacmi orders ile order_items tablolarından alınır. Lider ürün marjları, eşleşen cost_results kaydı varsa gerçek sipariş cirosu üzerinden hesaplanır; cost_results olmayan ürünlerde yalnızca ürün ve paketleme maliyetiyle tahmini marj gösterilir. Genel ortalama marj ile toplam kâr alanları mevcut ürün ayarlarından türetilen tahmini değerlerdir. Demo modda son 90 günlük sentetik akış kullanılır.",
+    methodology: "orders ve order_items tablolarından hesaplanan 30 günlük canlı özet. Demo veride son 90 günlük sentetik akış kullanılır.",
   };
 }
 
@@ -878,19 +860,19 @@ export type AdAnalysisAggregate = {
   methodology: string;
 };
 
-export async function buildAdAnalysisAggregate(): Promise<AdAnalysisAggregate | null> {
-  const db = await getDb();
+export function buildAdAnalysisAggregate(): AdAnalysisAggregate | null {
+  const db = getDb();
   if (!db) return null;
 
   // Get own_website gateway rule for ad cost estimation
-  const gateway = await db.prepare(
+  const gateway = db.prepare(
     "SELECT avg_ad_cost, avg_conversion_rate FROM payment_gateway_rules WHERE marketplace_id = (SELECT marketplace_id FROM marketplaces WHERE slug='own_website' LIMIT 1) LIMIT 1"
   ).get() as { avg_ad_cost: number; avg_conversion_rate: number } | undefined;
 
   const unitAdCost = gateway?.avg_ad_cost ?? 35;
 
   // Channel performance from actual orders
-  const channelRows = await db.prepare(`
+  const channelRows = db.prepare(`
     SELECT
       m.name as channel_name,
       COALESCE(SUM(oi.line_total), 0) as total_revenue,

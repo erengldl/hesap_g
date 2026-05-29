@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { AlertTriangle, LineChart, ShieldCheck } from "lucide-react";
 
-import ModuleHero from "@/components/layout/ModuleHero";
-import { GlassCard } from "@/components/ui-custom/GlassComponents";
-import {
-  formatProfitPricingCurrency,
-  formatProfitPricingPercent,
-} from "@/lib/profit-pricing/formatters";
+import { GlassCard, PageHeader } from "@/components/ui-custom/GlassComponents";
 import { calculateProfitPricing } from "@/lib/profit-pricing/orchestrator";
 import {
   buildOptimizationSuggestions,
@@ -22,10 +23,9 @@ import type {
   ProfitPricingResult,
   SalesChannel,
 } from "@/lib/profit-pricing/types";
-import { channelLabel } from "@/lib/profit-pricing/utils";
-import { cn } from "@/lib/utils";
 
 import ChannelCostWaterfall from "./ChannelCostWaterfall";
+import OptimizationRecommendationTable from "./OptimizationRecommendationTable";
 import PriceProfitCurve from "./PriceProfitCurve";
 import ProfitPricingControlPanel from "./ProfitPricingControlPanel";
 import ProfitPricingEmptyState from "./ProfitPricingEmptyState";
@@ -191,7 +191,7 @@ async function persistProductChannels(
     | null;
 
   if (!response.ok || !data?.success) {
-    throw new Error(data?.error ?? "Kanal fiyatlari kaydedilemedi.");
+    throw new Error(data?.error ?? "Kanal fiyatları kaydedilemedi.");
   }
 }
 
@@ -212,10 +212,7 @@ function replaceUrlParams(productId: string | undefined, channel: SalesChannel) 
   window.history.replaceState({}, "", nextUrl);
 }
 
-function pickSelectableChannel(
-  channelProfiles: ProfitPricingChannelProfile[],
-  fallback?: SalesChannel
-) {
+function pickSelectableChannel(channelProfiles: ProfitPricingChannelProfile[], fallback?: SalesChannel) {
   if (fallback && channelProfiles.some((profile) => profile.channel === fallback)) {
     return fallback;
   }
@@ -251,7 +248,8 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
     resultsByChannel[pickSelectableChannel(state.channelProfiles)] ??
     null;
   const activeResult =
-    selectedResult ?? (selectedProfile ? calculateProfitPricing(selectedProfile.input) : null);
+    selectedResult ??
+    (selectedProfile ? calculateProfitPricing(selectedProfile.input) : null);
 
   const strategies = useMemo(
     () => buildOptimizationSuggestions(resultsByChannel, state.selectedChannel),
@@ -295,7 +293,9 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
           setFeedback({
             tone: "error",
             text:
-              error instanceof Error ? error.message : "Veri Merkezi guncellenemedi.",
+              error instanceof Error
+                ? error.message
+                : "Veri Merkezi güncellenemedi.",
           });
         });
     }, 450);
@@ -309,7 +309,7 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
 
   const currentProductId = state.channelProfiles[0]?.input.productId;
   const currentProductName =
-    state.channelProfiles[0]?.input.productName ?? props.bootstrap.products[0]?.label ?? "Urun";
+    state.channelProfiles[0]?.input.productName ?? props.bootstrap.products[0]?.label ?? "Ürün";
 
   const handleSelectProduct = async (productId: string) => {
     if (!productId || productId === currentProductId) {
@@ -336,10 +336,13 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
       };
 
       if (!response.ok || !data.ok || !data.channelProfiles?.length) {
-        throw new Error(data.error ?? "Urun verisi yuklenemedi.");
+        throw new Error(data.error ?? "Ürün verisi yüklenemedi.");
       }
 
-      const selectedChannel = pickSelectableChannel(data.channelProfiles, state.selectedChannel);
+      const selectedChannel = pickSelectableChannel(
+        data.channelProfiles,
+        state.selectedChannel
+      );
       lastSyncedSignatureRef.current = createChannelSignature(data.channelProfiles);
       replaceUrlParams(productId, selectedChannel);
       dispatch({
@@ -349,7 +352,9 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
       });
       setSyncState("idle");
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "Urun bilgileri yuklenemedi.");
+      setLoadError(
+        error instanceof Error ? error.message : "Ürün bilgileri yüklenemedi."
+      );
     } finally {
       setSelectionLoading(false);
     }
@@ -372,7 +377,7 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
     if (hasInvalidChannelValues(state.channelProfiles)) {
       setFeedback({
         tone: "error",
-        text: "Optimizasyon icin her kanalin satis fiyati 0'dan buyuk olmali.",
+        text: "Optimizasyon için her kanalın satış fiyatı 0'dan büyük olmalı.",
       });
       return;
     }
@@ -388,7 +393,7 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
       dispatch({ type: "set-optimization-ready", value: true });
       setFeedback({
         tone: "info",
-        text: "Oneriler hazir. Kanal bazli fiyat secenekleri asagida uretildi.",
+        text: "Öneriler hazır. Kanal bazlı fiyat seçenekleri aşağıda üretildi.",
       });
       graphSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (error) {
@@ -398,7 +403,7 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
         text:
           error instanceof Error
             ? error.message
-            : "Optimizasyon icin urun ayarlari kaydedilemedi.",
+            : "Optimizasyon için ürün ayarları kaydedilemedi.",
       });
     }
   };
@@ -410,21 +415,23 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
     }
 
     const nextProfiles = state.channelProfiles.map((profile) => {
-      const target = suggestion.channelTargets.find((item) => item.channel === profile.channel);
+      const target = suggestion.channelTargets.find(
+        (item) => item.channel === profile.channel
+      );
       if (!target?.price) {
         return profile;
       }
 
-      return {
-        ...profile,
-        input: {
-          ...profile.input,
-          salePrice: target.price,
-          basePrice: target.price,
-          dataSource: "mixed" as const,
-        },
-      };
-    });
+        return {
+          ...profile,
+          input: {
+            ...profile.input,
+            salePrice: target.price,
+            basePrice: target.price,
+            dataSource: "mixed" as const,
+          },
+        };
+      });
 
     setApplyingStrategy(strategy);
     setFeedback(null);
@@ -440,7 +447,7 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
       });
       setFeedback({
         tone: "success",
-        text: `${currentProductName} urunu icin tum kanallarda fiyat optimize edildi.`,
+        text: `${currentProductName} ürünü için tüm kanallarda fiyat optimize edildi.`,
       });
       waterfallSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (error) {
@@ -450,7 +457,7 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
         text:
           error instanceof Error
             ? error.message
-            : "Kanal fiyatlari optimize edilip kaydedilemedi.",
+            : "Kanal fiyatları optimize edilip kaydedilemedi.",
       });
     } finally {
       setApplyingStrategy(null);
@@ -459,12 +466,11 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
 
   if (props.bootstrap.products.length === 0) {
     return (
-      <div className="space-y-6">
-        <ModuleHero
-          eyebrow="Karar ekrani"
-          title="Karlilik ve Fiyat Optimizasyonu"
-          description="Urun, kanal ve fiyat kararlarini tek bir operasyon panelinde yonet."
-          badges={["Canli fiyat yonetimi", "Kanal bazli optimizasyon", "Veri merkezi senkronu"]}
+      <div className="page-shell">
+        <PageHeader
+          eyebrow="Karar ekranı"
+          title="Kârlılık ve Fiyat Optimizasyonu"
+          description="Ürünün gerçek maliyetini hesapla, kârlı fiyat aralığını aynı ekranda gör."
         />
         <ProfitPricingEmptyState />
       </div>
@@ -473,12 +479,11 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
 
   if (loadError) {
     return (
-      <div className="space-y-6">
-        <ModuleHero
-          eyebrow="Karar ekrani"
-          title="Karlilik ve Fiyat Optimizasyonu"
-          description="Urun, kanal ve fiyat kararlarini tek bir operasyon panelinde yonet."
-          badges={["Canli fiyat yonetimi", "Kanal bazli optimizasyon", "Veri merkezi senkronu"]}
+      <div className="page-shell">
+        <PageHeader
+          eyebrow="Karar ekranı"
+          title="Kârlılık ve Fiyat Optimizasyonu"
+          description="Ürünün gerçek maliyetini hesapla, kârlı fiyat aralığını aynı ekranda gör."
         />
         <ProfitPricingErrorState message={loadError} />
       </div>
@@ -486,88 +491,31 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
   }
 
   return (
-    <div className="space-y-6">
-      <ModuleHero
-        eyebrow="Karar ekrani"
-        title="Karlilik ve Fiyat Optimizasyonu"
-        description="Urunu sec, kanal etkisini aninda gor ve onerilen fiyat stratejisini kontrollu sekilde uygula."
-        badges={[
-          syncState === "saving"
-            ? "Veri merkezi guncelleniyor"
+    <div className="page-shell">
+      <PageHeader
+        eyebrow="Karar ekranı"
+        title="Kârlılık ve Fiyat Optimizasyonu"
+        description="Ürünü seç, üç kanalın fiyatını aynı anda yönet ve tek tıkla optimize et."
+      >
+        <div className="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
+          <ShieldCheck className="h-3.5 w-3.5" />
+          {syncState === "saving"
+            ? "Veri Merkezi güncelleniyor..."
             : syncState === "saved"
-              ? "Veri merkezi guncel"
-              : "Canli fiyat yonetimi",
-          `${state.channelProfiles.length} kanal aktif`,
-          currentProductName,
-        ]}
-      />
-
-      <GlassCard className="rounded-[30px] border border-slate-200 bg-[linear-gradient(180deg,#f8fbff,#ffffff)]">
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Canli karar paneli
-            </p>
-            <h2 className="mt-3 text-[2rem] font-semibold tracking-[-0.05em] text-slate-900">
-              {currentProductName}
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-slate-500">
-              Secili kanal: {selectedProfile ? channelLabel(selectedProfile.channel) : "Hazir degil"}.
-              Ustte fiyatlari duzenle, altta karlilik egri ve maliyet dagilimini incele.
-            </p>
-          </div>
-
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-            <ShieldCheck className="h-4 w-4 text-primary" />
-            {syncState === "saving"
-              ? "Veri merkezi guncelleniyor"
-              : syncState === "saved"
-                ? "Veri merkezi guncel"
-                : "Canli fiyat yonetimi"}
-          </div>
+              ? "Veri Merkezi güncel"
+              : "Canlı fiyat yönetimi"}
         </div>
-
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <SnapshotStat
-            label="Satis fiyati"
-            value={
-              activeResult
-                ? formatProfitPricingCurrency(activeResult.input.salePrice)
-                : "Hesaplanamadi"
-            }
-            hint="Secili kanal fiyati"
-          />
-          <SnapshotStat
-            label="Net maliyet"
-            value={activeResult ? formatProfitPricingCurrency(activeResult.netCost) : "Hesaplanamadi"}
-            hint="Siparis basi toplam maliyet"
-          />
-          <SnapshotStat
-            label="Net kar"
-            value={activeResult ? formatProfitPricingCurrency(activeResult.netProfit) : "Hesaplanamadi"}
-            hint="Birim bazli sonuc"
-            tone={activeResult && activeResult.netProfit < 0 ? "danger" : "success"}
-          />
-          <SnapshotStat
-            label="Marj"
-            value={activeResult ? formatProfitPricingPercent(activeResult.profitMargin) : "Hesaplanamadi"}
-            hint={
-              activeResult
-                ? `${activeResult.warnings.length} uyari · ${activeResult.missingFields.length} eksik alan`
-                : "Veri bekleniyor"
-            }
-          />
-        </div>
-      </GlassCard>
+      </PageHeader>
 
       {selectionLoading ? (
         <ProfitPricingLoadingState />
       ) : (
-        <div className="flex w-full flex-col gap-5">
+        <div className="flex w-full flex-col gap-4">
           <section className="flex w-full flex-col gap-4">
             <ProfitPricingControlPanel
               products={props.bootstrap.products}
               channelProfiles={state.channelProfiles}
+              resultsByChannel={resultsByChannel}
               selectedChannel={state.selectedChannel}
               busy={selectionLoading}
               syncState={syncState}
@@ -584,6 +532,20 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
           </section>
 
           <section className="flex w-full flex-col gap-4">
+            {activeResult ? (
+              <OptimizationRecommendationTable
+                resultsByChannel={resultsByChannel}
+                strategies={strategies}
+                activeStrategy={state.activeStrategy}
+                applyingStrategy={applyingStrategy}
+                onApplyStrategy={handleApplyStrategy}
+              />
+            ) : (
+              <DeferredPanelPlaceholder title="Optimizasyon tablosu yüklenemedi." />
+            )}
+          </section>
+
+          <section className="flex w-full flex-col gap-4">
             <div ref={graphSectionRef}>
               {activeResult ? (
                 <PriceProfitCurve
@@ -595,7 +557,7 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
                   onApplyStrategy={handleApplyStrategy}
                 />
               ) : (
-                <DeferredPanelPlaceholder title="Fiyat talep egrisi yuklenemedi." />
+                <DeferredPanelPlaceholder title="Fiyat talep eğrisi yüklenemedi." />
               )}
             </div>
           </section>
@@ -605,23 +567,25 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
               {activeResult ? (
                 <ChannelCostWaterfall result={activeResult} />
               ) : (
-                <DeferredPanelPlaceholder title="Waterfall maliyet grafigi yuklenemedi." />
+                <DeferredPanelPlaceholder title="Waterfall maliyet grafiği yüklenemedi." />
               )}
             </div>
           </section>
 
           {activeResult &&
           (activeResult.warnings.length > 0 || activeResult.missingFields.length > 0) ? (
-            <GlassCard className="rounded-[26px] border border-amber-200 bg-amber-50/70">
+            <GlassCard className="border-warning/20 bg-warning/5">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-200 bg-amber-100 text-amber-600">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-warning/20 bg-warning/10 text-warning">
                   <AlertTriangle className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">Veri kalitesi dikkat istiyor</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    Eksik alanlar ve varsayimlar karar ciktilarini etkileyebilir. Once urun
-                    maliyeti, komisyon ve kargo alanlarini dogrulayin.
+                  <p className="text-sm font-semibold text-foreground">
+                    Veri kalitesi dikkat istiyor
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-soft">
+                    Eksik alanlar ve varsayımlar karar çıktısını etkileyebilir. Önce ürün
+                    maliyeti, komisyon ve kargo alanlarını doğrulayın.
                   </p>
                 </div>
               </div>
@@ -635,41 +599,15 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
 
 function DeferredPanelPlaceholder(props: { title: string }) {
   return (
-    <GlassCard className="rounded-[26px] border border-slate-200 bg-white">
-      <div className="flex min-h-[320px] items-center justify-center rounded-[20px] border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
+    <GlassCard className="border-border/70 bg-panel/72">
+      <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-dashed border-border/70 bg-surface-container/45 px-6 text-center">
         <div className="space-y-3">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-primary">
             <LineChart className="h-5 w-5" />
           </div>
-          <p className="text-sm font-medium text-slate-500">{props.title}</p>
+          <p className="text-sm font-medium text-muted/700">{props.title}</p>
         </div>
       </div>
     </GlassCard>
-  );
-}
-
-function SnapshotStat(props: {
-  label: string;
-  value: string;
-  hint: string;
-  tone?: "default" | "success" | "danger";
-}) {
-  const valueClassName =
-    props.tone === "success"
-      ? "text-emerald-600"
-      : props.tone === "danger"
-        ? "text-rose-600"
-        : "text-slate-900";
-
-  return (
-    <div className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-        {props.label}
-      </p>
-      <p className={cn("mt-3 text-2xl font-semibold tracking-[-0.04em]", valueClassName)}>
-        {props.value}
-      </p>
-      <p className="mt-2 text-sm text-slate-500">{props.hint}</p>
-    </div>
   );
 }

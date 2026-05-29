@@ -17,7 +17,6 @@ import {
 import { getDb, getOne, query } from "@/lib/db";
 import { getProductSalesVelocity } from "@/lib/product-history";
 import { buildReturnRiskContextForProduct } from "@/lib/return-risk/repository";
-import { requireCurrentAuthUserId } from "@/lib/tenant";
 import type { Marketplace, Product } from "@/lib/types";
 
 import { buildChannelComparison } from "./channel-comparison";
@@ -134,7 +133,7 @@ function resolveDefaultElasticity(categoryPath?: string, categoryName?: string) 
   return -1.7;
 }
 
-async function resolveCategoryVatRate(categoryId: number | undefined) {
+function resolveCategoryVatRate(categoryId: number | undefined) {
   if (!categoryId) {
     return 0;
   }
@@ -145,7 +144,7 @@ async function resolveCategoryVatRate(categoryId: number | undefined) {
   while (currentCategoryId && !visited.has(currentCategoryId)) {
     visited.add(currentCategoryId);
 
-    const directRule = await getOne<CategoryTaxRow>(
+    const directRule = getOne<CategoryTaxRow>(
       "SELECT tax_rate FROM category_tax_rules WHERE category_id = ? LIMIT 1",
       [currentCategoryId]
     );
@@ -154,7 +153,7 @@ async function resolveCategoryVatRate(categoryId: number | undefined) {
       return roundCurrency(toFiniteNumber(directRule.tax_rate, 0) / 100);
     }
 
-    const parentRow: CategoryParentRow | null = await getOne<CategoryParentRow>(
+    const parentRow: CategoryParentRow | null = getOne<CategoryParentRow>(
       "SELECT parent_id FROM categories WHERE category_id = ? LIMIT 1",
       [currentCategoryId]
     );
@@ -164,12 +163,12 @@ async function resolveCategoryVatRate(categoryId: number | undefined) {
   return 0;
 }
 
-async function resolveShippingCost(params: {
+function resolveShippingCost(params: {
   marketplaceId: number;
   shippingCompanyId?: number | null;
   desi: number;
 }) {
-  const shippingRates = await query<ShippingRateRow>(
+  const shippingRates = query<ShippingRateRow>(
     `
       SELECT marketplace_id, shipping_company_id, desi_min, desi_max, price
       FROM shipping_rate_rules
@@ -193,8 +192,8 @@ async function resolveShippingCost(params: {
   return roundCurrency(matchingRates[0]?.price ?? 0);
 }
 
-async function resolvePlatformFeeConfig(marketplaceId: number, shipmentType?: string | null) {
-  const rules = await getPlatformFeeRulesByMarketplaceId(marketplaceId) as PlatformFeeRuleRow[];
+function resolvePlatformFeeConfig(marketplaceId: number, shipmentType?: string | null) {
+  const rules = getPlatformFeeRulesByMarketplaceId(marketplaceId) as PlatformFeeRuleRow[];
   const relevant = rules.filter((rule) => {
     if (shipmentType === "fast") {
       return rule.shipment_type === "fast" || rule.shipment_type === null;
@@ -228,12 +227,12 @@ async function resolvePlatformFeeConfig(marketplaceId: number, shipmentType?: st
   );
 }
 
-async function resolveFixedCostShare(
+function resolveFixedCostShare(
   productId: number,
   profileId: number | undefined,
   recentMonthlyOrders?: number
 ) {
-  const sellerProfile = await getSellerProfileById(profileId ?? 1) as
+  const sellerProfile = getSellerProfileById(profileId ?? 1) as
     | {
         expected_monthly_order_count?: number | null;
       }
@@ -241,17 +240,17 @@ async function resolveFixedCostShare(
   const safeRecentMonthlyOrders =
     recentMonthlyOrders !== undefined
       ? Math.max(1, Math.round(recentMonthlyOrders))
-      : Math.max(1, Math.round((await getProductSalesVelocity(productId, 30)) * 30));
+      : Math.max(1, Math.round(getProductSalesVelocity(productId, 30) * 30));
   const expectedOrders = Math.max(
     1,
     Number(sellerProfile?.expected_monthly_order_count ?? 0) || safeRecentMonthlyOrders
   );
 
-  return roundCurrency((await getStoreExpenseMonthlyTotal(profileId ?? 1)) / expectedOrders);
+  return roundCurrency(getStoreExpenseMonthlyTotal(profileId ?? 1) / expectedOrders);
 }
 
-async function resolveIncomeTaxRate(profileId: number | undefined) {
-  const sellerProfile = await getSellerProfileById(profileId ?? 1) as
+function resolveIncomeTaxRate(profileId: number | undefined) {
+  const sellerProfile = getSellerProfileById(profileId ?? 1) as
     | {
         tax_bracket?: number | null;
       }
@@ -284,36 +283,36 @@ function resolveAutomaticReturnRate(context: ProfitPricingInput["returnRiskConte
   return 0;
 }
 
-async function buildChannelProfile(params: {
+function buildChannelProfile(params: {
   product: Product;
   channel: SalesChannel;
   marketplacesBySlug: Map<string, Marketplace>;
   fixedCostShare: number;
   incomeTaxRate: number;
   vatRate: number;
-  ownWebsiteGateway: Awaited<ReturnType<typeof getOwnWebsiteGatewayRule>>;
-  resolveBaseDemand: (marketplaceId: number) => Promise<number>;
-}): Promise<ProfitPricingChannelProfile | null> {
+  ownWebsiteGateway: ReturnType<typeof getOwnWebsiteGatewayRule>;
+  resolveBaseDemand: (marketplaceId: number) => number;
+}): ProfitPricingChannelProfile | null {
   const marketplaceSlug = mapSalesChannelToMarketplaceSlug(params.channel);
   const marketplace = params.marketplacesBySlug.get(marketplaceSlug);
   if (!marketplace) {
     return null;
   }
 
-  const productSetting = await getProductMarketplaceSetting(params.product.id, marketplace.id);
+  const productSetting = getProductMarketplaceSetting(params.product.id, marketplace.id);
   const commissionRule =
     params.channel === "website"
       ? null
-      : await getCommissionForCategory(marketplace.name, params.product.category_id ?? 0);
+      : getCommissionForCategory(marketplace.name, params.product.category_id ?? 0);
   const platformFeeConfig =
     params.channel === "website"
       ? { fixed: 0, rate: 0 }
-      : await resolvePlatformFeeConfig(marketplace.id, productSetting?.shipping_mode);
+      : resolvePlatformFeeConfig(marketplace.id, productSetting?.shipping_mode);
 
   const websiteGateway =
     params.channel === "website"
       ? productSetting?.payment_gateway_rule_id
-        ? await getPaymentGatewayRuleById(productSetting.payment_gateway_rule_id)
+        ? getPaymentGatewayRuleById(productSetting.payment_gateway_rule_id)
         : params.ownWebsiteGateway
       : null;
 
@@ -328,12 +327,12 @@ async function buildChannelProfile(params: {
             toFiniteNumber(websiteGateway?.manual_shipping_cost, 0)
           )
         )
-      : await resolveShippingCost({
+      : resolveShippingCost({
           marketplaceId: marketplace.id,
           shippingCompanyId: productSetting?.shipping_company_id ?? null,
           desi: params.product.desi,
         });
-  const returnRiskContext = await buildReturnRiskContextForProduct({
+  const returnRiskContext = buildReturnRiskContextForProduct({
     productId: params.product.id,
     channel: params.channel,
   });
@@ -369,7 +368,7 @@ async function buildChannelProfile(params: {
     withholdingRate: 0.01,
     incomeTaxRate: params.incomeTaxRate,
     targetMargin: 0.15,
-    baseDemand: await params.resolveBaseDemand(marketplace.id),
+    baseDemand: params.resolveBaseDemand(marketplace.id),
     basePrice: salePrice,
     demandElasticity: resolveDefaultElasticity(params.product.category_path, params.product.category_name),
     stockLimit: params.product.stock,
@@ -385,29 +384,29 @@ async function buildChannelProfile(params: {
   };
 }
 
-async function buildChannelProfiles(product: Product) {
+function buildChannelProfiles(product: Product) {
   const marketplacesBySlug = new Map(
-    (await getMarketplaces()).map((marketplace) => [marketplace.slug, marketplace] as const)
+    getMarketplaces().map((marketplace) => [marketplace.slug, marketplace] as const)
   );
-  const ownWebsiteGateway = await getOwnWebsiteGatewayRule();
-  const recentMonthlyOrders = roundCurrency(await getProductSalesVelocity(product.id, 30) * 30);
-  const fixedCostShare = await resolveFixedCostShare(product.id, product.profile_id, recentMonthlyOrders);
-  const incomeTaxRate = await resolveIncomeTaxRate(product.profile_id);
-  const vatRate = await resolveCategoryVatRate(product.category_id);
+  const ownWebsiteGateway = getOwnWebsiteGatewayRule();
+  const recentMonthlyOrders = roundCurrency(getProductSalesVelocity(product.id, 30) * 30);
+  const fixedCostShare = resolveFixedCostShare(product.id, product.profile_id, recentMonthlyOrders);
+  const incomeTaxRate = resolveIncomeTaxRate(product.profile_id);
+  const vatRate = resolveCategoryVatRate(product.category_id);
   const baseDemandCache = new Map<number, number>();
-  const resolveBaseDemand = async (marketplaceId: number) => {
+  const resolveBaseDemand = (marketplaceId: number) => {
     const cached = baseDemandCache.get(marketplaceId);
     if (cached !== undefined) {
       return cached;
     }
 
-    const value = roundCurrency(await getProductSalesVelocity(product.id, 30, marketplaceId) * 30);
+    const value = roundCurrency(getProductSalesVelocity(product.id, 30, marketplaceId) * 30);
     baseDemandCache.set(marketplaceId, value);
     return value;
   };
 
-  const profiles = await Promise.all(
-    (["trendyol", "hepsiburada", "website"] as const).map((channel) =>
+  return (["trendyol", "hepsiburada", "website"] as const)
+    .map((channel) =>
       buildChannelProfile({
         product,
         channel,
@@ -419,9 +418,7 @@ async function buildChannelProfiles(product: Product) {
         resolveBaseDemand,
       })
     )
-  );
-
-  return profiles.filter((profile): profile is ProfitPricingChannelProfile => profile !== null);
+    .filter((profile): profile is ProfitPricingChannelProfile => profile !== null);
 }
 
 function normalizeIncomingInput(
@@ -459,11 +456,11 @@ function resolveDefaultChannel(product: ProfitPricingProductOption | null, reque
   return "trendyol";
 }
 
-export async function buildProfitPricingBootstrap(params?: {
+export function buildProfitPricingBootstrap(params?: {
   productId?: number;
   channel?: string;
-}): Promise<ProfitPricingBootstrap> {
-  const productOptionsSource = await getProfitPricingProductOptions();
+}): ProfitPricingBootstrap {
+  const productOptionsSource = getProfitPricingProductOptions();
   const selectedProductOption =
     productOptionsSource.find((product) => product.id === params?.productId) ?? productOptionsSource[0];
 
@@ -484,7 +481,7 @@ export async function buildProfitPricingBootstrap(params?: {
     };
   }
 
-  const selectedProduct = await getProductSnapshot(selectedProductOption.id);
+  const selectedProduct = getProductSnapshot(selectedProductOption.id);
   if (!selectedProduct) {
     const fallbackInput: ProfitPricingInput = {
       channel: "trendyol",
@@ -509,7 +506,7 @@ export async function buildProfitPricingBootstrap(params?: {
     };
   }
 
-  const channelProfiles = await buildChannelProfiles(selectedProduct);
+  const channelProfiles = buildChannelProfiles(selectedProduct);
   const selectedChannel = resolveDefaultChannel(selectedProductOption, params?.channel);
   const selectedProfile = channelProfiles.find((profile) => profile.channel === selectedChannel) ?? channelProfiles[0];
   const initialInput = selectedProfile?.input ?? {
@@ -538,11 +535,11 @@ export async function buildProfitPricingBootstrap(params?: {
   };
 }
 
-export async function resolveProfitPricingRequest(
+export function resolveProfitPricingRequest(
   partialInput: Partial<ProfitPricingInput> & { productId?: string | number; channel?: string }
 ) {
   const requestedProductId = Number(partialInput.productId ?? 0);
-  const bootstrap = await buildProfitPricingBootstrap({
+  const bootstrap = buildProfitPricingBootstrap({
     productId: Number.isFinite(requestedProductId) && requestedProductId > 0 ? requestedProductId : undefined,
     channel: partialInput.channel,
   });
@@ -565,16 +562,8 @@ export async function resolveProfitPricingRequest(
   };
 }
 
-export async function listProfitPricingRuns(limit = 8, productId?: number) {
-  const authUserId = requireCurrentAuthUserId();
-  const params: Array<string | number> = [authUserId];
-  const filters = ["r.user_id = ?"];
-  if (productId) {
-    filters.push("r.product_id = ?");
-    params.push(productId);
-  }
-
-  const rows = await query<
+export function listProfitPricingRuns(limit = 8, productId?: number) {
+  const rows = query<
     ProfitPricingRunRow & {
       product_name: string | null;
     }
@@ -599,14 +588,12 @@ export async function listProfitPricingRuns(limit = 8, productId?: number) {
         r.created_at,
         p.name AS product_name
       FROM profit_pricing_runs r
-      LEFT JOIN products p
-        ON p.product_id = r.product_id
-       AND p.user_id = r.user_id
-      WHERE ${filters.join(" AND ")}
+      LEFT JOIN products p ON p.product_id = r.product_id
+      ${productId ? "WHERE r.product_id = ?" : ""}
       ORDER BY r.created_at DESC, r.run_id DESC
       LIMIT ${Math.max(1, Math.min(limit, 25))}
     `,
-    params
+    productId ? [productId] : []
   );
 
   return rows.map<ProfitPricingRunSummary>((row) => ({
@@ -622,7 +609,7 @@ export async function listProfitPricingRuns(limit = 8, productId?: number) {
   }));
 }
 
-export async function saveProfitPricingRun(payload: {
+export function saveProfitPricingRun(payload: {
   input: Partial<ProfitPricingInput>;
   note?: string;
 }) {
@@ -631,17 +618,15 @@ export async function saveProfitPricingRun(payload: {
     throw new Error("Veritabanı bağlantısı kurulamadı.");
   }
 
-  const resolved = await resolveProfitPricingRequest(payload.input);
-  const authUserId = requireCurrentAuthUserId();
+  const resolved = resolveProfitPricingRequest(payload.input);
   const runId = randomUUID();
   const productId = Number(resolved.result.input.productId ?? 0);
   const marketplaceId =
     resolved.channelProfiles.find((profile) => profile.channel === resolved.result.input.channel)?.marketplaceId ?? null;
 
-  await db.prepare(
+  db.prepare(
     `
       INSERT INTO profit_pricing_runs (
-        user_id,
         run_id,
         product_id,
         channel,
@@ -654,10 +639,9 @@ export async function saveProfitPricingRun(payload: {
         recommended_min,
         recommended_max,
         recommended_preferred
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
   ).run(
-    authUserId,
     runId,
     productId,
     resolved.result.input.channel,
@@ -678,9 +662,8 @@ export async function saveProfitPricingRun(payload: {
   };
 }
 
-async function getProfitPricingRun(runId: string) {
-  const authUserId = requireCurrentAuthUserId();
-  return await getOne<ProfitPricingRunRow>(
+function getProfitPricingRun(runId: string) {
+  return getOne<ProfitPricingRunRow>(
     `
       SELECT
         run_id,
@@ -701,14 +684,13 @@ async function getProfitPricingRun(runId: string) {
         created_at
       FROM profit_pricing_runs
       WHERE run_id = ?
-        AND user_id = ?
       LIMIT 1
     `,
-    [runId, authUserId]
+    [runId]
   );
 }
 
-export async function applyProfitPricingRun(payload: {
+export function applyProfitPricingRun(payload: {
   runId: string;
   confirmed: boolean;
   price?: number;
@@ -722,7 +704,7 @@ export async function applyProfitPricingRun(payload: {
     throw new Error("Veritabanı bağlantısı kurulamadı.");
   }
 
-  const run = await getProfitPricingRun(payload.runId);
+  const run = getProfitPricingRun(payload.runId);
   if (!run) {
     throw new Error("Kayıt bulunamadı.");
   }
@@ -732,7 +714,7 @@ export async function applyProfitPricingRun(payload: {
     throw new Error("Kayıt girdisi okunamadı.");
   }
 
-  const resolved = await resolveProfitPricingRequest(storedInput);
+  const resolved = resolveProfitPricingRequest(storedInput);
   const allowedScenarioPrices = new Set(
     resolved.result.priceScenarios.map((scenario) => roundCurrency(scenario.price))
   );
@@ -748,26 +730,25 @@ export async function applyProfitPricingRun(payload: {
   }
 
   const marketplaceSlug = mapSalesChannelToMarketplaceSlug(resolved.result.input.channel);
-  const marketplace = (await getMarketplaces()).find((item) => item.slug === marketplaceSlug);
+  const marketplace = getMarketplaces().find((item) => item.slug === marketplaceSlug);
   if (!marketplace) {
     throw new Error("Kanal ayarı bulunamadı.");
   }
 
-  const authUserId = requireCurrentAuthUserId();
   const productId = Number(resolved.result.input.productId ?? run.product_id);
-  const currentSetting = await getProductMarketplaceSetting(productId, marketplace.id);
+  const currentSetting = getProductMarketplaceSetting(productId, marketplace.id);
   const oldPrice = roundCurrency(toFiniteNumber(currentSetting?.sale_price, 0));
 
-  await db.transaction(async () => {
-    await db.prepare(
+  const transaction = db.transaction(() => {
+    db.prepare(
       `
         UPDATE product_marketplace_settings
         SET sale_price = ?
-        WHERE product_id = ? AND marketplace_id = ? AND user_id = ?
+        WHERE product_id = ? AND marketplace_id = ?
       `
-    ).run(targetPrice, productId, marketplace.id, authUserId);
+    ).run(targetPrice, productId, marketplace.id);
 
-    await db.prepare(
+    db.prepare(
       `
         UPDATE profit_pricing_runs
         SET applied_at = CURRENT_TIMESTAMP,
@@ -775,11 +756,10 @@ export async function applyProfitPricingRun(payload: {
             applied_new_price = ?,
             result_json = ?
         WHERE run_id = ?
-          AND user_id = ?
       `
-    ).run(oldPrice, targetPrice, JSON.stringify(resolved.result), payload.runId, authUserId);
+    ).run(oldPrice, targetPrice, JSON.stringify(resolved.result), payload.runId);
 
-    await db.prepare(
+    db.prepare(
       `
         INSERT INTO audit_logs (
           report_id,
@@ -807,6 +787,8 @@ export async function applyProfitPricingRun(payload: {
     );
   });
 
+  transaction();
+
   return {
     oldPrice,
     newPrice: targetPrice,
@@ -818,7 +800,7 @@ export async function applyProfitPricingRun(payload: {
   };
 }
 
-export async function buildServerSideChannelComparison(input: Partial<ProfitPricingInput>) {
-  const resolved = await resolveProfitPricingRequest(input);
+export function buildServerSideChannelComparison(input: Partial<ProfitPricingInput>) {
+  const resolved = resolveProfitPricingRequest(input);
   return buildChannelComparison(resolved.result.input, resolved.channelProfiles);
 }

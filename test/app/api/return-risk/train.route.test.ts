@@ -1,17 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { trainReturnRiskModel, requireAuthMock } = vi.hoisted(() => ({
+const { trainReturnRiskModel } = vi.hoisted(() => ({
   trainReturnRiskModel: vi.fn(),
-  requireAuthMock: vi.fn(),
 }));
 
 vi.mock("@/lib/return-risk/server", () => ({
   trainReturnRiskModel,
-}));
-
-vi.mock("@/lib/api-auth", () => ({
-  requireAuth: requireAuthMock,
-  primeRequestContextFromApiContext: vi.fn(),
 }));
 
 import { POST } from "@/app/api/return-risk/train/route";
@@ -19,13 +13,6 @@ import { POST } from "@/app/api/return-risk/train/route";
 describe("return risk train route", () => {
   beforeEach(() => {
     trainReturnRiskModel.mockReset();
-    requireAuthMock.mockResolvedValue({
-      userId: 1,
-      authUserId: "test-auth-user",
-      email: "demo@example.com",
-      name: "Demo User",
-      plan: "Pro",
-    });
   });
 
   it("returns a fallback-safe payload when data is insufficient", async () => {
@@ -36,10 +23,10 @@ describe("return risk train route", () => {
       trainingRows: 42,
       positiveRows: 4,
       metrics: null,
-      reason: "Model eğitimi için en az 300 geçmiş sipariş gerekli.",
+      reason: "Model egitimi icin en az 300 gecmis siparis gerekli.",
     });
 
-    const response = await POST(new Request("http://localhost/api/return-risk/train", { method: "POST" }));
+    const response = await POST();
     const data = await response.json();
 
     expect(response.status).toBe(422);
