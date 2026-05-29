@@ -3,22 +3,40 @@
 import dynamic from "next/dynamic";
 import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
-import { PageHeader, KpiCard, GlassCard, MobileCardList, WarningBadge, SkeletonCard, EmptyState, EyebrowBadge } from "@/components/ui-custom/GlassComponents";
-import { SeedDemoButton } from "@/components/demo/SeedDemoButton";
-import {
-  TrendingUp, Wallet, BarChart3, ShoppingCart, Zap,
-  Package, AlertTriangle, DollarSign, Activity, Sparkles,
-  CircleCheckBig, FlaskConical, ShieldCheck,
-} from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { formatCurrency, formatNumber, formatPercent } from "@/lib/formatters";
-import type { ChannelCostResult, Product } from "@/lib/types";
-import type { AggregateDashboard } from "@/lib/portfolio-analytics";
 import {
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie,
-  AreaChart, Area, BarChart as RechartsBarChart, Bar,
+  AlertTriangle,
+  ArrowRight,
+  CircleCheckBig,
+  Database,
+  DollarSign,
+  FlaskConical,
+  Package,
+  ShieldCheck,
+  ShoppingCart,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart as RechartsBarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
+
+import { SeedDemoButton } from "@/components/demo/SeedDemoButton";
+import { formatCurrency, formatNumber, formatPercent } from "@/lib/formatters";
+import type { AggregateDashboard } from "@/lib/portfolio-analytics";
+import type { ChannelCostResult, Product } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 type DashboardDataMode = "demo" | "live" | "partial";
 
@@ -33,84 +51,74 @@ type DashboardPayload = {
   aggregate: AggregateDashboard;
   dataMode: DashboardDataMode;
   dataQuality: DashboardDataQuality;
-  partial?: boolean;
   fallbackUsed?: boolean;
-  staleAt?: string | null;
-  product?: Product;
   results?: ChannelCostResult[];
   bestChannel?: ChannelCostResult;
-  bestChannelName?: string;
-  bestNetProfit?: number;
-  bestMargin?: number;
-  lowestTotalCost?: number;
-  costBreakdown?: { label: string; value: number }[];
-  methodology?: string;
+  product?: Product;
 };
 
 const ProductComparisonSection = dynamic(
   () => import("@/components/dashboard/ProductComparison"),
   {
     loading: () => (
-      <GlassCard className="p-5">
-        <div className="space-y-2">
-          <h3 className="font-heading text-base font-bold text-foreground">Benchmark Analizi</h3>
-          <p className="text-sm text-muted/70">Ürün karşılaştırma paneli hazırlanıyor...</p>
-        </div>
-      </GlassCard>
+      <section className="app-surface rounded-[28px] p-6">
+        <div className="h-5 w-48 animate-pulse rounded-full bg-surface-muted" />
+        <div className="mt-3 h-20 animate-pulse rounded-[22px] bg-surface-muted" />
+      </section>
     ),
   }
 );
 
-function getDataModeMeta(mode: DashboardDataMode) {
-  if (mode === "demo") {
+function getModeMeta(mode: DashboardDataMode) {
+  if (mode === "live") {
     return {
-      label: "DEMO MOD",
-      icon: FlaskConical,
-      className: "gap-1.5 border-primary/30 bg-primary/10 text-primary",
-      description: "Örnek ürün ve sipariş akışı gösteriliyor.",
+      label: "Canlı veri",
+      icon: ShieldCheck,
+      className: "border-success/20 bg-success/10 text-success",
+      text: "Kararlar gerçek ürün ve sipariş verisi üzerinden çalışıyor.",
     };
   }
 
-  if (mode === "live") {
+  if (mode === "demo") {
     return {
-      label: "CANLI VERI",
-      icon: ShieldCheck,
-      className: "gap-1.5 border-success/30 bg-success/10 text-success",
-      description: "Canlı ürün ve sipariş verisi kullanılıyor.",
+      label: "Demo veri",
+      icon: FlaskConical,
+      className: "border-primary/20 bg-primary/10 text-primary",
+      text: "Kurulum akışını örnek veriyle test ediyorsun.",
     };
   }
 
   return {
-    label: "KISMI VERI",
+    label: "Kısmi veri",
     icon: AlertTriangle,
-    className: "gap-1.5 border-warning/30 bg-warning/10 text-warning",
-    description: "Bazı alanlar canlı, bazı alanlar örnek veriyle gösteriliyor.",
+    className: "border-warning/20 bg-warning/10 text-warning",
+    text: "Bazı kartlar canlı, bazıları örnek veriyle destekleniyor.",
   };
 }
 
-function getDataQualityMeta(score: number) {
+function getQualityMeta(score: number) {
   if (score >= 80) {
     return {
-      label: "Ideal",
-      barColor: "var(--success)",
-      accentClassName: "border-success/20 bg-success/10 text-success",
+      label: "Sağlam",
+      color: "var(--success)",
+      badgeClassName: "border-success/20 bg-success/10 text-success",
       icon: CircleCheckBig,
     };
   }
 
   if (score >= 50) {
     return {
-      label: "Orta",
-      barColor: "var(--warning)",
-      accentClassName: "border-warning/20 bg-warning/10 text-warning",
+      label: "İzlenmeli",
+      color: "var(--warning)",
+      badgeClassName: "border-warning/20 bg-warning/10 text-warning",
       icon: AlertTriangle,
     };
   }
 
   return {
     label: "Riskli",
-    barColor: "var(--danger)",
-    accentClassName: "border-danger/20 bg-danger/10 text-danger",
+    color: "var(--danger)",
+    badgeClassName: "border-danger/20 bg-danger/10 text-danger",
     icon: AlertTriangle,
   };
 }
@@ -127,40 +135,24 @@ function formatSyncLabel(value: string | null) {
 
   return new Intl.DateTimeFormat("tr-TR", {
     day: "2-digit",
-    month: "2-digit",
+    month: "short",
     year: "numeric",
   }).format(date);
 }
 
-function getMarginConfidenceMeta(confidence: "exact" | "estimated") {
-  if (confidence === "exact") {
-    return {
-      label: "NET",
-      className: "border-success/20 bg-success/10 text-success",
-    };
-  }
-
-  return {
-    label: "TAHMINI",
-    className: "border-warning/20 bg-warning/10 text-warning",
-  };
-
-
-}
-
 export default function DashboardPage() {
-  const [isClient, setIsClient] = useState(false);
   const [loading, setLoading] = useState(true);
   const [payload, setPayload] = useState<DashboardPayload | null>(null);
   const [seedDemoError, setSeedDemoError] = useState<string | null>(null);
 
   useEffect(() => {
-    setIsClient(true);
     void (async () => {
       try {
         const response = await fetch("/api/dashboard", { cache: "no-store" });
         const data = await response.json();
-        if (response.ok && data?.success) setPayload(data);
+        if (response.ok && data?.success) {
+          setPayload(data);
+        }
       } catch (error) {
         console.error("Dashboard load error:", error);
       } finally {
@@ -169,647 +161,501 @@ export default function DashboardPage() {
     })();
   }, []);
 
-  const agg = payload?.aggregate;
-
+  const aggregate = payload?.aggregate;
   const results = payload?.results ?? [];
-  const bestChannel = payload?.bestChannel;
-  const bestChannelName = bestChannel?.channel_name ?? "Kanal";
-  const showCharts = Boolean(agg) && isClient;
-  const dataMode = payload?.dataMode ?? "partial";
-  const dataQuality = payload?.dataQuality ?? { score: 0, warnings: [], lastSyncAt: null };
-  const dataModeMeta = getDataModeMeta(dataMode);
-  const dataQualityMeta = getDataQualityMeta(dataQuality.score);
-  const dataQualityLabel = `Veri Kalitesi: %${dataQuality.score} - ${dataQualityMeta.label}`;
-  const dataQualityBarData = [{ label: "Skor", score: Math.max(0, Math.min(100, dataQuality.score)) }];
+  const bestChannel = payload?.bestChannel ?? [...results].sort((a, b) => b.net_profit - a.net_profit)[0] ?? null;
+  const modeMeta = getModeMeta(payload?.dataMode ?? "partial");
+  const qualityMeta = getQualityMeta(payload?.dataQuality.score ?? 0);
+  const qualityScore = Math.max(0, Math.min(100, payload?.dataQuality.score ?? 0));
+  const trendData = aggregate?.salesTrend.map((row) => ({
+    ...row,
+    profit: row.revenue * ((aggregate?.avgMargin ?? 0) / 100),
+  })) ?? [];
   const rankedResults = [...results].sort((a, b) => b.net_profit - a.net_profit);
-  const maxChannelProfit = Math.max(...rankedResults.map((result) => result.net_profit), 1);
-  const chartPalette = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)"];
-  const costPalette = [
-    "var(--chart-1)",
-    "var(--chart-2)",
-    "var(--chart-3)",
-    "var(--chart-4)",
-    "var(--chart-5)",
-    "var(--success)",
-    "var(--warning)",
-    "var(--info)",
-  ];
+  const maxNetProfit = Math.max(...rankedResults.map((result) => result.net_profit), 1);
   const chartTooltipStyle: CSSProperties = {
-    backgroundColor: "var(--bg-elevated)",
-    border: "1px solid var(--border-soft)",
-    borderRadius: "var(--radius)",
-    color: "var(--text-main)",
+    backgroundColor: "rgba(255,255,255,0.98)",
+    border: "1px solid rgba(30,41,59,0.08)",
+    borderRadius: "18px",
+    color: "var(--foreground)",
+    boxShadow: "var(--shadow-card)",
   };
+  const palette = ["var(--chart-1)", "var(--chart-2)", "var(--chart-4)", "var(--chart-3)"];
 
   if (loading) {
     return (
-      <div className="page-shell">
-        <PageHeader eyebrow="Başlangıç" title="Kontrol Merkezi" description="Veriler hazırlanıyor..." />
-        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {[...Array(4)].map((_, i) => <SkeletonCard key={i} className="h-24" />)}
-        </div>
-        <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <SkeletonCard className="h-[300px] lg:col-span-2" />
-          <SkeletonCard className="h-[300px]" />
+      <div className="space-y-6">
+        <section className="app-surface-strong rounded-[32px] p-7">
+          <div className="h-4 w-28 animate-pulse rounded-full bg-surface-muted" />
+          <div className="mt-4 h-12 w-72 animate-pulse rounded-full bg-surface-muted" />
+          <div className="mt-4 h-5 w-full animate-pulse rounded-full bg-surface-muted" />
+        </section>
+        <div className="grid gap-4 lg:grid-cols-4">
+          {[...Array(4)].map((_, index) => (
+            <div key={index} className="app-metric-tile h-32 animate-pulse bg-surface-muted" />
+          ))}
         </div>
       </div>
     );
   }
 
-  if (!agg) {
+  if (!aggregate) {
     return (
-      <div className="page-shell">
-        <PageHeader eyebrow="Başlangıç" title="Kontrol Merkezi" description="Satış kanalları ve kârlılık kısa bakışta görünür." />
-        <EmptyState
-          icon={BarChart3}
-          title="Henüz özet oluşturulmadı"
-          description="Özeti görmek için önce ürün ve sipariş verisi ekleyin."
-          action={(
-            <div className="flex flex-wrap justify-center gap-2">
-              <SeedDemoButton
-                className="py-3 px-6"
-                onStart={() => setSeedDemoError(null)}
-                onError={setSeedDemoError}
-              />
-              <Link
-                href="/veri-merkezi"
-                className="btn-primary py-3 px-6 text-sm"
-              >
-                Veri Merkezini Aç
-              </Link>
-              {seedDemoError ? (
-                <p className="basis-full text-center text-sm font-medium text-danger">{seedDemoError}</p>
-              ) : null}
-            </div>
-          )}
-        />
+      <div className="space-y-6">
+        <section className="app-surface-strong rounded-[32px] p-8">
+          <span className="app-chip">Kurulum gerekiyor</span>
+          <h2 className="mt-5 max-w-2xl text-4xl font-semibold tracking-[-0.05em] text-foreground">
+            Kontrol merkezi veri bekliyor.
+          </h2>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-soft">
+            İlk görünümü oluşturmak için ürün, sipariş veya demo veri akışını başlatman gerekiyor.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <SeedDemoButton
+              className="btn-primary px-6 py-3 text-sm"
+              onStart={() => setSeedDemoError(null)}
+              onError={setSeedDemoError}
+            />
+            <Link href="/veri-merkezi" className="btn-secondary px-6 py-3 text-sm">
+              Veri merkezine git
+            </Link>
+          </div>
+          {seedDemoError ? (
+            <p className="mt-4 text-sm font-medium text-danger">{seedDemoError}</p>
+          ) : null}
+        </section>
       </div>
     );
   }
 
-  const trendChartData = agg.salesTrend.map((row) => ({
-    ...row,
-    profit: row.revenue * (agg.avgMargin / 100),
-  }));
+  const QualityIcon = qualityMeta.icon;
+  const ModeIcon = modeMeta.icon;
 
   return (
-    <div className="page-shell">
-      <PageHeader
-        eyebrow="Başlangıç"
-        title="Kontrol Merkezi"
-        description="Veri kalitesi, kârlılık ve kanal sonuçlarını tek bakışta gösterir."
-      >
-        <EyebrowBadge className={cn("gap-1.5", dataModeMeta.className)}>
-          <dataModeMeta.icon className="h-3.5 w-3.5" />
-          {dataModeMeta.label}
-        </EyebrowBadge>
-        <div className="flex items-center gap-1.5 rounded-md border border-border bg-surface-container px-2 py-0.5 text-xs font-medium text-muted">
-          <Zap className="h-3 w-3 text-primary" />
-          Canlı analiz
+    <div className="space-y-6">
+      <section className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
+        <div className="app-surface-strong relative overflow-hidden rounded-[32px] p-7">
+          <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(135deg,rgba(15,139,141,0.18),transparent_55%)]" />
+          <div className="relative">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={cn("app-chip", modeMeta.className)}>
+                <ModeIcon className="h-3.5 w-3.5" />
+                {modeMeta.label}
+              </span>
+              <span className="app-chip">Son senkron: {formatSyncLabel(payload?.dataQuality.lastSyncAt ?? null)}</span>
+            </div>
+
+            <h2 className="mt-5 max-w-3xl text-4xl font-semibold tracking-[-0.06em] text-foreground sm:text-[3.4rem]">
+              Günün karar alanı: hangi kanal bugün gerçekten daha kârlı?
+            </h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-soft">
+              Veri kalitesi, sipariş akışı ve kanal marjı tek ekranda birleşiyor. Önce açıkları kapat, sonra en iyi kanala odaklan.
+            </p>
+
+            <div className="mt-7 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-[24px] border border-slate-900/8 bg-white/80 p-4">
+                <p className="app-section-title">Öne çıkan kanal</p>
+                <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+                  {bestChannel?.channel_name ?? "Belirlenemedi"}
+                </p>
+                <p className="mt-1 text-sm text-soft">
+                  Net kâr: {bestChannel ? formatCurrency(bestChannel.net_profit) : "—"}
+                </p>
+              </div>
+              <div className="rounded-[24px] border border-slate-900/8 bg-slate-950 p-4 text-white">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/55">Ortalama marj</p>
+                <p className="mt-2 text-2xl font-semibold tracking-tight">
+                  {formatPercent(aggregate.avgMargin)}
+                </p>
+                <p className="mt-1 text-sm text-white/70">
+                  {formatNumber(aggregate.totalOrders)} siparişten türetildi
+                </p>
+              </div>
+              <div className="rounded-[24px] border border-amber-300/40 bg-amber-50 p-4">
+                <p className="app-section-title text-amber-700">Veri kalitesi</p>
+                <p className="mt-2 text-2xl font-semibold tracking-tight text-amber-950">
+                  %{qualityScore}
+                </p>
+                <p className="mt-1 text-sm text-amber-900/70">{qualityMeta.label}</p>
+              </div>
+            </div>
+
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link href="/net-maliyet-motoru" className="btn-primary px-6 py-3 text-sm">
+                Net maliyeti aç
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="/profit-pricing" className="btn-secondary px-6 py-3 text-sm">
+                Fiyat senaryolarını incele
+              </Link>
+              <Link href="/veri-merkezi" className="btn-secondary px-6 py-3 text-sm">
+                Veri açıklarını kapat
+              </Link>
+            </div>
+          </div>
         </div>
-      </PageHeader>
+
+        <aside className="space-y-4">
+          <section className="app-surface rounded-[28px] p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="app-section-title">Sistem modu</p>
+                <p className="mt-2 text-xl font-semibold tracking-tight text-foreground">{modeMeta.label}</p>
+              </div>
+              <span className={cn("rounded-2xl border px-3 py-2", modeMeta.className)}>
+                <ModeIcon className="h-4 w-4" />
+              </span>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-soft">{modeMeta.text}</p>
+          </section>
+
+          <section className="app-surface rounded-[28px] p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="app-section-title">Kalite skoru</p>
+                <p className="mt-2 text-xl font-semibold tracking-tight text-foreground">%{qualityScore}</p>
+              </div>
+              <span className={cn("rounded-2xl border px-3 py-2", qualityMeta.badgeClassName)}>
+                <QualityIcon className="h-4 w-4" />
+              </span>
+            </div>
+            <div className="mt-4 h-3 overflow-hidden rounded-full bg-surface-muted">
+              <div className="h-full rounded-full" style={{ width: `${qualityScore}%`, backgroundColor: qualityMeta.color }} />
+            </div>
+            <p className="mt-3 text-sm leading-6 text-soft">
+              {payload?.dataQuality.warnings[0] ?? "Veri kalitesi ideal seviyede görünüyor."}
+            </p>
+          </section>
+
+          <section className="app-surface rounded-[28px] p-5">
+            <p className="app-section-title">Hızlı aksiyonlar</p>
+            <div className="mt-4 space-y-2.5">
+              <Link href="/reklam-analizi" className="flex items-center justify-between rounded-[20px] border border-slate-900/8 bg-white/80 px-4 py-3 text-sm font-semibold text-foreground">
+                Reklam etkisini kontrol et
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+              <Link href="/channel-seo" className="flex items-center justify-between rounded-[20px] border border-slate-900/8 bg-white/80 px-4 py-3 text-sm font-semibold text-foreground">
+                SEO akışını güncelle
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+            </div>
+          </section>
+        </aside>
+      </section>
 
       {payload?.fallbackUsed ? (
-        <GlassCard className="mb-4 border-warning/25 bg-warning/10">
+        <section className="rounded-[24px] border border-warning/20 bg-warning/10 px-5 py-4 text-warning">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-warning">Karar desteği kısmi veriyle gösteriliyor.</p>
-              <p className="text-sm leading-6 text-soft">Bazı kartlar yedek görünümle oluşturuldu.</p>
-            </div>
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p className="text-sm font-medium">
+              Bazı kartlar yedek veriyle üretildi. Kritik karar öncesinde veri merkezindeki eksik alanları tamamla.
+            </p>
           </div>
-        </GlassCard>
+        </section>
       ) : null}
 
-      {/* KPI Grid */}
-      <div className="mb-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <KpiCard
-          title="Toplam Ciro"
-          value={formatCurrency(agg.totalRevenue)}
-          subValue={`${formatNumber(agg.totalOrders)} sipariş`}
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricTile
+          title="Toplam ciro"
+          value={formatCurrency(aggregate.totalRevenue)}
+          detail={`${formatNumber(aggregate.totalOrders)} sipariş`}
           icon={DollarSign}
-          goldRim
-          tone="warning"
         />
-        <KpiCard
-          title="Ort. Kar Marjı"
-          value={formatPercent(agg.avgMargin)}
+        <MetricTile
+          title="Tahmini net kâr"
+          value={formatCurrency(aggregate.totalProfit)}
+          detail={bestChannel?.channel_name ? `${bestChannel.channel_name} önde` : "Kanal analizi sürüyor"}
           icon={TrendingUp}
-          trend={{ value: "+2.1%", isPositive: true }}
-          tone="default"
         />
-        <KpiCard
-          title="Tahmini Net Kâr"
-          value={formatCurrency(agg.totalProfit)}
-          subValue="Hedefte"
-          icon={Wallet}
-          tone="primary"
-        />
-        <KpiCard
-          title="Siparişler"
-          value={formatNumber(agg.totalOrders)}
-          subValue="Son 90 gün"
-          icon={ShoppingCart}
-          tone="default"
-        />
-        <KpiCard
-          title="Aktif Ürün"
-          value={String(agg.totalProducts)}
-          subValue="Yayında"
+        <MetricTile
+          title="Aktif ürün"
+          value={String(aggregate.totalProducts)}
+          detail="Veri omurgasında kayıtlı"
           icon={Package}
-          tone="default"
         />
-        <KpiCard
-          title="Stok Uyarısı"
-          value={String(agg.stockAlerts.length)}
-          subValue="Kritik Seviye"
-          icon={AlertTriangle}
-          tone="danger"
-          className="border-l-2 border-l-danger"
+        <MetricTile
+          title="Stok riski"
+          value={String(aggregate.stockAlerts.length)}
+          detail="Kritik seviyedeki ürün"
+          icon={ShoppingCart}
+          accent="warning"
         />
-      </div>
+      </section>
 
-      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <GlassCard className="overflow-hidden lg:col-span-2">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 className="panel-title">Satış ve Karlılık Trendi</h3>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-secondary"></div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Ciro</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-primary"></div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Net Kâr</span>
-              </div>
-              <WarningBadge>30 günlük veri</WarningBadge>
+      <section className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
+        <article className="app-surface rounded-[28px] p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="app-section-title">Gelir ritmi</p>
+              <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-foreground">
+                Son 30 gün ciro ve kâr ivmesi
+              </h3>
             </div>
+            <span className="app-chip">Trend görünümü</span>
           </div>
-          <div className="h-[260px] min-w-0 w-full">
-            {showCharts && agg.salesTrend.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                <AreaChart data={trendChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <div className="mt-6 h-[310px]">
+            {trendData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData} margin={{ top: 12, right: 8, left: -22, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="gradientSecondary" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.2} />
-                      <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0.0} />
+                    <linearGradient id="dashboardRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={0.18} />
+                      <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0} />
                     </linearGradient>
-                    <linearGradient id="gradientPrimary" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0.0} />
+                    <linearGradient id="dashboardProfit" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.24} />
+                      <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-soft)" strokeOpacity={0.15} vertical={false} />
-                  <XAxis dataKey="date" stroke="var(--text-muted)" strokeOpacity={0.45} fontSize={10} tickLine={false} axisLine={false}
-                    tickFormatter={(d: string) => d.slice(5)} />
-                  <YAxis stroke="var(--text-muted)" strokeOpacity={0.45} fontSize={10} tickLine={false} axisLine={false}
-                    tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)} />
+                  <CartesianGrid stroke="rgba(30,41,59,0.08)" vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    axisLine={false}
+                    stroke="var(--muted-foreground)"
+                    fontSize={11}
+                    tickFormatter={(value: string) => value.slice(5)}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    stroke="var(--muted-foreground)"
+                    fontSize={11}
+                    tickFormatter={(value: number) => (value >= 1000 ? `${Math.round(value / 1000)}K` : `${value}`)}
+                  />
                   <Tooltip
                     contentStyle={chartTooltipStyle}
-                    formatter={(value, name) => [formatCurrency(Number(value)), name === "revenue" ? "Ciro" : "Net Kâr"]}
+                    formatter={(value, name) => [
+                      formatCurrency(Number(value)),
+                      name === "revenue" ? "Ciro" : "Net kâr",
+                    ]}
                   />
-                  <Area type="monotone" dataKey="revenue" stroke="var(--chart-2)" strokeWidth={1.5} fill="url(#gradientSecondary)" dot={false} name="revenue" className="glow-chart-line" />
-                  <Area type="monotone" dataKey="profit" stroke="var(--chart-1)" strokeWidth={2} fill="url(#gradientPrimary)" dot={false} name="profit" className="glow-chart-line" />
+                  <Area type="monotone" dataKey="revenue" stroke="var(--chart-4)" strokeWidth={2} fill="url(#dashboardRevenue)" />
+                  <Area type="monotone" dataKey="profit" stroke="var(--chart-1)" strokeWidth={2.4} fill="url(#dashboardProfit)" />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-surface-container text-xs text-soft">
-                Yeterli trend verisi birikmedi
-              </div>
+              <EmptyPanel text="Trend oluşturmak için daha fazla satış verisi gerekiyor." />
             )}
           </div>
-        </GlassCard>
+        </article>
 
-        <GlassCard>
-          <h3 className="panel-title mb-1">Kanal Dağılımı</h3>
-          <p className="text-[11px] text-muted-foreground mb-4">Satışların platformlara göre yüzdesi.</p>
-          <div className="h-[180px] min-w-0">
-            {showCharts && agg.channelBreakdown.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+        <article className="app-surface rounded-[28px] p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="app-section-title">Kanal karışımı</p>
+              <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-foreground">
+                Gelir dağılımı
+              </h3>
+            </div>
+            <span className="app-chip">{aggregate.channelBreakdown.length} kanal</span>
+          </div>
+          <div className="mt-4 h-[230px]">
+            {aggregate.channelBreakdown.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={agg.channelBreakdown} cx="50%" cy="50%" innerRadius={52} outerRadius={78} isAnimationActive={true} animationDuration={400}
-                    paddingAngle={4} dataKey="revenue" nameKey="name">
-                    {agg.channelBreakdown.map((_, i) => (
-                      <Cell key={`ch-${i}`} fill={chartPalette[i % chartPalette.length]} stroke="var(--bg-elevated)" strokeWidth={2} />
+                  <Pie
+                    data={aggregate.channelBreakdown}
+                    dataKey="revenue"
+                    nameKey="name"
+                    innerRadius={58}
+                    outerRadius={88}
+                    paddingAngle={3}
+                  >
+                    {aggregate.channelBreakdown.map((_, index) => (
+                      <Cell key={index} fill={palette[index % palette.length]} stroke="white" strokeWidth={3} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={chartTooltipStyle}
-                    formatter={(value) => [formatCurrency(Number(value)), "Ciro"]} />
+                  <Tooltip
+                    contentStyle={chartTooltipStyle}
+                    formatter={(value) => [formatCurrency(Number(value)), "Ciro"]}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-border bg-surface-container text-xs text-soft">
-                Kanal verisi yok
-              </div>
+              <EmptyPanel text="Gelir dağılımı göstermek için kanal verisi bulunamadı." />
             )}
           </div>
-          <div className="mt-3 space-y-1.5">
-            {agg.channelBreakdown.map((ch, i) => (
-              <div key={ch.slug} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: chartPalette[i % chartPalette.length] }} />
-                  <span className="text-muted text-[13px]">{ch.name}</span>
+          <div className="mt-4 space-y-2">
+            {aggregate.channelBreakdown.map((channel, index) => (
+              <div key={channel.slug} className="flex items-center justify-between rounded-[18px] border border-slate-900/6 bg-white/75 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: palette[index % palette.length] }} />
+                  <span className="text-sm font-semibold text-foreground">{channel.name}</span>
                 </div>
-                <div className="text-foreground font-mono text-xs font-semibold">
-                  {formatCurrency(ch.revenue)} <span className="text-muted-foreground/60 font-medium ml-1">%{ch.pct}</span>
-                </div>
+                <span className="text-sm font-semibold text-muted-foreground">
+                  {formatCurrency(channel.revenue)} <span className="text-xs">%{channel.pct}</span>
+                </span>
               </div>
             ))}
           </div>
-        </GlassCard>
-      </div>
+        </article>
+      </section>
 
-      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <GlassCard>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 className="panel-title">Lider Ürünler</h3>
-            <span className="rounded-md border border-border bg-surface-container px-2 py-0.5 text-xs font-medium text-muted">Brüt Ciro</span>
-          </div>
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-white/10">
-                  <th className="py-3 px-2 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/60">Ürün Detayı</th>
-                  <th className="py-3 px-2 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/60 text-right">Sipariş</th>
-                  <th className="py-3 px-2 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/60 text-right">Ciro</th>
-                  <th className="py-3 px-2 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/60 text-right">Marj</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {agg.topProducts.map((p) => (
-                  <tr key={p.id} className="hover:bg-white/[0.02] transition-colors duration-150">
-                    <td className="py-3 px-2">
-                      <div className="font-mono text-xs font-bold text-foreground">{p.sku}</div>
-                      <div className="font-sans text-[13px] text-muted-foreground truncate w-64 mt-0.5">{p.name}</div>
-                    </td>
-                    <td className="py-3 px-2 font-mono text-xs font-semibold text-right text-foreground">{formatNumber(p.orders)}</td>
-                    <td className="py-3 px-2 font-mono text-xs font-semibold text-right text-primary">{formatCurrency(p.revenue)}</td>
-                    <td className="py-3 px-2 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <span className={cn(
-                          "inline-block px-2 py-0.5 rounded font-mono text-[11px] font-semibold border",
-                          p.marginConfidence === "exact"
-                            ? "bg-primary-soft/10 text-primary border-primary/20"
-                            : "bg-warning/10 text-warning border-warning/20"
-                        )}>
-                          %{p.margin}
-                        </span>
-                        <span className={cn(
-                          "inline-block px-1.5 py-0.5 rounded font-sans text-[9px] font-bold uppercase tracking-wider border",
-                          getMarginConfidenceMeta(p.marginConfidence).className
-                        )}>
-                          {getMarginConfidenceMeta(p.marginConfidence).label}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <section className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+        <article className="app-surface rounded-[28px] p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="app-section-title">Kanal kıyası</p>
+              <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-foreground">
+                Hangi kanal net kârda önde?
+              </h3>
+            </div>
+            <Link href="/net-maliyet-motoru" className="app-chip">
+              Ayrıntılı tabloyu aç
+            </Link>
           </div>
 
-          <MobileCardList
-            className="space-y-2 md:hidden"
-            data={agg.topProducts}
-            renderItem={(p, index) => (
-              <GlassCard key={p.id} className="p-3 sm:p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">{p.name}</p>
-                    <p className="mt-0.5 text-xs text-muted/60">{p.sku}</p>
-                  </div>
-                  <span className="inline-flex shrink-0 rounded-md border border-border bg-surface-soft px-2 py-0.5 text-xs font-semibold text-muted">
-                    #{index + 1}
-                  </span>
-                </div>
-
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  <div className="rounded-md border border-border bg-surface-soft p-2">
-                    <p className="mb-1 text-xs uppercase tracking-wide text-muted/60">Sipariş</p>
-                    <p className="text-sm font-bold text-foreground">{formatNumber(p.orders)}</p>
-                  </div>
-                  <div className="rounded-md border border-border bg-surface-soft p-2">
-                    <p className="mb-1 text-xs uppercase tracking-wide text-muted/60">Ciro</p>
-                    <p className="text-sm font-bold text-primary">{formatCurrency(p.revenue)}</p>
-                  </div>
-                  <div className="rounded-md border border-border bg-surface-soft p-2 text-right">
-                    <p className="mb-1 text-xs uppercase tracking-wide text-muted/60">Marj</p>
-                    <div className="flex items-center justify-end gap-1.5">
-                      <p className={cn(
-                        "text-sm font-bold",
-                        p.marginConfidence === "exact" ? "text-primary" : "text-warning"
-                      )}>
-                        %{p.margin}
-                      </p>
-                      <span className={cn(
-                        "inline-flex rounded-md border px-1.5 py-0.5 text-xs font-semibold uppercase tracking-[0.08em]",
-                        getMarginConfidenceMeta(p.marginConfidence).className
-                      )}>
-                        {getMarginConfidenceMeta(p.marginConfidence).label}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </GlassCard>
-            )}
-          />
-        </GlassCard>
-
-        <GlassCard>
-          <h3 className="panel-title mb-3">Stok Envanter Durumu</h3>
-          {agg.stockAlerts.length > 0 ? (
-            <div className="space-y-2">
-              {agg.stockAlerts.slice(0, 6).map((alert, i) => (
-                <GlassCard key={`${alert.id}-${i}`} className={cn(
-                  "flex items-center justify-between gap-3 p-2.5 transition-colors duration-200",
-                  alert.stock < 5 ? "border-danger/30 bg-danger/5" :
-                  alert.stock < 10 ? "border-warning/30 bg-warning/[0.03]" :
-                  "border-border bg-surface-container"
-                )}>
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className={cn("rounded-md p-1.5", 
-                      alert.stock < 5 ? "bg-danger/10 text-danger" : "bg-warning/10 text-warning")}>
-                      <AlertTriangle className="h-4 w-4 shrink-0" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-foreground">{alert.name}</p>
-                      <p className="mt-0.5 text-xs text-muted/60">{alert.channel}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className={cn("block text-sm font-semibold",
-                      alert.stock < 5 ? "text-danger" : "text-warning")}>
-                      {alert.stock} ADET
-                    </span>
-                    <span className="text-xs font-medium uppercase tracking-wide text-muted/60">Kritik Seviye</span>
-                  </div>
-                </GlassCard>
-              ))}
-            </div>
-          ) : (
-            <GlassCard className="border-dashed border-border bg-surface-container p-8 text-center">
-              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-success/10 text-success">
-                <Package className="h-4 w-4" />
-              </div>
-              <p className="text-sm font-medium text-foreground">Stoklar güvenli</p>
-              <p className="mt-1 text-xs text-soft">Şu an müdahale gerektiren ürün bulunmuyor.</p>
-            </GlassCard>
-          )}
-
-          {bestChannel && (
-            <GlassCard className="mt-3 flex items-center gap-3 p-3">
-              <div className="rounded-md bg-primary/10 p-2 text-primary">
-                <Activity className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.08em] text-primary/80">En iyi kanal</p>
-                <p className="mt-0.5 text-sm font-semibold text-foreground">
-                  {bestChannelName} üzerinden <span className="text-primary">{formatCurrency(bestChannel.net_profit)}</span> net kâr elde ediliyor.
-                </p>
-              </div>
-            </GlassCard>
-          )}
-        </GlassCard>
-      </div>
-
-      {bestChannel && payload?.costBreakdown && (
-        <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <GlassCard>
-            <h3 className="panel-title mb-3">Maliyet Kırılımı ({bestChannelName})</h3>
-            <div className="h-[220px] min-w-0">
-              {showCharts ? (
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} initialDimension={{ width: 1, height: 1 }}>
-                  <PieChart>
-                    <Pie data={payload.costBreakdown} cx="50%" cy="50%" innerRadius={52} outerRadius={82} isAnimationActive={true} animationDuration={400}
-                      paddingAngle={3} dataKey="value">
-                      {(payload.costBreakdown).map((_, i) => (
-                        <Cell key={`cs-${i}`} fill={costPalette[i % costPalette.length]} stroke="var(--bg-elevated)" strokeWidth={1} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={chartTooltipStyle}
-                      formatter={(value) => [formatCurrency(Number(value)), ""]} />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full rounded-lg border border-dashed border-border bg-surface-container" />
-              )}
-            </div>
-          </GlassCard>
-
-          <GlassCard>
-            <h3 className="panel-title mb-3">Başabaş Analizi</h3>
-            <div className="space-y-4">
-              <div className="flex items-end justify-between">
-                <div className="space-y-1">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted/60">Birim Maliyet</p>
-                  <p className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{formatCurrency(bestChannel.total_unit_cost)}</p>
-                </div>
-                <div className="space-y-1 text-right">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted/60">Önerilen satış</p>
-                  <p className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">{formatCurrency(bestChannel.sale_price)}</p>
-                </div>
-              </div>
-              
-              <div className="relative">
-                <div className="flex h-2.5 w-full overflow-hidden rounded-full border border-border/70 bg-surface-container">
-                  <div className="h-full bg-border/40 transition-[width] duration-300 ease-out"
-                    style={{ width: `${Math.min(100, (bestChannel.total_unit_cost / Math.max(1, bestChannel.sale_price)) * 100)}%` }} />
-                  <div className="h-full bg-primary transition-[width] duration-300 ease-out"
-                    style={{ width: `${Math.max(0, 100 - (bestChannel.total_unit_cost / Math.max(1, bestChannel.sale_price)) * 100)}%` }} />
-                </div>
-                <div className="mt-2 flex justify-between text-xs font-medium uppercase tracking-wide">
-                  <span className="text-muted">Maliyet %{Math.round((bestChannel.total_unit_cost / Math.max(1, bestChannel.sale_price)) * 100)}</span>
-                  <span className="text-primary">Net kâr %{Math.round(bestChannel.profit_margin_percent)}</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <GlassCard className="p-3 sm:p-3">
-                  <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted/60">ROI</p>
-                  <p className="text-xl font-bold tracking-tight text-foreground">
-                    {formatPercent((bestChannel.net_profit / Math.max(1, bestChannel.total_unit_cost)) * 100)}
-                  </p>
-                </GlassCard>
-                <GlassCard className="border-primary/20 bg-primary-soft p-3 sm:p-3">
-                  <p className="mb-1 text-xs font-medium uppercase tracking-wide text-primary/60">Net Marj</p>
-                  <p className="text-xl font-bold tracking-tight text-primary">
-                    {formatPercent(bestChannel.profit_margin_percent)}
-                  </p>
-                </GlassCard>
-              </div>
-            </div>
-          </GlassCard>
-        </div>
-      )}
-
-      {rankedResults.length > 0 && (
-        <GlassCard className="mb-4">
-          <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-            <div className="space-y-1">
-              <h3 className="panel-title">Kanal Kârlılık Matrisi</h3>
-              <p className="text-xs font-medium text-soft">Ürün bazında platformlar arası finansal performans farkı.</p>
-            </div>
-            <WarningBadge>Sistem Tahmini</WarningBadge>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            {rankedResults.map((result) => {
-              const isBest = result.channel_name === bestChannelName;
-              const profitShare = result.net_profit > 0 ? Math.max(8, (result.net_profit / maxChannelProfit) * 100) : 8;
+          <div className="mt-5 space-y-3">
+            {rankedResults.length > 0 ? rankedResults.map((result, index) => {
+              const width = result.net_profit > 0 ? Math.max(10, (result.net_profit / maxNetProfit) * 100) : 10;
+              const isBest = index === 0;
 
               return (
-                <GlassCard
-                  key={result.channel_name}
-                  className={cn(
-                    "group p-3",
-                    isBest ? "border-border bg-primary-soft/40" : "border-border bg-surface-container"
-                  )}
-                >
-                  <div className="mb-4 flex items-start justify-between gap-3">
+                <div key={result.channel_name} className="rounded-[24px] border border-slate-900/8 bg-white/82 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-medium text-foreground">{result.channel_name}</p>
-                      <p className="mt-0.5 text-xs font-medium text-muted/60">
-                        {formatCurrency(result.sale_price)} <span className="opacity-40">/</span> {formatCurrency(result.total_unit_cost)}
+                      <p className="text-lg font-semibold tracking-tight text-foreground">{result.channel_name}</p>
+                      <p className="mt-1 text-sm text-soft">
+                        Toplam maliyet {formatCurrency(result.total_unit_cost)} · satış {formatCurrency(result.sale_price)}
                       </p>
                     </div>
-                    <span
-                      className={cn(
-                        "rounded-md border px-2 py-0.5 text-xs font-medium uppercase tracking-[0.08em]",
-                        isBest ? "bg-primary-soft text-primary border-border" : "bg-surface-soft text-muted border-border"
-                      )}
-                    >
-                      {isBest ? "En iyi" : "Diğer"}
+                    <span className={cn("rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.16em]", isBest ? "bg-primary text-primary-foreground" : "bg-surface-muted text-muted-foreground")}>
+                      {isBest ? "En iyi kanal" : "Alternatif"}
                     </span>
                   </div>
-
-                  <div className="mb-4 flex items-end justify-between">
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted/60">Net Kâr</p>
-                      <p className="text-2xl font-bold tracking-tight text-foreground">{formatCurrency(result.net_profit)}</p>
+                  <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-surface-muted">
+                    <div className={cn("h-full rounded-full", isBest ? "bg-primary" : "bg-slate-900/20")} style={{ width: `${width}%` }} />
+                  </div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <p className="app-section-title">Net kâr</p>
+                      <p className="mt-1 text-lg font-semibold text-foreground">{formatCurrency(result.net_profit)}</p>
                     </div>
-                    <div className="space-y-1 text-right">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted/60">Marj</p>
-                      <p className={cn("text-lg font-semibold tracking-tight", isBest ? "text-primary" : "text-foreground/80")}>
-                        {formatPercent(result.profit_margin_percent)}
-                      </p>
+                    <div>
+                      <p className="app-section-title">Marj</p>
+                      <p className="mt-1 text-lg font-semibold text-foreground">{formatPercent(result.profit_margin_percent)}</p>
+                    </div>
+                    <div>
+                      <p className="app-section-title">Sıra</p>
+                      <p className="mt-1 text-lg font-semibold text-foreground">#{index + 1}</p>
                     </div>
                   </div>
-
-                  <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-surface-container">
-                    <div
-                className={cn("h-full rounded-full transition-[width] duration-300", isBest ? "bg-primary" : "bg-border")}
-                      style={{ width: `${profitShare}%` }}
-                    />
-                  </div>
-
-                  <div className="flex justify-between text-xs font-medium uppercase tracking-wide text-muted/60">
-                    <span>Vergi & Kargo Dahil</span>
-                    <span>%{Math.round(result.profit_margin_percent)} Verim</span>
-                  </div>
-                </GlassCard>
+                </div>
               );
-            })}
+            }) : (
+              <EmptyPanel text="Kanal karşılaştırması için sonuç üretilemedi." />
+            )}
           </div>
-        </GlassCard>
-      )}
+        </article>
 
-      <ProductComparisonSection />
-
-      <GlassCard className="mt-4">
-        <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <h3 className="panel-title">Veri Kalitesi</h3>
+        <div className="space-y-5">
+          <article className="app-surface rounded-[28px] p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="app-section-title">Stok durumu</p>
+                <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-foreground">
+                  Müdahale gerektiren ürünler
+                </h3>
+              </div>
+              <span className="app-chip">{aggregate.stockAlerts.length} kayıt</span>
             </div>
-          </div>
-          <EyebrowBadge className={cn("gap-1.5", dataQualityMeta.accentClassName)}>
-            <dataQualityMeta.icon className="h-3.5 w-3.5" />
-            {dataQualityLabel}
-          </EyebrowBadge>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.35fr_0.65fr]">
-          <div className="rounded-lg border border-border/70 bg-surface-container p-4">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted/60">Veri kalitesi</span>
-              <span className="text-sm font-semibold text-foreground">{dataQualityLabel}</span>
-            </div>
-            <div className="h-16">
-              {showCharts ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsBarChart data={dataQualityBarData} layout="vertical" margin={{ top: 8, right: 4, left: 4, bottom: 8 }}>
-                    <XAxis type="number" domain={[0, 100]} hide />
-                    <YAxis type="category" dataKey="label" hide />
-                    <Bar
-                      dataKey="score"
-                      radius={[999, 999, 999, 999]}
-                      fill={dataQualityMeta.barColor}
-                      background={{ fill: "var(--surface-soft)" }}
-                      isAnimationActive={true}
-                      animationDuration={450}
-                    />
-                  </RechartsBarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-full items-center">
-                  <div className="h-3 w-full overflow-hidden rounded-full bg-surface-soft">
-                    <div
-                      className="h-full rounded-full transition-[width] duration-300"
-                      style={{ width: `${dataQuality.score}%`, backgroundColor: dataQualityMeta.barColor }}
-                    />
+            <div className="mt-5 space-y-3">
+              {aggregate.stockAlerts.length > 0 ? aggregate.stockAlerts.slice(0, 5).map((alert) => (
+                <div key={`${alert.id}-${alert.channel}`} className="rounded-[22px] border border-slate-900/8 bg-white/80 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-foreground">{alert.name}</p>
+                      <p className="mt-1 text-sm text-soft">{alert.channel}</p>
+                    </div>
+                    <span className={cn("rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.16em]", alert.stock < 5 ? "bg-danger/10 text-danger" : "bg-warning/10 text-warning")}>
+                      {alert.stock} adet
+                    </span>
                   </div>
+                </div>
+              )) : (
+                <div className="rounded-[22px] border border-success/20 bg-success/10 px-4 py-4 text-sm font-medium text-success">
+                  Kritik stok alarmı yok.
                 </div>
               )}
             </div>
-            <div className="mt-2 flex justify-between text-xs font-medium uppercase tracking-wide text-muted/60">
-              <span>0</span>
-              <span>50</span>
-              <span>100</span>
+          </article>
+
+          <article className="app-surface rounded-[28px] p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="app-section-title">Veri sağlığı</p>
+                <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-foreground">
+                  Eksik alanlar ve güven sinyali
+                </h3>
+              </div>
+              <span className={cn("app-chip", qualityMeta.badgeClassName)}>
+                <QualityIcon className="h-3.5 w-3.5" />
+                {qualityMeta.label}
+              </span>
             </div>
-          </div>
-
-          <div className="rounded-lg border border-border/70 bg-surface-container p-4">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted/60">Veri modu</span>
-            <div className="mt-2 flex items-center gap-2">
-              <dataModeMeta.icon className={cn("h-4 w-4", dataMode === "live" ? "text-success" : dataMode === "demo" ? "text-primary" : "text-warning")} />
-              <p className="text-sm font-semibold text-foreground">{dataModeMeta.label}</p>
+            <div className="mt-5 h-24">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsBarChart data={[{ name: "score", value: qualityScore }]} layout="vertical" margin={{ top: 8, right: 0, left: 0, bottom: 8 }}>
+                  <XAxis type="number" domain={[0, 100]} hide />
+                  <YAxis type="category" dataKey="name" hide />
+                  <Bar dataKey="value" radius={[999, 999, 999, 999]} fill={qualityMeta.color} background={{ fill: "var(--surface-muted)" }} />
+                </RechartsBarChart>
+              </ResponsiveContainer>
             </div>
-            <p className="mt-2 text-xs leading-6 text-soft">{dataModeMeta.description}</p>
-
-            <div className="mt-4 border-t border-border/60 pt-4">
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted/60">Son senkronizasyon</span>
-              <p className="mt-2 text-sm font-semibold text-foreground">{formatSyncLabel(dataQuality.lastSyncAt)}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-lg border border-border/70 bg-surface-container p-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted/60">Uyarılar</span>
-            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted/60">
-              {dataQuality.warnings.length} kayıt
-            </span>
-          </div>
-
-          {dataQuality.warnings.length > 0 ? (
-            <div className="space-y-2">
-              {dataQuality.warnings.map((warning) => (
-                <div key={warning} className="flex items-start gap-2 rounded-lg border border-warning/20 bg-warning/10 px-3 py-2.5 text-sm text-warning">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span className="leading-6">{warning}</span>
+            <div className="mt-3 space-y-2">
+              {payload?.dataQuality.warnings.length ? payload.dataQuality.warnings.slice(0, 3).map((warning) => (
+                <div key={warning} className="rounded-[18px] border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-warning">
+                  {warning}
                 </div>
-              ))}
+              )) : (
+                <div className="rounded-[18px] border border-success/20 bg-success/10 px-4 py-3 text-sm text-success">
+                  Kritik veri uyarısı yok.
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="flex items-center gap-2 rounded-lg border border-success/20 bg-success/10 px-3 py-2.5 text-sm text-success">
-              <CircleCheckBig className="h-4 w-4 shrink-0" />
-              <span>Veri kalitesi ideal seviyede.</span>
-            </div>
-          )}
+          </article>
         </div>
-      </GlassCard>
+      </section>
 
+      <ProductComparisonSection />
+    </div>
+  );
+}
+
+function MetricTile({
+  title,
+  value,
+  detail,
+  icon: Icon,
+  accent = "default",
+}: {
+  title: string;
+  value: string;
+  detail: string;
+  icon: typeof DollarSign;
+  accent?: "default" | "warning";
+}) {
+  return (
+    <article className="app-metric-tile">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="app-section-title">{title}</p>
+          <p className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-foreground">{value}</p>
+          <p className="mt-2 text-sm text-soft">{detail}</p>
+        </div>
+        <span className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", accent === "warning" ? "bg-amber-100 text-amber-700" : "bg-slate-950 text-white")}>
+          <Icon className="h-4 w-4" />
+        </span>
+      </div>
+    </article>
+  );
+}
+
+function EmptyPanel({ text }: { text: string }) {
+  return (
+    <div className="flex h-full min-h-40 items-center justify-center rounded-[24px] border border-dashed border-slate-900/10 bg-surface-soft px-6 text-center text-sm text-soft">
+      {text}
     </div>
   );
 }

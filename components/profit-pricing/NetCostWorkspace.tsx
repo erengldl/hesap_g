@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { ArrowRight, Calculator, ShieldCheck } from "lucide-react";
+import { ArrowRight, Calculator, ShieldCheck, Sparkles } from "lucide-react";
 
-import { EmptyState, EyebrowBadge, GlassCard, PageHeader, WarningBadge } from "@/components/ui-custom/GlassComponents";
 import { formatCurrency, formatPercent } from "@/lib/formatters";
 import type { ChannelCostResult } from "@/lib/types";
 import type { NetCostBootstrap } from "@/lib/profit-pricing/workspace-types";
+import { cn } from "@/lib/utils";
 
 type NetCostWorkspaceProps = {
   bootstrap: NetCostBootstrap | null;
@@ -26,262 +26,261 @@ export default function NetCostWorkspace({
   const selectedProduct = bootstrap?.selectedProduct ?? null;
   const productList = bootstrap?.products ?? [];
   const marketplaces = bootstrap?.marketplaces ?? [];
-  const computedResults = results ?? [];
-  const bestResult = [...computedResults].sort((left, right) => right.net_profit - left.net_profit)[0] ?? null;
+  const computedResults = (results ?? []).slice().sort((left, right) => right.net_profit - left.net_profit);
+  const bestResult = computedResults[0] ?? null;
+  const highestNetProfit = Math.max(...computedResults.map((result) => result.net_profit), 1);
 
   if (error) {
     return (
-      <GlassCard className="border-warning/20 bg-warning/10">
-        <p className="text-sm font-semibold text-warning">Uyarı</p>
-        <p className="mt-2 text-sm leading-6 text-soft">{error}</p>
-      </GlassCard>
+      <section className="rounded-[24px] border border-warning/20 bg-warning/10 px-5 py-4 text-warning">
+        <p className="text-sm font-semibold">Net maliyet katmanı şu anda yanıt vermedi.</p>
+        <p className="mt-2 text-sm leading-6">{error}</p>
+      </section>
     );
   }
 
   if (!bootstrap || !selectedProduct) {
     return (
-      <div className="space-y-4">
-        <PageHeader
-          eyebrow="Net Maliyet"
-          title="Net maliyet motoru"
-          description="Ürün seçimi ve hesaplama verisi hazır olduğunda tek sayfada üç kanalın toplam maliyetini görürsün."
-        />
-        <EmptyState
-          icon={Calculator}
-          title="Net maliyet verisi hazır değil"
-          description="Önce ürün listesinin yüklenmesi gerekiyor."
-          action={(
-            <Link href="/net-maliyet-motoru" className="btn-primary">
-              Sayfayı yenile
-            </Link>
-          )}
-        />
-      </div>
+      <section className="app-surface-strong rounded-[32px] p-8">
+        <span className="app-chip">Net maliyet</span>
+        <h2 className="mt-5 text-4xl font-semibold tracking-[-0.05em] text-foreground">
+          Hesaplama için ürün verisi bekleniyor.
+        </h2>
+        <p className="mt-4 max-w-2xl text-base leading-7 text-soft">
+          Ürün listesi hazır olduğunda bu yüzey, kanal bazlı net maliyet farkını gerçek değerlerle gösterecek.
+        </p>
+        <Link href="/net-maliyet-motoru" className="btn-primary mt-6 inline-flex px-6 py-3 text-sm">
+          Sayfayı yenile
+        </Link>
+      </section>
     );
   }
 
-  if (computedResults.length === 0 || !bestResult) {
+  if (!bestResult) {
     return (
-      <div className="space-y-4">
-        <PageHeader
-          eyebrow="Net Maliyet"
-          title="Net maliyet motoru"
-          description="Seçili ürün için maliyet sonuçları henüz üretilemedi."
-        />
-        <EmptyState
-          icon={Calculator}
-          title="Sonuç yok"
-          description="Ürün değiştirip yeniden hesapla; sonuçlar burada tek tablo halinde görünecek."
-          action={(
-            <Link href="/net-maliyet-motoru" className="btn-primary">
-              Yeniden dene
-            </Link>
-          )}
-        />
-      </div>
+      <section className="app-surface-strong rounded-[32px] p-8">
+        <span className="app-chip">Net maliyet</span>
+        <h2 className="mt-5 text-4xl font-semibold tracking-[-0.05em] text-foreground">
+          Seçili ürün için sonuç üretilemedi.
+        </h2>
+        <p className="mt-4 max-w-2xl text-base leading-7 text-soft">
+          Farklı bir ürün deneyerek veya veri merkezindeki maliyet alanlarını gözden geçirerek tekrar hesapla.
+        </p>
+      </section>
     );
   }
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        eyebrow="Net Maliyet"
-        title="Kanal bazlı gerçek toplam maliyet"
-        description="Fiyat, kargo, komisyon, ödeme altyapısı ve vergi kesintilerini tek ekran üzerinden karşılaştır."
-      >
-        <EyebrowBadge variant="primary" className="gap-2">
-          <ShieldCheck className="h-3.5 w-3.5" />
-          {computedResults.length} kanal
-        </EyebrowBadge>
-        <WarningBadge>Tek sayfa karar akışı</WarningBadge>
-      </PageHeader>
-
-      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <GlassCard className="space-y-4">
-          <div className="space-y-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/60">
-              Ürün seçimi
-            </p>
-            <h2 className="font-heading text-2xl font-semibold tracking-[-0.05em] text-foreground sm:text-[2rem]">
-              Ürün seç, sonucu doğrudan gör
-            </h2>
-            <p className="max-w-2xl text-sm leading-6 text-soft">
-              Bu ekran otomatik optimizasyon üretmez; sadece net maliyet mantığını hızlı ve okunabilir biçimde gösterir.
-            </p>
-          </div>
-
-          <form action="/net-maliyet-motoru" method="get" className="grid gap-3 lg:grid-cols-[1fr_auto]">
-            <label className="space-y-2">
-              <span className="ml-1 block text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/60">
-                Ürün seç
+    <div className="space-y-6">
+      <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+        <article className="app-surface-strong relative overflow-hidden rounded-[32px] p-7">
+          <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(135deg,rgba(15,139,141,0.16),transparent_55%)]" />
+          <div className="relative">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="app-chip">
+                <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                {computedResults.length} kanal analiz edildi
               </span>
-              <select
-                name="productId"
-                defaultValue={selectedProductId ?? selectedProduct.id}
-                className="form-select"
-              >
-                {productList.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name} {product.sku ? `· ${product.sku}` : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <span className="app-chip">Tek ürün · tek karar yüzeyi</span>
+            </div>
 
-            <button type="submit" className="btn-primary self-end justify-center px-5">
-              Yeniden hesapla
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </form>
-
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-2xl border border-border/80 bg-surface-container px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted/60">Ürün</p>
-              <p className="mt-1 truncate text-sm font-semibold text-foreground">{selectedProduct.name}</p>
-            </div>
-            <div className="rounded-2xl border border-border/80 bg-surface-container px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted/60">SKU</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">{selectedProduct.sku || "—"}</p>
-            </div>
-            <div className="rounded-2xl border border-border/80 bg-surface-container px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted/60">Desi</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">{selectedProduct.desi} desi</p>
-            </div>
-            <div className="rounded-2xl border border-border/80 bg-surface-container px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted/60">Ürün + paketleme</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {formatCurrency(selectedProduct.cost + selectedProduct.packaging_cost)}
-              </p>
-            </div>
-          </div>
-        </GlassCard>
-
-        <GlassCard className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/60">
-                Sonuç özeti
-              </p>
-              <h3 className="mt-1 text-lg font-semibold tracking-tight text-foreground">
-                En iyi kanal {bestResult.channel_name}
-              </h3>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
-              <Calculator className="h-5 w-5" />
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-border/80 bg-surface-container px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted/60">Net kâr</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {formatMaybeCurrency(bestResult.net_profit)}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/80 bg-surface-container px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted/60">Marj</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {formatPercent(bestResult.profit_margin_percent ?? 0)}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/80 bg-surface-container px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted/60">Toplam maliyet</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {formatMaybeCurrency(bestResult.total_unit_cost)}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/80 bg-surface-container px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted/60">Kanal sayısı</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">{computedResults.length}</p>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-border/80 bg-surface-container p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/60">
-              Hızlı okuma
+            <h2 className="mt-5 max-w-3xl text-4xl font-semibold tracking-[-0.06em] text-foreground sm:text-[3.2rem]">
+              Aynı ürünün gerçek maliyeti kanala göre ne kadar değişiyor?
+            </h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-soft">
+              Kargo, komisyon, vergi ve ödeme kesintisi tek tabloda birleşiyor. Bu ekranın amacı hesaplama hızını artırmak, yorum yükünü azaltmak.
             </p>
-            <p className="mt-2 text-sm leading-6 text-soft">
-              Kârlılık tablosu yalnızca temel maliyet kalemlerini gösterir. Ek optimizasyon, tahmin ve otomasyon katmanları kaldırıldı.
-            </p>
-          </div>
-        </GlassCard>
-      </div>
 
-      <GlassCard className="space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/60">
-              Kanal karşılaştırması
-            </p>
-            <h3 className="text-xl font-semibold tracking-tight text-foreground">
-              Basit maliyet tablosu
+            <form action="/net-maliyet-motoru" method="get" className="mt-7 grid gap-3 lg:grid-cols-[1fr_auto]">
+              <label className="space-y-2">
+                <span className="ml-1 block text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground/70">
+                  Ürün seç
+                </span>
+                <select
+                  name="productId"
+                  defaultValue={selectedProductId ?? selectedProduct.id}
+                  className="form-select rounded-[20px] border-slate-900/8 bg-white/90"
+                >
+                  {productList.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name} {product.sku ? `· ${product.sku}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <button type="submit" className="btn-primary self-end px-6 py-3 text-sm">
+                Yeniden hesapla
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </form>
+
+            <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <InfoTile title="Ürün" value={selectedProduct.name} />
+              <InfoTile title="SKU" value={selectedProduct.sku || "—"} />
+              <InfoTile title="Desi" value={`${selectedProduct.desi} desi`} />
+              <InfoTile
+                title="Ürün + paket"
+                value={formatCurrency(selectedProduct.cost + selectedProduct.packaging_cost)}
+              />
+            </div>
+          </div>
+        </article>
+
+        <aside className="space-y-4">
+          <section className="app-surface rounded-[28px] p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="app-section-title">Kazanan kanal</p>
+                <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+                  {bestResult.channel_name}
+                </p>
+              </div>
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white">
+                <Calculator className="h-5 w-5" />
+              </span>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <InfoTile title="Net kâr" value={formatMaybeCurrency(bestResult.net_profit)} dense />
+              <InfoTile title="Marj" value={formatPercent(bestResult.profit_margin_percent ?? 0)} dense />
+              <InfoTile title="Toplam maliyet" value={formatMaybeCurrency(bestResult.total_unit_cost)} dense />
+              <InfoTile title="Satış fiyatı" value={formatCurrency(bestResult.sale_price)} dense />
+            </div>
+          </section>
+
+          <section className="app-surface rounded-[28px] p-5">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <p className="text-base font-semibold tracking-tight text-foreground">Hızlı yorum</p>
+            </div>
+            <ul className="mt-4 space-y-3 text-sm leading-6 text-soft">
+              <li>
+                En yüksek net kâr şu an <span className="font-semibold text-foreground">{bestResult.channel_name}</span> kanalında.
+              </li>
+              <li>
+                En güçlü sonuç {formatPercent(bestResult.profit_margin_percent ?? 0)} marj ile geliyor.
+              </li>
+              <li>
+                Ürün detayına geçerek bu hesaplamayı ürün geçmişi ve kanal alanlarıyla birlikte inceleyebilirsin.
+              </li>
+            </ul>
+          </section>
+        </aside>
+      </section>
+
+      <section className="app-surface rounded-[30px] p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="app-section-title">Kanal matrisi</p>
+            <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-foreground">
+              Karşılaştırmalı maliyet görünümü
             </h3>
-            <p className="max-w-2xl text-sm leading-6 text-soft">
-              Üç kanalın satış fiyatı, toplam maliyeti, net kârı ve marjı.
-            </p>
           </div>
+          <span className="app-chip">{marketplaces.length || computedResults.length} aktif kanal</span>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-border/80">
-          <table className="min-w-full divide-y divide-border/80 text-sm">
-            <thead className="bg-surface-container/80 text-left text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/60">
-              <tr>
-                <th className="px-4 py-3">Kanal</th>
-                <th className="px-4 py-3">Satış</th>
-                <th className="px-4 py-3">Toplam maliyet</th>
-                <th className="px-4 py-3">Net kâr</th>
-                <th className="px-4 py-3">Marj</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/80 bg-background/60">
-              {computedResults.map((result) => (
-                <tr key={`${result.marketplace_id ?? result.channel_name}`} className="align-top">
-                  <td className="px-4 py-3 font-medium text-foreground">
-                    {result.channel_name}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {formatCurrency(result.sale_price)}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {formatCurrency(result.total_unit_cost)}
-                  </td>
-                  <td className="px-4 py-3 text-foreground">
-                    {formatCurrency(result.net_profit)}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {formatPercent(result.profit_margin_percent ?? 0)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="mt-5 overflow-hidden rounded-[24px] border border-slate-900/8">
+          <div className="hidden grid-cols-[1.4fr_1fr_1fr_1fr_1fr] border-b border-slate-900/8 bg-surface-soft px-5 py-4 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground/70 md:grid">
+            <span>Kanal</span>
+            <span>Satış</span>
+            <span>Toplam maliyet</span>
+            <span>Net kâr</span>
+            <span>Marj</span>
+          </div>
+
+          <div className="divide-y divide-slate-900/8 bg-white/85">
+            {computedResults.map((result, index) => {
+              const width = result.net_profit > 0 ? Math.max(10, (result.net_profit / highestNetProfit) * 100) : 10;
+              const isBest = index === 0;
+
+              return (
+                <div key={`${result.marketplace_id ?? result.channel_name}`} className="px-5 py-5">
+                  <div className="grid gap-4 md:grid-cols-[1.4fr_1fr_1fr_1fr_1fr] md:items-center">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-base font-semibold text-foreground">{result.channel_name}</p>
+                        <span className={cn("rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em]", isBest ? "bg-primary text-primary-foreground" : "bg-surface-muted text-muted-foreground")}>
+                          {isBest ? "En iyi" : "İzle"}
+                        </span>
+                      </div>
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-muted">
+                        <div className={cn("h-full rounded-full", isBest ? "bg-primary" : "bg-slate-900/20")} style={{ width: `${width}%` }} />
+                      </div>
+                    </div>
+                    <MetricColumn title="Satış" value={formatCurrency(result.sale_price)} />
+                    <MetricColumn title="Toplam maliyet" value={formatCurrency(result.total_unit_cost)} />
+                    <MetricColumn title="Net kâr" value={formatCurrency(result.net_profit)} highlight={isBest} />
+                    <MetricColumn title="Marj" value={formatPercent(result.profit_margin_percent ?? 0)} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </GlassCard>
+      </section>
 
       {marketplaces.length > 0 ? (
-        <GlassCard className="space-y-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/60">
-            Aktif kanallar
-          </p>
-          <div className="flex flex-wrap gap-2">
+        <section className="app-surface rounded-[28px] p-6">
+          <p className="app-section-title">Aktif pazar yerleri</p>
+          <div className="mt-4 flex flex-wrap gap-2">
             {marketplaces.map((marketplace) => (
               <span
                 key={marketplace.id}
-                className="rounded-full border border-border/80 bg-surface-container px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/70"
+                className="rounded-full border border-slate-900/8 bg-white/85 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground"
               >
                 {marketplace.name}
               </span>
             ))}
           </div>
-        </GlassCard>
+        </section>
       ) : null}
 
       <div className="flex justify-end">
-        <Link href={`/urun/${selectedProduct.id}`} className="btn-secondary">
+        <Link href={`/urun/${selectedProduct.id}`} className="btn-secondary px-5 py-3 text-sm">
           Ürün detayına git
           <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
+    </div>
+  );
+}
+
+function InfoTile({
+  title,
+  value,
+  dense = false,
+}: {
+  title: string;
+  value: string;
+  dense?: boolean;
+}) {
+  return (
+    <div className={cn("rounded-[22px] border border-slate-900/8 bg-white/82", dense ? "px-4 py-3" : "px-4 py-4")}>
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground/70">{title}</p>
+      <p className={cn("mt-2 font-semibold tracking-tight text-foreground", dense ? "text-lg" : "text-base")}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function MetricColumn({
+  title,
+  value,
+  highlight = false,
+}: {
+  title: string;
+  value: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div>
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground/70 md:hidden">
+        {title}
+      </p>
+      <p className={cn("text-sm font-semibold md:text-base", highlight ? "text-primary" : "text-foreground")}>
+        {value}
+      </p>
     </div>
   );
 }

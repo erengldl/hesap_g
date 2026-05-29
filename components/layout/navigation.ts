@@ -33,3 +33,14 @@ export const advancedNavigationItems: NavigationItem[] = [
 ];
 
 export const navigationItems: NavigationItem[] = [...primaryNavigationItems, ...advancedNavigationItems];
+
+export const navigationSections = [
+  {
+    title: "Operasyon",
+    items: primaryNavigationItems,
+  },
+  {
+    title: "Büyüme",
+    items: advancedNavigationItems,
+  },
+];
