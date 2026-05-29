@@ -64,6 +64,7 @@ interface KpiCardProps {
   };
   tone?: KpiTone;
   className?: string;
+  goldRim?: boolean;
 }
 
 export function KpiCard({
@@ -74,6 +75,7 @@ export function KpiCard({
   trend,
   tone = "default",
   className,
+  goldRim = false,
 }: KpiCardProps) {
   const toneStyles = KPI_CARD_TONES[tone];
 
@@ -82,6 +84,7 @@ export function KpiCard({
       className={cn(
         "group relative h-full overflow-hidden transition-transform duration-200 hover:-translate-y-0.5",
         toneStyles.card,
+        goldRim && "gold-rim",
         className
       )}
     >

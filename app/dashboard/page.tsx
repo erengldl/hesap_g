@@ -158,6 +158,8 @@ function getMarginConfidenceMeta(confidence: "exact" | "estimated") {
     label: "TAHMINI",
     className: "border-warning/20 bg-warning/10 text-warning",
   };
+
+
 }
 
 export default function DashboardPage() {
@@ -271,6 +273,10 @@ export default function DashboardPage() {
   }
 
   const trendMax = Math.max(...agg.salesTrend.map((d) => d.revenue), 1);
+  const trendChartData = agg.salesTrend.map((row) => ({
+    ...row,
+    profit: row.revenue * (agg.avgMargin / 100),
+  }));
 
   return (
     <div className="page-shell">
@@ -305,15 +311,88 @@ export default function DashboardPage() {
         </GlassCard>
       ) : null}
 
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard title="Toplam Ciro" value={formatCurrency(agg.totalRevenue)} icon={DollarSign}
-          subValue={`${formatNumber(agg.totalOrders)} sipariş`} />
-        <KpiCard title="Ortalama Kâr Marjı" value={formatPercent(agg.avgMargin)} icon={TrendingUp}
-          trend={{ value: "%25-%45 aralığı", isPositive: true }} />
-        <KpiCard title="Tahmini Net Kâr" value={formatCurrency(agg.totalProfit)} icon={Wallet}
-          subValue={`${agg.totalProducts} aktif ürün`} />
-        <KpiCard title="Tamamlanan Sipariş" value={formatNumber(agg.totalOrders)} icon={ShoppingCart}
-          subValue="Son 90 gün" />
+      {/* Hızlı Başlangıç */}
+      <section className="mb-6">
+        <h2 className="font-heading text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground/60 mb-3">
+          Hızlı Başlangıç
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="glass-panel p-5 rounded-lg flex gap-4 items-start relative overflow-hidden group hover:border-primary/20 transition-all duration-200">
+            <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0 border border-primary/20">
+              <span className="material-symbols-outlined text-[20px]">storefront</span>
+            </div>
+            <div>
+              <h3 className="font-sans text-[11px] font-bold text-foreground uppercase tracking-wider mb-1">1. Mağaza Bağlantısı</h3>
+              <p className="font-sans text-[13px] text-muted-foreground leading-relaxed">Pazaryeri hesaplarınızı entegre ederek verileri anında çekin.</p>
+            </div>
+          </div>
+          <div className="glass-panel p-5 rounded-lg flex gap-4 items-start relative overflow-hidden group hover:border-secondary/20 transition-all duration-200">
+            <div className="w-10 h-10 rounded bg-secondary/10 flex items-center justify-center text-secondary shrink-0 border border-secondary/20">
+              <span className="material-symbols-outlined text-[20px]">upload_file</span>
+            </div>
+            <div>
+              <h3 className="font-sans text-[11px] font-bold text-foreground uppercase tracking-wider mb-1">2. Maliyet Girişi</h3>
+              <p className="font-sans text-[13px] text-muted-foreground leading-relaxed">Ürün maliyetlerinizi yükleyerek net kar hesaplamalarını başlatın.</p>
+            </div>
+          </div>
+          <div className="glass-panel p-5 rounded-lg flex gap-4 items-start relative overflow-hidden group hover:border-white/10 transition-all duration-200">
+            <div className="w-10 h-10 rounded bg-white/5 flex items-center justify-center text-muted-foreground shrink-0 border border-white/10">
+              <span className="material-symbols-outlined text-[20px]">insights</span>
+            </div>
+            <div>
+              <h3 className="font-sans text-[11px] font-bold text-foreground uppercase tracking-wider mb-1">3. Analiz Bekliyor</h3>
+              <p className="font-sans text-[13px] text-muted-foreground leading-relaxed">Veriler işlendikten sonra karlı büyüme stratejileri oluşturun.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* KPI Grid */}
+      <div className="mb-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <KpiCard
+          title="Toplam Ciro"
+          value={formatCurrency(agg.totalRevenue)}
+          subValue={`${formatNumber(agg.totalOrders)} sipariş`}
+          icon={DollarSign}
+          goldRim
+          tone="warning"
+        />
+        <KpiCard
+          title="Ort. Kar Marjı"
+          value={formatPercent(agg.avgMargin)}
+          icon={TrendingUp}
+          trend={{ value: "+2.1%", isPositive: true }}
+          tone="default"
+        />
+        <KpiCard
+          title="Tahmini Net Kâr"
+          value={formatCurrency(agg.totalProfit)}
+          subValue="Hedefte"
+          icon={Wallet}
+          tone="primary"
+        />
+        <KpiCard
+          title="Siparişler"
+          value={formatNumber(agg.totalOrders)}
+          subValue="Son 90 gün"
+          icon={ShoppingCart}
+          tone="default"
+        />
+        <KpiCard
+          title="Aktif Ürün"
+          value={String(agg.totalProducts)}
+          subValue="Yayında"
+          icon={Package}
+          tone="default"
+        />
+        <KpiCard
+          title="Stok Uyarısı"
+          value={String(agg.stockAlerts.length)}
+          subValue="Kritik Seviye"
+          icon={AlertTriangle}
+          tone="danger"
+          className="border-l-2 border-l-danger"
+        />
       </div>
 
       {adSummary && (
@@ -376,34 +455,44 @@ export default function DashboardPage() {
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <GlassCard className="overflow-hidden lg:col-span-2">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h3 className="panel-title">Performans Trendi</h3>
-            <div className="flex items-center gap-2">
+            <h3 className="panel-title">Satış ve Karlılık Trendi</h3>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-secondary"></div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Ciro</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-primary"></div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Net Kâr</span>
+              </div>
               <WarningBadge>30 günlük veri</WarningBadge>
-              <span className="text-xs font-medium text-muted">Zirve: {formatCurrency(trendMax)}</span>
             </div>
           </div>
           <div className="h-[260px] min-w-0 w-full">
             {showCharts && agg.salesTrend.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} initialDimension={{ width: 1, height: 1 }}>
-                <AreaChart data={agg.salesTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <AreaChart data={trendChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.2} />
+                    <linearGradient id="gradientSecondary" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.2} />
+                      <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0.0} />
+                    </linearGradient>
+                    <linearGradient id="gradientPrimary" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.3} />
                       <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-soft)" strokeOpacity={0.25} vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-soft)" strokeOpacity={0.15} vertical={false} />
                   <XAxis dataKey="date" stroke="var(--text-muted)" strokeOpacity={0.45} fontSize={10} tickLine={false} axisLine={false}
                     tickFormatter={(d: string) => d.slice(5)} />
                   <YAxis stroke="var(--text-muted)" strokeOpacity={0.45} fontSize={10} tickLine={false} axisLine={false}
                     tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)} />
                   <Tooltip
                     contentStyle={chartTooltipStyle}
-                    itemStyle={{ color: "var(--chart-1)" }}
-                    formatter={(value) => [formatCurrency(Number(value)), "Ciro"]}
+                    formatter={(value, name) => [formatCurrency(Number(value)), name === "revenue" ? "Ciro" : "Net Kâr"]}
                   />
-                  <Area type="monotone" dataKey="revenue" stroke="var(--chart-1)" strokeWidth={2} isAnimationActive={true} animationDuration={400}
-                    fill="url(#trendGradient)" dot={false} />
+                  <Area type="monotone" dataKey="revenue" stroke="var(--chart-2)" strokeWidth={1.5} fill="url(#gradientSecondary)" dot={false} name="revenue" className="glow-chart-line" />
+                  <Area type="monotone" dataKey="profit" stroke="var(--chart-1)" strokeWidth={2} fill="url(#gradientPrimary)" dot={false} name="profit" className="glow-chart-line" />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
@@ -415,10 +504,11 @@ export default function DashboardPage() {
         </GlassCard>
 
         <GlassCard>
-          <h3 className="panel-title mb-3">Kanal Hacmi</h3>
-          <div className="h-[200px] min-w-0">
+          <h3 className="panel-title mb-1">Kanal Dağılımı</h3>
+          <p className="text-[11px] text-muted-foreground mb-4">Satışların platformlara göre yüzdesi.</p>
+          <div className="h-[180px] min-w-0">
             {showCharts && agg.channelBreakdown.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} initialDimension={{ width: 1, height: 1 }}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie data={agg.channelBreakdown} cx="50%" cy="50%" innerRadius={52} outerRadius={78} isAnimationActive={true} animationDuration={400}
                     paddingAngle={4} dataKey="revenue" nameKey="name">
@@ -441,10 +531,10 @@ export default function DashboardPage() {
               <div key={ch.slug} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full" style={{ backgroundColor: chartPalette[i % chartPalette.length] }} />
-                  <span className="text-muted">{ch.name}</span>
+                  <span className="text-muted text-[13px]">{ch.name}</span>
                 </div>
-                <div className="text-foreground">
-                  {formatCurrency(ch.revenue)} <span className="text-muted/60 font-medium ml-1">%{ch.pct}</span>
+                <div className="text-foreground font-mono text-xs font-semibold">
+                  {formatCurrency(ch.revenue)} <span className="text-muted-foreground/60 font-medium ml-1">%{ch.pct}</span>
                 </div>
               </div>
             ))}
@@ -459,36 +549,36 @@ export default function DashboardPage() {
             <span className="rounded-md border border-border bg-surface-container px-2 py-0.5 text-xs font-medium text-muted">Brüt Ciro</span>
           </div>
           <div className="hidden overflow-x-auto md:block">
-            <table className="w-full text-left">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-border/50 text-xs font-semibold uppercase tracking-[0.1em] text-muted/60">
-                  <th className="pb-2">Ürün Detayı</th>
-                  <th className="pb-2 text-right">Sipariş</th>
-                  <th className="pb-2 text-right">Ciro</th>
-                  <th className="pb-2 text-right">Marj</th>
+                <tr className="border-b border-white/10">
+                  <th className="py-3 px-2 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/60">Ürün Detayı</th>
+                  <th className="py-3 px-2 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/60 text-right">Sipariş</th>
+                  <th className="py-3 px-2 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/60 text-right">Ciro</th>
+                  <th className="py-3 px-2 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/60 text-right">Marj</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/25">
+              <tbody className="divide-y divide-white/5">
                 {agg.topProducts.map((p) => (
-                  <tr key={p.id} className="group transition-colors duration-200 hover:bg-surface-subtle">
-                    <td className="py-2.5">
-                      <p className="max-w-[220px] truncate text-sm font-medium text-foreground">{p.name}</p>
-                      <p className="mt-0.5 text-xs text-muted/60">{p.sku}</p>
+                  <tr key={p.id} className="hover:bg-white/[0.02] transition-colors duration-150">
+                    <td className="py-3 px-2">
+                      <div className="font-mono text-xs font-bold text-foreground">{p.sku}</div>
+                      <div className="font-sans text-[13px] text-muted-foreground truncate w-64 mt-0.5">{p.name}</div>
                     </td>
-                    <td className="py-2.5 text-right text-sm font-medium text-foreground">{formatNumber(p.orders)}</td>
-                    <td className="py-2.5 text-right text-sm font-bold text-primary">{formatCurrency(p.revenue)}</td>
-                    <td className="py-2.5 text-right">
+                    <td className="py-3 px-2 font-mono text-xs font-semibold text-right text-foreground">{formatNumber(p.orders)}</td>
+                    <td className="py-3 px-2 font-mono text-xs font-semibold text-right text-primary">{formatCurrency(p.revenue)}</td>
+                    <td className="py-3 px-2 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <span className={cn(
-                          "inline-flex rounded-md border px-2 py-0.5 text-xs font-semibold",
+                          "inline-block px-2 py-0.5 rounded font-mono text-[11px] font-semibold border",
                           p.marginConfidence === "exact"
-                            ? "border-border bg-primary-soft text-primary"
-                            : "border-warning/20 bg-warning/10 text-warning"
+                            ? "bg-primary-soft/10 text-primary border-primary/20"
+                            : "bg-warning/10 text-warning border-warning/20"
                         )}>
                           %{p.margin}
                         </span>
                         <span className={cn(
-                          "inline-flex rounded-md border px-1.5 py-0.5 text-xs font-semibold uppercase tracking-[0.08em]",
+                          "inline-block px-1.5 py-0.5 rounded font-sans text-[9px] font-bold uppercase tracking-wider border",
                           getMarginConfidenceMeta(p.marginConfidence).className
                         )}>
                           {getMarginConfidenceMeta(p.marginConfidence).label}

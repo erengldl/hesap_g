@@ -11,7 +11,6 @@ import {
   Settings,
   ChevronDown,
   Link2,
-  LineChart,
   Search,
 } from "lucide-react";
 import { formatCurrency, formatNumber, formatPercent } from "@/lib/formatters";
@@ -180,14 +179,15 @@ export default function Topbar({ onOpenMobileNavigation, onOpenCommandPalette }:
   };
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-40 border-b border-border/80 bg-panel/94 px-4 shadow-[var(--shadow-card)] backdrop-blur-2xl md:left-[var(--sidebar-width)] md:px-5">
+    <header className="fixed left-0 right-0 top-0 z-40 border-b border-white/10 bg-surface/70 px-4 shadow-sm backdrop-blur-md md:left-[var(--sidebar-width)] md:px-5">
       <div className="flex h-[76px] items-center justify-between gap-3">
+        {/* Left Side Info */}
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <button
             type="button"
             onClick={onOpenMobileNavigation}
             aria-label="Mobil menüyü aç"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-container/80 text-muted transition-colors duration-200 hover:border-primary/25 hover:bg-surface-container hover:text-foreground md:hidden"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-surface-container/80 text-muted-foreground transition-colors duration-200 hover:border-primary/25 hover:bg-surface-container hover:text-foreground md:hidden"
           >
             <Menu className="h-4.5 w-4.5" />
           </button>
@@ -195,46 +195,46 @@ export default function Topbar({ onOpenMobileNavigation, onOpenCommandPalette }:
           <Link
             href="/dashboard"
             aria-label="Ana sayfaya git"
-            className="flex shrink-0 items-center gap-2 rounded-lg border border-border/80 bg-surface-container/80 px-3 py-2 transition-colors duration-200 hover:border-border-strong hover:bg-surface-container md:hidden"
+            className="flex shrink-0 items-center gap-2 rounded-lg border border-white/10 bg-surface-container/80 px-3 py-2 transition-colors duration-200 hover:border-white/20 hover:bg-surface-container md:hidden"
           >
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-[var(--shadow-primary)]">
-              <LineChart className="h-4 w-4" />
+              <span className="material-symbols-outlined text-[18px]">trending_up</span>
             </div>
             <div>
-              <p className="text-sm font-semibold tracking-[-0.04em] text-foreground">Hesap G</p>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted/60">{meta.eyebrow}</p>
+              <p className="text-sm font-semibold tracking-tight text-foreground">Hesap G</p>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60">{meta.eyebrow}</p>
             </div>
           </Link>
 
           <div className="hidden min-w-0 lg:block">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/60">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground/60">
               {meta.eyebrow}
             </p>
             <div className="mt-1 flex min-w-0 items-center gap-3">
-              <h1 className="truncate text-[1.05rem] font-semibold tracking-[-0.05em] text-foreground">
+              <h1 className="truncate text-base font-bold tracking-tight text-foreground">
                 {meta.title}
               </h1>
-              <p className="hidden truncate text-sm text-muted/60 xl:block">
+              <p className="hidden truncate text-xs font-semibold text-muted-foreground/70 xl:block">
                 {meta.description}
               </p>
             </div>
           </div>
-
         </div>
 
+        {/* Right Side Stats & Actions */}
         <div className="flex shrink-0 items-center gap-3">
           <button
             type="button"
             onClick={onOpenCommandPalette}
             aria-label="Komut aramasını aç"
-            className="hidden items-center gap-3 rounded-xl border border-border/80 bg-surface-container/80 px-3 py-2 text-left text-muted transition-colors duration-200 hover:border-primary/25 hover:bg-surface-container hover:text-foreground md:flex"
+            className="hidden items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-left text-muted-foreground transition-colors duration-200 hover:border-primary/25 hover:bg-surface-container hover:text-foreground md:flex"
           >
             <Search className="h-4 w-4" />
             <div className="hidden min-w-0 lg:block">
-              <p className="text-sm font-semibold text-foreground">Ara</p>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted/60">Sayfa, ürün, sipariş</p>
+              <p className="text-xs font-bold text-foreground">ARA</p>
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground/50">Sayfa, ürün, sipariş</p>
             </div>
-            <span className="rounded-md border border-border/80 bg-background/70 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+            <span className="rounded-md border border-white/10 bg-black/30 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
               Ctrl+K
             </span>
           </button>
@@ -243,7 +243,7 @@ export default function Topbar({ onOpenMobileNavigation, onOpenCommandPalette }:
             type="button"
             onClick={onOpenCommandPalette}
             aria-label="Komut aramasını aç"
-            className="flex h-10 w-10 items-center justify-center rounded-md border border-border/80 bg-surface-container/80 text-muted transition-colors duration-200 hover:border-primary/25 hover:bg-surface-container hover:text-foreground md:hidden"
+            className="flex h-10 w-10 items-center justify-center rounded-md border border-white/10 bg-white/5 text-muted-foreground transition-colors duration-200 hover:border-primary/25 hover:bg-surface-container hover:text-foreground md:hidden"
           >
             <Search className="h-4 w-4" />
           </button>
@@ -252,22 +252,22 @@ export default function Topbar({ onOpenMobileNavigation, onOpenCommandPalette }:
             {stats ? (
               <>
                 <TopbarMetric label="Ciro" value={formatCurrency(stats.totalRevenue)} />
-                <span className="mx-3 h-8 w-px bg-border/70" aria-hidden="true" />
+                <span className="mx-3 h-8 w-px bg-white/10" aria-hidden="true" />
                 <TopbarMetric label="Sipariş" value={formatNumber(stats.totalOrders)} />
-                <span className="mx-3 h-8 w-px bg-border/70" aria-hidden="true" />
+                <span className="mx-3 h-8 w-px bg-white/10" aria-hidden="true" />
                 <TopbarMetric label="Marj" value={formatPercent(stats.avgMargin)} tone="primary" />
               </>
             ) : (
-              <div className="h-8 w-64 animate-pulse rounded-sm bg-surface-container/55" />
+              <div className="h-8 w-64 animate-pulse rounded-md bg-white/5" />
             )}
           </div>
 
           <button
             type="button"
             aria-label="Bildirimler"
-            className="relative flex h-10 w-10 items-center justify-center rounded-md text-muted transition-colors duration-200 hover:bg-surface-container/55 hover:text-foreground"
+            className="relative flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-colors duration-200 hover:bg-white/5 hover:text-foreground"
           >
-            <Bell className="h-4 w-4" />
+            <Bell className="h-4.5 w-4.5" />
             {stats && stats.stockAlerts > 0 && (
               <span className="absolute -right-1 -top-1">
                 <NotificationBadge count={stats.stockAlerts} />
@@ -282,26 +282,26 @@ export default function Topbar({ onOpenMobileNavigation, onOpenCommandPalette }:
               className="group flex items-center gap-3 rounded-md py-1.5 pl-0 pr-0 text-left transition-colors duration-200 hover:text-foreground active:scale-[0.98]"
             >
               <div className="hidden text-right sm:block">
-                <p className="text-sm font-semibold text-foreground">{user?.name || "Kullanıcı"}</p>
-                <p className="text-[10px] uppercase tracking-[0.18em] text-muted/60">{user?.plan || "Premium plan"}</p>
+                <p className="text-xs font-bold text-foreground">{user?.name || "Kullanıcı"}</p>
+                <p className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/60">{user?.plan || "Premium plan"}</p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors duration-200 group-hover:bg-primary/90">
                 <User className="h-4 w-4" />
               </div>
-              <ChevronDown className={cn("hidden h-3 w-3 text-muted transition-colors duration-200 sm:block", menuOpen && "rotate-180")} />
+              <ChevronDown className={cn("hidden h-3 w-3 text-muted-foreground transition-colors duration-200 sm:block", menuOpen && "rotate-180")} />
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-60 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-border/80 bg-panel/98 shadow-[var(--shadow-card)] backdrop-blur-2xl">
-                <div className="border-b border-border/80 p-4">
-                  <p className="truncate text-sm font-semibold text-foreground">{user?.name}</p>
-                  <p className="mt-1 truncate text-[11px] text-muted/60">{user?.email}</p>
+              <div className="absolute right-0 top-full mt-2 w-60 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-white/10 bg-surface-dim shadow-xl backdrop-blur-2xl">
+                <div className="border-b border-white/10 p-4">
+                  <p className="truncate text-xs font-bold text-foreground">{user?.name}</p>
+                  <p className="mt-1 truncate text-[10px] text-muted-foreground/60">{user?.email}</p>
                 </div>
                 <div className="p-2">
                   <button
                     type="button"
                     onClick={() => { setMenuOpen(false); router.push("/integrations"); }}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted transition-colors duration-200 hover:bg-surface-container hover:text-foreground active:scale-[0.98]"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground transition-colors duration-200 hover:bg-white/5 hover:text-foreground active:scale-[0.98]"
                   >
                     <Link2 className="h-4 w-4" />
                     Bağlantılar
@@ -309,7 +309,7 @@ export default function Topbar({ onOpenMobileNavigation, onOpenCommandPalette }:
                   <button
                     type="button"
                     onClick={() => { setMenuOpen(false); router.push("/ayarlar"); }}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted transition-colors duration-200 hover:bg-surface-container hover:text-foreground active:scale-[0.98]"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground transition-colors duration-200 hover:bg-white/5 hover:text-foreground active:scale-[0.98]"
                   >
                     <Settings className="h-4 w-4" />
                     Ayarlar
@@ -317,7 +317,7 @@ export default function Topbar({ onOpenMobileNavigation, onOpenCommandPalette }:
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-danger transition-colors duration-200 hover:bg-danger/10 active:scale-[0.98]"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-danger transition-colors duration-200 hover:bg-danger/10 active:scale-[0.98]"
                   >
                     <LogOut className="h-4 w-4" />
                     Oturumu Kapat
@@ -343,10 +343,10 @@ function TopbarMetric({
 }) {
   return (
     <div className="min-w-[88px]">
-      <p className={cn("text-[10px] font-semibold uppercase tracking-[0.18em]", tone === "primary" ? "text-primary/72" : "text-muted/60")}>
+      <p className={cn("text-[9px] font-bold uppercase tracking-[0.16em]", tone === "primary" ? "text-primary/80" : "text-muted-foreground/50")}>
         {label}
       </p>
-      <p className={cn("mt-1 whitespace-nowrap text-sm font-semibold tracking-[-0.03em]", tone === "primary" ? "text-primary" : "text-foreground")}>
+      <p className={cn("mt-1 whitespace-nowrap font-mono text-sm font-semibold tracking-tight", tone === "primary" ? "text-primary" : "text-foreground")}>
         {value}
       </p>
     </div>
