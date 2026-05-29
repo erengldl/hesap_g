@@ -45,6 +45,39 @@ async function applySessionConfig(client: postgres.Sql | postgres.TransactionSql
   );
 }
 
+const RLS_TABLES = [
+  "seller_profiles",
+  "products",
+  "product_marketplace_settings",
+  "cost_results",
+  "orders",
+  "order_items",
+  "inventory_daily",
+  "demand_forecasts",
+  "seo_generations",
+  "price_optimization_runs",
+  "store_expenses",
+  "data_center_sync_runs",
+  "campaign_profit_metrics",
+  "users"
+];
+
+function queryRequiresSessionConfig(sql: string): boolean {
+  const lowerSql = sql.toLowerCase();
+  return RLS_TABLES.some(table => {
+    const index = lowerSql.indexOf(table);
+    if (index === -1) return false;
+    
+    const charBefore = index > 0 ? lowerSql[index - 1] : " ";
+    const charAfter = index + table.length < lowerSql.length ? lowerSql[index + table.length] : " ";
+    
+    const isBoundaryBefore = /[^a-z0-9_]/.test(charBefore);
+    const isBoundaryAfter = /[^a-z0-9_]/.test(charAfter);
+    
+    return isBoundaryBefore && isBoundaryAfter;
+  });
+}
+
 // SQL translation: ? → $1, $2, ...
 function translatePlaceholders(sql: string): string {
   let result = "";
@@ -159,7 +192,20 @@ class PgStatement<T = Record<string, unknown>> {
 
   private async execute(mode: "all" | "get" | "run", params: unknown[]) {
     const client = getSql();
-    await applySessionConfig(client);
+    
+    if (queryRequiresSessionConfig(this.rawSql)) {
+      const isTx = isTransactionActive();
+      if (isTx) {
+        const tx = client as any;
+        if (!tx.__sessionConfigApplied) {
+          await applySessionConfig(tx);
+          tx.__sessionConfigApplied = true;
+        }
+      } else {
+        await applySessionConfig(client);
+      }
+    }
+
     const safeParams = normalizeParams(params);
     let sql = translatePlaceholders(this.rawSql);
 
@@ -217,7 +263,18 @@ class PgDatabase implements AppDatabase {
 
   async exec(sql: string): Promise<void> {
     const client = getSql();
-    await applySessionConfig(client);
+    if (queryRequiresSessionConfig(sql)) {
+      const isTx = isTransactionActive();
+      if (isTx) {
+        const tx = client as any;
+        if (!tx.__sessionConfigApplied) {
+          await applySessionConfig(tx);
+          tx.__sessionConfigApplied = true;
+        }
+      } else {
+        await applySessionConfig(client);
+      }
+    }
     const translated = translatePlaceholders(sql);
     await client.unsafe(translated);
   }
@@ -226,6 +283,7 @@ class PgDatabase implements AppDatabase {
     const client = getSql();
     return client.begin(async (tx) => {
       await applySessionConfig(tx);
+      (tx as any).__sessionConfigApplied = true;
       return txStore.run(tx, fn);
     }) as Promise<T>;
   }
