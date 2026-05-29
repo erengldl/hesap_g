@@ -7,6 +7,24 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 
+EXCLUDED_TABLES = {
+    "uploaded_reports",
+    "report_column_mappings",
+    "normalized_ad_rows",
+    "analysis_settings",
+    "analysis_results",
+    "recommendations",
+    "llm_outputs",
+    "organizations",
+    "organization_members",
+    "seo_schema_suggestions",
+    "seo_internal_link_suggestions",
+    "seo_content_versions",
+    "seo_jobs",
+    "shipping_tariffs",
+}
+
+
 def connect(database_path: str) -> sqlite3.Connection:
     connection = sqlite3.connect(str(Path(database_path)))
     connection.row_factory = sqlite3.Row
@@ -38,9 +56,10 @@ def normalize_index_sql(sql: str) -> str:
 
 
 def get_tables(connection: sqlite3.Connection):
-    return connection.execute(
+    rows = connection.execute(
         "SELECT name, sql, rowid FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY rowid"
     ).fetchall()
+    return [row for row in rows if row["name"] not in EXCLUDED_TABLES]
 
 
 def build_select_sql(table_name: str) -> str:
@@ -89,6 +108,8 @@ def print_counts(connection: sqlite3.Connection):
         "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
     ).fetchall():
         name = row["name"]
+        if name in EXCLUDED_TABLES:
+            continue
         count = connection.execute(f'SELECT COUNT(*) AS count FROM "{name}"').fetchone()["count"]
         payload.append({"name": name, "count": count})
     print(json.dumps(payload, indent=2, ensure_ascii=False))
@@ -129,7 +150,7 @@ def print_schema(connection: sqlite3.Connection):
     ordered_names = get_dependency_order(connection)
     by_name = {row["name"]: row["sql"] for row in get_tables(connection)}
     indexes = connection.execute(
-        "SELECT sql FROM sqlite_master WHERE type = 'index' AND name NOT LIKE 'sqlite_%' AND sql IS NOT NULL ORDER BY rowid"
+        "SELECT sql, tbl_name FROM sqlite_master WHERE type = 'index' AND name NOT LIKE 'sqlite_%' AND sql IS NOT NULL ORDER BY rowid"
     ).fetchall()
 
     statements = ["-- Generated from local SQLite schema", "", "BEGIN;", ""]
@@ -137,6 +158,8 @@ def print_schema(connection: sqlite3.Connection):
         statements.append(normalize_table_sql(by_name[name]).rstrip(";") + ";")
         statements.append("")
     for row in indexes:
+        if row["tbl_name"] in EXCLUDED_TABLES:
+            continue
         statements.append(normalize_index_sql(row["sql"]).rstrip(";") + ";")
         statements.append("")
     statements.append("COMMIT;")

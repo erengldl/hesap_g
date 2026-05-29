@@ -118,17 +118,7 @@ export async function initializePgSchema(sql: postgres.Sql) {
     )
   `);
 
-  await sql.unsafe(`
-    CREATE TABLE IF NOT EXISTS shipping_tariffs (
-      tariff_id SERIAL PRIMARY KEY,
-      shipping_company_id INTEGER NOT NULL,
-      desi_min DOUBLE PRECISION DEFAULT 0,
-      desi_max DOUBLE PRECISION DEFAULT 100,
-      base_cost DOUBLE PRECISION DEFAULT 0,
-      per_desi_cost DOUBLE PRECISION DEFAULT 0,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+
 
   await sql.unsafe(`
     CREATE TABLE IF NOT EXISTS payment_gateway_rules (
@@ -588,51 +578,7 @@ export async function initializePgSchema(sql: postgres.Sql) {
     )
   `);
 
-  await sql.unsafe(`
-    CREATE TABLE IF NOT EXISTS seo_schema_suggestions (
-      id SERIAL PRIMARY KEY,
-      audit_id INTEGER NOT NULL,
-      target_type TEXT NOT NULL,
-      target_id TEXT NOT NULL,
-      schema_type TEXT NOT NULL,
-      json_ld TEXT NOT NULL,
-      validation_status TEXT NOT NULL,
-      issues TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
 
-  await sql.unsafe(`
-    CREATE TABLE IF NOT EXISTS seo_internal_link_suggestions (
-      id SERIAL PRIMARY KEY,
-      audit_id INTEGER NOT NULL,
-      source_type TEXT NOT NULL,
-      source_id TEXT NOT NULL,
-      target_type TEXT NOT NULL,
-      target_id TEXT NOT NULL,
-      anchor_text TEXT NOT NULL,
-      reason TEXT,
-      priority_score DOUBLE PRECISION DEFAULT 0,
-      status TEXT DEFAULT 'draft',
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  await sql.unsafe(`
-    CREATE TABLE IF NOT EXISTS seo_content_versions (
-      id SERIAL PRIMARY KEY,
-      target_type TEXT NOT NULL,
-      target_id TEXT NOT NULL,
-      field_name TEXT NOT NULL,
-      old_content TEXT,
-      new_content TEXT,
-      created_by TEXT,
-      status TEXT DEFAULT 'draft',
-      audit_id INTEGER,
-      recommendation_id INTEGER,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
 
   await sql.unsafe(`
     CREATE TABLE IF NOT EXISTS users (
@@ -651,26 +597,7 @@ export async function initializePgSchema(sql: postgres.Sql) {
     )
   `);
 
-  await sql.unsafe(`
-    CREATE TABLE IF NOT EXISTS organizations (
-      organization_id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      owner_user_id INTEGER NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
 
-  await sql.unsafe(`
-    CREATE TABLE IF NOT EXISTS organization_members (
-      member_id SERIAL PRIMARY KEY,
-      organization_id INTEGER NOT NULL,
-      user_id INTEGER NOT NULL,
-      role TEXT NOT NULL DEFAULT 'owner',
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
 
   await sql.unsafe(`
     CREATE TABLE IF NOT EXISTS audit_logs (
@@ -686,23 +613,7 @@ export async function initializePgSchema(sql: postgres.Sql) {
     )
   `);
 
-  await sql.unsafe(`
-    CREATE TABLE IF NOT EXISTS seo_jobs (
-      id SERIAL PRIMARY KEY,
-      job_type TEXT NOT NULL,
-      status TEXT NOT NULL,
-      progress INTEGER DEFAULT 0,
-      input_payload TEXT,
-      output_payload TEXT,
-      error_message TEXT,
-      batch_id TEXT,
-      source_hash TEXT,
-      retry_count INTEGER DEFAULT 0,
-      next_retry_at TIMESTAMP,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      completed_at TIMESTAMP
-    )
-  `);
+
 
   await sql.unsafe(`
     CREATE TABLE IF NOT EXISTS product_channel_seo_contents (
@@ -783,16 +694,12 @@ export async function initializePgSchema(sql: postgres.Sql) {
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_ai_recommendations_user_id ON seo_ai_recommendations(user_id)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_ai_recommendations_user_audit ON seo_ai_recommendations(user_id, audit_id, priority_score DESC)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_ai_recommendations_audit ON seo_ai_recommendations(audit_id, priority_score DESC)`);
-  await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_schema_suggestions_audit ON seo_schema_suggestions(audit_id)`);
-  await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_internal_link_suggestions_audit ON seo_internal_link_suggestions(audit_id, priority_score DESC)`);
-  await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_jobs_status_created ON seo_jobs(status, created_at DESC)`);
-  await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_seo_jobs_source_hash ON seo_jobs(source_hash)`);
+
   await sql.unsafe(`CREATE UNIQUE INDEX IF NOT EXISTS idx_product_channel_seo_contents_unique ON product_channel_seo_contents(product_id, channel)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_product_channel_seo_contents_product_status ON product_channel_seo_contents(product_id, status, channel)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_product_channel_seo_contents_status_updated ON product_channel_seo_contents(status, updated_at DESC)`);
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_product_channel_seo_jobs_status_created ON product_channel_seo_jobs(status, created_at DESC)`);
-  await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_organizations_owner ON organizations(owner_user_id)`);
-  await sql.unsafe(`CREATE UNIQUE INDEX IF NOT EXISTS idx_organization_members_unique ON organization_members(organization_id, user_id)`);
+
   await sql.unsafe(`CREATE INDEX IF NOT EXISTS idx_audit_logs_report_created ON audit_logs(report_id, created_at DESC)`);
   await ensureColumn(sql, "users", "auth_user_id", "TEXT");
   await sql.unsafe(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_auth_user_id ON users(auth_user_id)`);

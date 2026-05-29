@@ -123,6 +123,13 @@ async function main() {
     return;
   }
 
+  // Ensure "users" is imported first to avoid RLS/trigger issues and allow merging
+  const usersIndex = importTables.findIndex((t) => t.name === "users");
+  if (usersIndex !== -1) {
+    const [usersTable] = importTables.splice(usersIndex, 1);
+    importTables.unshift(usersTable);
+  }
+
   console.log(`[import] kaynak: ${sqlitePath}`);
   console.log(`[import] tablo: ${importTables.length}, batch-size: ${batchSize}`);
 
@@ -133,16 +140,51 @@ async function main() {
   });
 
   try {
+    // Save existing user mappings with auth_user_id to restore them after truncate
+    const existingUsers = await sql`SELECT * FROM public.users WHERE auth_user_id IS NOT NULL`;
+    console.log(`[import] Saved ${existingUsers.length} existing users with auth_user_id.`);
+    const defaultAuthUser = existingUsers.find((u) => u.auth_user_id)?.auth_user_id;
+
     const truncateTargets = importTables
       .map((table) => quoteIdentifier(table.name))
       .reverse()
       .join(", ");
 
     await sql.begin(async (tx) => {
+      if (defaultAuthUser) {
+        console.log(`[import] Setting session app.current_auth_user_id to ${defaultAuthUser}`);
+        await tx`SELECT set_config('app.current_auth_user_id', ${defaultAuthUser}, true)`;
+      }
+
       await tx.unsafe(`TRUNCATE TABLE ${truncateTargets} RESTART IDENTITY CASCADE;`);
 
       for (const table of importTables) {
         await importTable(tx, sqlitePath, table, batchSize);
+
+        if (table.name === "users" && existingUsers.length > 0) {
+          console.log(`[import] Restoring auth_user_id mapping for ${existingUsers.length} users...`);
+          for (const u of existingUsers) {
+            const match = await tx`SELECT user_id FROM public.users WHERE email = ${u.email}`;
+            if (match.length > 0) {
+              await tx`UPDATE public.users SET auth_user_id = ${u.auth_user_id} WHERE email = ${u.email}`;
+              console.log(`[import] Updated ${u.email} auth_user_id to ${u.auth_user_id}`);
+            } else {
+              const columns = Object.keys(u).filter((key) => u[key] !== undefined && u[key] !== null);
+              const colNames = columns.map((c) => quoteIdentifier(c)).join(", ");
+              const placeholders = columns.map((_, idx) => `$${idx + 1}`).join(", ");
+              const values = columns.map((c) => u[c]);
+              await tx.unsafe(
+                `INSERT INTO public.users (${colNames}) VALUES (${placeholders})`,
+                values
+              );
+              console.log(`[import] Restored user ${u.email} (auth_user_id: ${u.auth_user_id})`);
+            }
+          }
+          // Sync sequence for users table
+          await tx.unsafe(
+            `SELECT setval(pg_get_serial_sequence('users', 'user_id'), MAX(user_id), TRUE) FROM public.users HAVING COUNT(*) > 0;`
+          );
+        }
       }
     });
   } finally {
