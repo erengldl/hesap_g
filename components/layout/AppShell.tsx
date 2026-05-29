@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 
 import { AuthProvider } from "./AuthContext";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { DashboardStatsProvider } from "./DashboardStatsProvider";
 import ProtectedShell from "./ProtectedShell";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -18,7 +19,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <ErrorBoundary>{children}</ErrorBoundary>
           </main>
         ) : (
-          <ProtectedShell>{children}</ProtectedShell>
+          <DashboardStatsProvider>
+            <ProtectedShell>{children}</ProtectedShell>
+          </DashboardStatsProvider>
         )}
       </AuthProvider>
     </div>

@@ -17,41 +17,39 @@ function parseProductId(value: string | undefined) {
 async function resolveNetCostBootstrap(searchParams: SearchParams) {
   const productId = parseProductId(readFirstValue(searchParams.productId));
 
-  try {
-    const [bootstrap, results] = await Promise.all([
-      buildCostBootstrap(productId),
-      recalculateCostResultsForProductFromDatabase(productId),
-    ]);
+  const [bootstrapResult, resultsResult] = await Promise.allSettled([
+    buildCostBootstrap(productId),
+    recalculateCostResultsForProductFromDatabase(productId),
+  ]);
 
-    return {
-      bootstrap,
-      results,
-      error: null as string | null,
-      selectedProductId: productId ?? bootstrap.selectedProduct?.id,
-    };
-  } catch (error) {
-    console.error("Net cost page bootstrap error:", error);
-    return {
-      bootstrap: null,
-      results: null,
-      error: "Net maliyet ekranı hazırlanamadı. Veri kaynağına erişim tekrar denenmeli.",
-      selectedProductId: productId,
-    };
+  const bootstrap = bootstrapResult.status === "fulfilled" ? bootstrapResult.value : null;
+  const results = resultsResult.status === "fulfilled" ? resultsResult.value : null;
+
+  if (bootstrapResult.status === "rejected" || resultsResult.status === "rejected") {
+    console.error("Net cost page bootstrap error:", {
+      bootstrap: bootstrapResult.status === "rejected" ? bootstrapResult.reason : null,
+      results: resultsResult.status === "rejected" ? resultsResult.reason : null,
+    });
   }
+
+  return {
+    bootstrap,
+    results,
+    selectedProductId: productId ?? bootstrap?.selectedProduct?.id,
+  };
 }
 
 export default async function NetCostPage(props: {
   searchParams?: Promise<SearchParams>;
 }) {
   const searchParams = props.searchParams ? await props.searchParams : {};
-  const { bootstrap, results, error, selectedProductId } = await resolveNetCostBootstrap(searchParams);
+  const { bootstrap, results, selectedProductId } = await resolveNetCostBootstrap(searchParams);
 
   return (
     <NetCostWorkspace
       bootstrap={bootstrap}
       results={results}
       selectedProductId={selectedProductId}
-      error={error}
     />
   );
 }

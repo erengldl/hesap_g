@@ -19,7 +19,7 @@ import {
   type CommandActionKey,
   queueCommandAction,
 } from "@/lib/command-actions";
-import { advancedNavigationItems, primaryNavigationItems } from "./navigation";
+import { navigationItems } from "./navigation";
 
 type SearchResultType = "page" | "product" | "order" | "action";
 type SearchGroupKey = "pages" | "products" | "orders" | "actions";
@@ -70,8 +70,7 @@ const MAX_RESULTS = 8;
 const MIN_QUERY_LENGTH = 2;
 
 const PAGE_RESULTS: SearchResult[] = [
-  ...primaryNavigationItems,
-  ...advancedNavigationItems,
+  ...navigationItems,
 ].map((item) => ({
   id: `page:${item.href}`,
   type: "page",

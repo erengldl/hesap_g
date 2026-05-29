@@ -6,8 +6,8 @@ export default function ProfitPricingLoadingRoute() {
     <div className="page-shell">
       <PageHeader
         eyebrow="Kârlılık"
-        title="Kârlılık çalışma alanı"
-        description="Fiyat Optimizasyonu ve Net Maliyet sekmeleri hazırlanıyor."
+        title="Fiyat Optimizasyonu"
+        description="Fiyat ve marj verileri hazırlanıyor."
       />
       <ProfitPricingLoadingState />
     </div>
