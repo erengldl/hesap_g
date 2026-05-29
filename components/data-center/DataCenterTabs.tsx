@@ -11,6 +11,7 @@ import {
   popQueuedCommandAction,
 } from "@/lib/command-actions";
 import { exportProductsToExcel } from "@/lib/excel";
+import { formatNumber } from "@/lib/formatters";
 import { triggerSeedDemo } from "@/components/demo/SeedDemoButton";
 import type { Product, ProductUpsertInput } from "@/lib/types";
 import type { SeedDemoResponse } from "@/lib/seed-demo-contract";
@@ -445,7 +446,7 @@ export function DataCenterTabs() {
           ))}
         </div>
 
-        <div className="space-y-4 rounded-lg border border-border/70 bg-panel/70 p-4 shadow-[var(--shadow-card)] sm:p-5">
+        <div className="space-y-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
           <div className="space-y-2">
             <SkeletonCard variant="text-line" height={12} className="w-32" />
             <SkeletonCard variant="text-line" height={24} className="w-56" />
@@ -459,30 +460,49 @@ export function DataCenterTabs() {
 
   return (
     <div className="w-full space-y-6">
-      <div className="custom-scrollbar flex w-full gap-1 overflow-x-auto rounded-lg border border-border/70 bg-surface-container/55 p-1.5 shadow-[var(--shadow-card)]">
-                <button
+      <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
+        <div className="rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,#f8fbff,#ffffff)] p-5 shadow-[var(--shadow-card)]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Veri görünümü</p>
+          <h3 className="mt-3 text-[1.9rem] font-semibold tracking-[-0.05em] text-slate-900">
+            Ürün, satış ve mağaza kayıtları tek merkezde
+          </h3>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500">
+            Toplu veri yükleme, pazaryeri katalog içe aktarma ve mağaza yapılandırmaları aynı çalışma alanından yönetilir.
+          </p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <StatTile label="Toplam ürün" value={String(productCount)} detail={`${activeProductCount} aktif ürün`} />
+          <StatTile label="Ortalama fiyat" value={formatNumber(Math.round(averagePrice || 0))} detail={`Ortalama marj ${formatPercentSafe(averageProfitMargin)}`} />
+          <StatTile label="Son toplu işlem" value={lastBulkSyncScope} detail={lastBulkSyncSummary} />
+          <StatTile label="Durum" value={loadError ? "İzlenmeli" : "Hazır"} detail={loadError ? "Bağlantı hatası algılandı" : "Senkron akışı çalışıyor"} accent={loadError ? "warning" : "success"} />
+        </div>
+      </div>
+
+      <div className="custom-scrollbar flex w-full gap-2 overflow-x-auto rounded-[22px] border border-slate-200 bg-white p-2 shadow-[var(--shadow-card)]">
+        <button
           onClick={() => activateTab("products")}
           className={cn(
-            "whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-semibold transition-colors duration-200",
-            activeTab === "products" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:bg-surface-soft hover:text-foreground"
+            "whitespace-nowrap rounded-2xl px-4 py-3 text-sm font-semibold transition-colors duration-200",
+            activeTab === "products" ? "bg-[#edf7f5] text-[#0b6f68]" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
           )}
         >
           Ürünler
         </button>
-                <button
+        <button
           onClick={() => activateTab("sales")}
           className={cn(
-            "whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-semibold transition-colors duration-200",
-            activeTab === "sales" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:bg-surface-soft hover:text-foreground"
+            "whitespace-nowrap rounded-2xl px-4 py-3 text-sm font-semibold transition-colors duration-200",
+            activeTab === "sales" ? "bg-[#edf7f5] text-[#0b6f68]" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
           )}
         >
           Satış Geçmişi
         </button>
-                <button
+        <button
           onClick={() => activateTab("settings")}
           className={cn(
-            "whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-semibold transition-colors duration-200",
-            activeTab === "settings" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:bg-surface-soft hover:text-foreground"
+            "whitespace-nowrap rounded-2xl px-4 py-3 text-sm font-semibold transition-colors duration-200",
+            activeTab === "settings" ? "bg-[#edf7f5] text-[#0b6f68]" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
           )}
         >
           Mağaza Bilgileri
@@ -632,4 +652,37 @@ export function DataCenterTabs() {
       )}
     </div>
   );
+}
+
+function StatTile({
+  label,
+  value,
+  detail,
+  accent = "default",
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  accent?: "default" | "success" | "warning";
+}) {
+  return (
+    <div className={cn(
+      "rounded-[22px] border p-4 shadow-[var(--shadow-card)]",
+      accent === "success"
+        ? "border-emerald-200 bg-emerald-50/70"
+        : accent === "warning"
+          ? "border-amber-200 bg-amber-50/70"
+          : "border-slate-200 bg-white"
+    )}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>
+      <p className="mt-2 text-lg font-semibold tracking-tight text-slate-900">{value}</p>
+      <p className="mt-2 text-xs leading-6 text-slate-500">{detail}</p>
+    </div>
+  );
+}
+
+function formatPercentSafe(value: number | null | undefined) {
+  const numeric = Number(value ?? 0);
+  if (!Number.isFinite(numeric)) return "%0";
+  return `%${numeric.toFixed(1)}`;
 }

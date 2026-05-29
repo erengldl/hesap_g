@@ -44,26 +44,26 @@ function StatusBadge(props: {
   optimizationReady: boolean;
 }) {
   const tone = props.busy
-    ? "border-border/80 bg-surface-container/70 text-muted"
+    ? "border-slate-200 bg-white text-slate-500"
     : props.syncState === "error"
-      ? "border-danger/25 bg-danger/10 text-danger"
+      ? "border-rose-200 bg-rose-50 text-rose-600"
       : props.syncState === "saved"
-        ? "border-success/25 bg-success/10 text-success"
+        ? "border-emerald-200 bg-emerald-50 text-emerald-600"
         : props.optimizationReady
-          ? "border-primary/25 bg-primary/10 text-primary"
-          : "border-border/80 bg-surface-container/70 text-muted";
+          ? "border-primary/20 bg-primary/10 text-primary"
+          : "border-slate-200 bg-white text-slate-500";
 
   const label = props.busy
-    ? "Ürün seçimi hazırlanıyor..."
+    ? "Hazirlaniyor"
     : props.syncState === "saving"
-      ? "Veri Merkezi güncelleniyor..."
+      ? "Kaydediliyor"
       : props.syncState === "saved"
-        ? "Veri Merkezi güncel"
+        ? "Guncel"
         : props.syncState === "error"
-          ? "Kayıt hatası"
+          ? "Hata"
           : props.optimizationReady
-            ? "Öneriler güncel"
-            : "Canlı önizleme";
+            ? "Oneriler hazir"
+            : "Canli onizleme";
 
   return (
     <span
@@ -89,7 +89,7 @@ function ChannelInput(props: {
 }) {
   return (
     <label className="space-y-1.5">
-      <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+      <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
         {props.label}
       </span>
       <input
@@ -97,12 +97,10 @@ function ChannelInput(props: {
         type="number"
         step="0.01"
         value={toInputValue(props.value)}
-        onChange={(event) =>
-          createNumberParser(props.onChange, true)(event.target.value)
-        }
+        onChange={(event) => createNumberParser(props.onChange, true)(event.target.value)}
         className="form-input"
       />
-      <span className="block text-[10px] leading-4 text-soft">{props.hint}</span>
+      <span className="block text-[11px] leading-5 text-slate-500">{props.hint}</span>
     </label>
   );
 }
@@ -121,50 +119,49 @@ function ChannelCard(props: {
   const isWebsite = profile.channel === "website";
 
   return (
-    <div
+    <button
+      type="button"
       onClick={() => props.onSelect(profile.channel)}
       className={cn(
-        "h-full cursor-pointer rounded-2xl border bg-panel/72 p-3 text-left transition-colors duration-200",
+        "h-full rounded-[24px] border p-4 text-left transition-all duration-200",
         active
-          ? "border-primary/35 shadow-[var(--shadow-primary)]"
-          : "border-border/70 hover:border-border-strong"
+          ? "border-primary/30 bg-[linear-gradient(180deg,#f8fbff,#ffffff)] shadow-[0_20px_50px_rgba(15,23,42,0.08)]"
+          : "border-slate-200 bg-white hover:border-slate-300"
       )}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold text-foreground">
-            {channelLabel(profile.channel)}
-          </p>
-          <p className="mt-1 text-[10px] text-soft">
-            Grafikleri bu kartı seçerek değiştir.
+          <p className="text-sm font-semibold text-slate-900">{channelLabel(profile.channel)}</p>
+          <p className="mt-1 text-[11px] leading-5 text-slate-500">
+            Grafigi ve maliyet dagilimini bu kanal belirler.
           </p>
         </div>
         <span
           className={cn(
-            "rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em]",
+            "rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em]",
             active
-              ? "border-primary/25 bg-primary/10 text-primary"
-              : "border-border/70 bg-surface-container/70 text-muted"
+              ? "border-primary/20 bg-primary/10 text-primary"
+              : "border-slate-200 bg-slate-50 text-slate-500"
           )}
         >
-          {active ? "Seçili kanal" : "Kanal"}
+          {active ? "Secili" : "Kanal"}
         </span>
       </div>
 
-      <div className="mt-2.5 space-y-2">
+      <div className="mt-4 grid gap-3">
         <ChannelInput
-          label="Satış fiyatı"
+          label="Satis fiyati"
           value={profile.input.salePrice}
-          hint="Bu kanal için güncel satış fiyatı."
+          hint="Bu kanal icin aktif satis fiyati."
           onChange={(value) => props.onChangeField(profile.channel, "salePrice", value)}
         />
         <ChannelInput
-          label={isWebsite ? "Kargo fiyatı" : "Buybox fiyatı"}
+          label={isWebsite ? "Kargo maliyeti" : "Buybox fiyati"}
           value={isWebsite ? profile.input.shippingCost : profile.input.buyboxPrice}
           hint={
             isWebsite
-              ? "Web sitesi siparişlerinde kullanılan manuel kargo maliyeti."
-              : "Buybox dengesi önerisi bu eşik altında kalmaya çalışır."
+              ? "Web sitesi siparislerinde kullanilan manuel kargo maliyeti."
+              : "Buybox dengesi bu esigin altinda kalmaya calisir."
           }
           onChange={(value) =>
             props.onChangeField(
@@ -175,7 +172,7 @@ function ChannelCard(props: {
           }
         />
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -199,16 +196,19 @@ export default function ProfitPricingControlPanel(props: {
   const activeProductId = props.channelProfiles[0]?.input.productId ?? "";
 
   return (
-    <GlassCard className="border-border/80">
-      <div className="flex w-full flex-col gap-4">
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+    <GlassCard className="rounded-[30px] border border-slate-200 bg-white">
+      <div className="flex w-full flex-col gap-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
-              Ürün seçimi
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Kontrol merkezi
             </p>
-            <h2 className="mt-2 text-xl font-semibold tracking-tight text-foreground">
-              Tek ürün, üç kanal, tek optimizasyon akışı
+            <h2 className="mt-2 text-[1.8rem] font-semibold tracking-[-0.05em] text-slate-900">
+              Tek urun, coklu kanal, tek optimizasyon akisi
             </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-500">
+              Urunu sec, kanal fiyatlarini duzenle ve onerileri tek butonla olustur.
+            </p>
           </div>
           <StatusBadge
             syncState={props.syncState}
@@ -217,13 +217,13 @@ export default function ProfitPricingControlPanel(props: {
           />
         </div>
 
-        <div className="flex w-full flex-col gap-2">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
           <label className="space-y-2">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-              Ürün seç
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+              Urun sec
             </span>
             <select
-              aria-label="Ürün seç"
+              aria-label="Urun sec"
               value={activeProductId}
               onChange={(event) => props.onSelectProduct(event.target.value)}
               className="form-select"
@@ -241,29 +241,29 @@ export default function ProfitPricingControlPanel(props: {
             type="button"
             onClick={props.onOptimize}
             disabled={props.busy || props.channelProfiles.length === 0}
-            className="btn-primary w-full px-5 py-3 text-sm"
+            className="btn-primary h-[52px] w-full self-end px-5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Sparkles className="h-4 w-4" />
-            Fiyatları Optimize Et
+            Fiyatlari Optimize Et
           </button>
         </div>
 
         {props.feedback ? (
           <div
             className={cn(
-              "rounded-2xl border px-4 py-3 text-sm",
+              "rounded-[22px] border px-4 py-3 text-sm",
               props.feedback.tone === "success"
-                ? "border-success/25 bg-success/10 text-success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                 : props.feedback.tone === "error"
-                  ? "border-danger/25 bg-danger/10 text-danger"
-                  : "border-primary/25 bg-primary/10 text-primary"
+                  ? "border-rose-200 bg-rose-50 text-rose-700"
+                  : "border-sky-200 bg-sky-50 text-sky-700"
             )}
           >
             {props.feedback.text}
           </div>
         ) : null}
 
-        <div className="grid w-full gap-3 md:grid-cols-3">
+        <div className="grid w-full gap-3 xl:grid-cols-3">
           {props.channelProfiles.map((profile) => (
             <ChannelCard
               key={profile.channel}

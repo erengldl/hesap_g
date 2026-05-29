@@ -282,7 +282,7 @@ export default function DashboardPage() {
               return (
                 <div key={result.channel_name} className="grid grid-cols-[1.5fr_1fr_1fr_1fr_0.9fr_0.7fr] items-center gap-3 px-4 py-4 text-sm">
                   <div className="flex items-center gap-3">
-                    <span className={cn("h-7 w-7 rounded-md", index === 0 ? "bg-orange-100" : index === 1 ? "bg-slate-900" : "bg-amber-100")} />
+                    <span className={cn("h-7 w-7 rounded-[10px] border border-slate-200", index === 0 ? "bg-orange-100" : index === 1 ? "bg-slate-900" : "bg-amber-100")} />
                     <div>
                       <p className="font-semibold text-slate-900">{result.channel_name}</p>
                       {index === 0 ? (

@@ -180,7 +180,7 @@ function WaterfallTooltip({ active, payload }: WaterfallTooltipProps) {
   }
 
   return (
-    <div className="w-[250px] rounded-2xl border border-border bg-[var(--panel-bg)] p-3 text-sm text-foreground shadow-[var(--shadow-card)]">
+    <div className="w-[250px] rounded-[22px] border border-slate-200 bg-white p-3 text-sm text-slate-900 shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
         {point.kind === "cost" ? "Maliyet kalemi" : "Özet"}
       </p>
@@ -226,8 +226,8 @@ export default function ChannelCostWaterfall(props: { result: ProfitPricingResul
   );
 
   return (
-    <GlassCard className="overflow-hidden border-border/80">
-      <div className="border-b border-border/70 bg-gradient-to-r from-primary/8 via-transparent to-transparent px-4 py-3">
+    <GlassCard className="overflow-hidden rounded-[28px] border border-slate-200 bg-white">
+      <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#f8fbff,#ffffff)] px-5 py-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
@@ -242,7 +242,7 @@ export default function ChannelCostWaterfall(props: { result: ProfitPricingResul
             </p>
           </div>
 
-          <div className="flex w-full flex-col gap-2 rounded-2xl border border-border bg-surface-container p-3 text-sm text-soft">
+          <div className="flex w-full flex-col gap-2 rounded-[22px] border border-slate-200 bg-white p-3 text-sm text-slate-500">
             <div>
               <p className="text-[10px] uppercase tracking-[0.14em] text-muted/600">Satış fiyatı</p>
               <p className="mt-1 font-semibold text-foreground">
@@ -320,7 +320,7 @@ export default function ChannelCostWaterfall(props: { result: ProfitPricingResul
           {visibleItems.map((item) => (
             <div
               key={item.key}
-              className="rounded-2xl border border-border bg-surface-container px-2 py-2"
+              className="rounded-[20px] border border-slate-200 bg-slate-50/80 px-2.5 py-2.5"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-1.5">

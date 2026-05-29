@@ -175,7 +175,7 @@ export default function ForecastPageClient({
 
   if (error && !bootstrap) {
     return (
-      <div className="page-shell">
+      <div className="space-y-5">
         <ErrorStateCard
           className="mx-auto max-w-2xl"
           title="Talep tahmini yüklenemedi"
@@ -197,7 +197,7 @@ export default function ForecastPageClient({
 
   if (bootstrap && (bootstrap.products.length === 0 || bootstrap.marketplaces.length === 0)) {
     return (
-      <div className="page-shell">
+      <div className="space-y-5">
         <EmptyState
           icon={Package}
           title="Tahmin için yeterli veri yok"
@@ -264,19 +264,19 @@ export default function ForecastPageClient({
   ];
 
   return (
-    <div className="page-shell">
-      <div>
+    <div className="space-y-5">
+      <section className="rounded-[26px] border border-slate-200 bg-[linear-gradient(180deg,#f8fbff,#ffffff)] p-6 shadow-[var(--shadow-card)]">
         <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
               <Sparkles className="h-3.5 w-3.5" />
               Tahmin alanı
             </div>
             <div className="space-y-2">
-              <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+              <h1 className="text-[2rem] font-semibold tracking-[-0.05em] text-foreground sm:text-[2.35rem]">
                 Talep Tahmini
               </h1>
-              <p className="max-w-2xl text-sm leading-6 text-soft">
+              <p className="max-w-2xl text-sm leading-7 text-slate-500">
                 Ürün, pazar ve tahmin ufku tek yerde. Seçim değişince sonuç aynı akış içinde yenilenir.
               </p>
             </div>
@@ -296,39 +296,39 @@ export default function ForecastPageClient({
         </div>
 
         {error && (
-          <GlassCard className="mb-6 border-danger/40 bg-danger/5 p-4">
+          <GlassCard className="mb-6 border-danger/20 bg-red-50/80 p-4">
             <p className="text-sm font-semibold text-danger">{error}</p>
           </GlassCard>
         )}
+      </section>
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="min-w-0 space-y-6">
-            <ForecastKpiCards result={activeResult} />
-            <ForecastChartsAndTable result={activeResult} />
-          </div>
-
-          <ForecastControlPanel
-            className="self-start xl:sticky xl:top-[76px]"
-            products={bootstrap?.products ?? []}
-            marketplaces={bootstrap?.marketplaces ?? []}
-            selection={selection ?? bootstrap?.defaults ?? { productId: 0, marketplaceId: 1, horizonDays: 14 }}
-            selectedMarketplaceId={selection?.marketplaceId ?? bootstrap?.defaults.marketplaceId ?? 0}
-            selectedProduct={selectedProduct}
-            selectedMarketplace={selectedMarketplace}
-            result={activeResult}
-            onProductChange={(productId) => {
-              void handleSelectionChange({ productId });
-            }}
-            onMarketplaceChange={(marketplaceId) => {
-              void handleSelectionChange({ marketplaceId });
-            }}
-            onHorizonChange={(horizonDays) => {
-              void handleSelectionChange({ horizonDays });
-            }}
-            onRunForecast={handleRunForecast}
-            submitting={submitting}
-          />
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0 space-y-6">
+          <ForecastKpiCards result={activeResult} />
+          <ForecastChartsAndTable result={activeResult} />
         </div>
+
+        <ForecastControlPanel
+          className="self-start xl:sticky xl:top-[76px]"
+          products={bootstrap?.products ?? []}
+          marketplaces={bootstrap?.marketplaces ?? []}
+          selection={selection ?? bootstrap?.defaults ?? { productId: 0, marketplaceId: 1, horizonDays: 14 }}
+          selectedMarketplaceId={selection?.marketplaceId ?? bootstrap?.defaults.marketplaceId ?? 0}
+          selectedProduct={selectedProduct}
+          selectedMarketplace={selectedMarketplace}
+          result={activeResult}
+          onProductChange={(productId) => {
+            void handleSelectionChange({ productId });
+          }}
+          onMarketplaceChange={(marketplaceId) => {
+            void handleSelectionChange({ marketplaceId });
+          }}
+          onHorizonChange={(horizonDays) => {
+            void handleSelectionChange({ horizonDays });
+          }}
+          onRunForecast={handleRunForecast}
+          submitting={submitting}
+        />
       </div>
     </div>
   );

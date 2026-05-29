@@ -13,13 +13,13 @@ import {
   YAxis,
 } from "recharts";
 import {
-  ArrowLeft,
   Barcode,
   CircleOff,
   Package,
   ReceiptText,
 } from "lucide-react";
-import { PageHeader, GlassCard, SkeletonCard, EmptyState } from "@/components/ui-custom/GlassComponents";
+import ModuleHero from "@/components/layout/ModuleHero";
+import { GlassCard, SkeletonCard, EmptyState } from "@/components/ui-custom/GlassComponents";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatDate, formatDecimal, formatNumber } from "@/lib/formatters";
 
@@ -118,7 +118,7 @@ function statusCopy(status?: string | null) {
     case "draft":
       return { label: "Taslak", className: "bg-info/10 text-info border-info/20" };
     default:
-      return { label: "Bilinmiyor", className: "bg-surface-container text-soft border-border" };
+      return { label: "Bilinmiyor", className: "bg-slate-100 text-slate-500 border-slate-200" };
   }
 }
 
@@ -135,7 +135,7 @@ function orderStatusCopy(status?: string | null) {
     case "cancelled":
       return { label: "İptal", className: "border-zinc-500/20 bg-zinc-500/10 text-soft" };
     default:
-      return { label: "Bilinmiyor", className: "border-border bg-surface-container text-soft" };
+      return { label: "Bilinmiyor", className: "border-slate-200 bg-slate-100 text-slate-500" };
   }
 }
 
@@ -178,14 +178,14 @@ function trendTooltip({
   const point = payload[0].payload;
 
   return (
-    <div className="rounded-lg border border-border bg-panel/95 px-4 py-3 shadow-[var(--shadow-card)] backdrop-blur-xl">
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+    <div className="rounded-[22px] border border-slate-200 bg-white px-4 py-3 shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
         {point.date ? formatDate(point.date) : label ?? point.label}
       </p>
       <div className="space-y-1 text-sm">
         <p className="font-semibold text-primary">{formatNumber(point.units)} adet</p>
-        <p className="text-muted">{formatCurrency(point.revenue)} ciro</p>
-        <p className="text-muted">{formatNumber(point.order_count)} sipariş</p>
+        <p className="text-slate-500">{formatCurrency(point.revenue)} ciro</p>
+        <p className="text-slate-500">{formatNumber(point.order_count)} sipariş</p>
       </div>
     </div>
   );
@@ -249,8 +249,12 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="page-shell">
-        <PageHeader title="Ürün" description="Ürün detayları yükleniyor..." />
+      <div className="space-y-6">
+        <ModuleHero
+          title="Urun Detayi"
+          description="Urun performansi, marj durumu ve siparis akisi hazirlaniyor."
+          actions={[{ href: "/veri-merkezi", label: "Veri Merkezine Don", variant: "secondary" }]}
+        />
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)] gap-6">
           <SkeletonCard className="h-[520px]" />
           <SkeletonCard className="h-[520px]" />
@@ -261,16 +265,12 @@ export default function ProductDetailPage() {
 
   if (error || !product) {
     return (
-      <div className="page-shell">
-        <PageHeader title="Ürün" description={error ?? "Ürün bulunamadı."}>
-          <Link
-            href="/veri-merkezi"
-              className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-container px-4 py-2 text-sm text-foreground transition-colors duration-200 hover:bg-surface-container"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Ürünler
-          </Link>
-        </PageHeader>
+      <div className="space-y-6">
+        <ModuleHero
+          title="Urun Detayi"
+          description={error ?? "Urun bulunamadi."}
+          actions={[{ href: "/veri-merkezi", label: "Urunlere Don", variant: "secondary" }]}
+        />
         <EmptyState
           icon={Package}
           title="Ürün açılamadı"
@@ -286,25 +286,23 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="page-shell">
-      <PageHeader
+    <div className="space-y-6">
+      <ModuleHero
         title={product.name}
         description={`Kod: ${product.sku ?? "Belirtilmedi"} · ${product.categoryPath ?? product.categoryName ?? "Kategorisiz"}`}
-      >
-        <Link
-          href="/veri-merkezi"
-              className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-container px-4 py-2 text-sm text-foreground transition-colors duration-200 hover:bg-surface-container"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Ürünler
-        </Link>
-      </PageHeader>
+        badges={[
+          status.label,
+          marginStatus.label,
+          product.categoryName ?? product.categoryPath ?? "Kategorisiz",
+        ]}
+        actions={[{ href: "/veri-merkezi", label: "Urunlere Don", variant: "secondary" }]}
+      />
 
       <div className="space-y-6 pb-12">
-        <GlassCard className="border-border bg-surface-container">
+        <GlassCard className="rounded-[30px] border border-slate-200 bg-[linear-gradient(180deg,#f8fbff,#ffffff)]">
           <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
             <div className="space-y-4">
-              <div className="relative aspect-square overflow-hidden rounded-lg border border-border bg-surface-container">
+              <div className="relative aspect-square overflow-hidden rounded-[24px] border border-slate-200 bg-white">
                 {product.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -315,19 +313,19 @@ export default function ProductDetailPage() {
                     decoding="async"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-surface-container">
+                  <div className="flex h-full w-full items-center justify-center bg-slate-50">
                     <Package className="h-14 w-14 text-primary/60" />
                   </div>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <GlassCard className="p-4 sm:p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Kod</p>
-                  <p className="mt-1 text-sm font-semibold text-foreground">{product.sku ?? "Belirtilmedi"}</p>
+                <GlassCard className="rounded-[22px] border-slate-200 bg-white p-4 sm:p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Kod</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">{product.sku ?? "Belirtilmedi"}</p>
                 </GlassCard>
-                <GlassCard className="p-4 sm:p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Barkod</p>
-                  <p className="mt-1 text-sm font-semibold text-foreground">{product.barcode ?? "Belirtilmedi"}</p>
+                <GlassCard className="rounded-[22px] border-slate-200 bg-white p-4 sm:p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Barkod</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">{product.barcode ?? "Belirtilmedi"}</p>
                 </GlassCard>
               </div>
             </div>
@@ -335,13 +333,13 @@ export default function ProductDetailPage() {
             <div className="flex min-w-0 flex-col justify-between gap-6">
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={cn("inline-flex rounded-md border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]", status.className)}>
+                  <span className={cn("inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]", status.className)}>
                     {status.label}
                   </span>
-                  <span className="inline-flex rounded-md border border-border bg-surface-container px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-soft">
+                  <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                     {product.categoryName ?? product.categoryPath ?? "Kategorisiz"}
                   </span>
-                  <span className="inline-flex rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
+                  <span className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
                     Satış trendi
                   </span>
                 </div>
@@ -365,7 +363,7 @@ export default function ProductDetailPage() {
 
               <div className="grid gap-3 sm:grid-cols-3">
                 {topChannel && (
-                  <GlassCard className="border-primary/20 bg-primary/5">
+                  <GlassCard className="rounded-[22px] border-primary/20 bg-primary/5">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70">En iyi kanal</p>
                     <p className="mt-2 text-lg font-semibold text-foreground">
                       {topChannel.marketplace_name ?? topChannel.marketplace_slug ?? "Kanal"}
@@ -375,14 +373,14 @@ export default function ProductDetailPage() {
                 )}
 
                 {summary && (
-                  <GlassCard className="border-border bg-surface-container">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Özet</p>
-                    <p className="mt-2 text-lg font-semibold text-foreground">{formatNumber(summary.totalUnits)} adet</p>
-                    <p className="text-sm text-muted">{formatCurrency(summary.totalRevenue)} ciro</p>
+                  <GlassCard className="rounded-[22px] border-slate-200 bg-white">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Özet</p>
+                    <p className="mt-2 text-lg font-semibold text-slate-900">{formatNumber(summary.totalUnits)} adet</p>
+                    <p className="text-sm text-slate-500">{formatCurrency(summary.totalRevenue)} ciro</p>
                   </GlassCard>
                 )}
 
-                <GlassCard className={cn("border-border bg-surface-container", marginStatus.className)}>
+                <GlassCard className={cn("rounded-[22px] border-slate-200 bg-white", marginStatus.className)}>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em]">Marj</p>
                   <p className="mt-2 text-lg font-semibold text-foreground">{marginStatus.label}</p>
                   <p className="text-sm text-soft/90">{marginStatus.description}</p>
@@ -393,16 +391,16 @@ export default function ProductDetailPage() {
         </GlassCard>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-          <GlassCard className="border-border bg-surface-container">
+          <GlassCard className="rounded-[28px] border border-slate-200 bg-white">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Satış trendi</h2>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
                   30 / 90 gün görünümü
                 </p>
               </div>
 
-              <div className="inline-flex rounded-md border border-border bg-surface-container p-1">
+              <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
                 {[30, 90].map((windowDays) => (
                   <button
                     key={windowDays}
@@ -412,7 +410,7 @@ export default function ProductDetailPage() {
                       "rounded-sm px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors duration-200",
                       selectedRange === windowDays
                         ? "bg-primary text-primary-foreground"
-                        : "text-muted hover:text-foreground"
+                        : "text-slate-500 hover:text-slate-900"
                     )}
                   >
                     {windowDays} Gün
@@ -474,13 +472,13 @@ export default function ProductDetailPage() {
             )}
           </GlassCard>
 
-          <GlassCard className="border-border bg-surface-container">
+          <GlassCard className="rounded-[28px] border border-slate-200 bg-white">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Detaylar</h2>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Özet, marj ve siparişler</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Özet, marj ve siparişler</p>
               </div>
-              <div className="inline-flex rounded-md border border-border bg-surface-container p-1">
+              <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
                 {[
                   { id: "description", label: "Açıklama" },
                   { id: "margin", label: "Marj" },
@@ -492,7 +490,7 @@ export default function ProductDetailPage() {
                     onClick={() => setActiveTab(tab.id as typeof activeTab)}
                     className={cn(
                       "rounded-sm px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors duration-200",
-                      activeTab === tab.id ? "bg-primary text-primary-foreground" : "text-muted hover:text-foreground"
+                      activeTab === tab.id ? "bg-primary text-primary-foreground" : "text-slate-500 hover:text-slate-900"
                     )}
                   >
                     {tab.label}
@@ -503,7 +501,7 @@ export default function ProductDetailPage() {
 
             {activeTab === "description" && (
               <div className="space-y-4">
-                <GlassCard className="p-5 sm:p-5">
+                <GlassCard className="rounded-[22px] border-slate-200 bg-white p-5 sm:p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <ReceiptText className="h-5 w-5 text-primary" />
                     <h3 className="text-lg font-semibold text-foreground">Açıklama</h3>
@@ -524,8 +522,8 @@ export default function ProductDetailPage() {
 
             {activeTab === "margin" && (
               <div className="space-y-4">
-                <GlassCard className="p-5 sm:p-5">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Güncel durum</p>
+                <GlassCard className="rounded-[22px] border-slate-200 bg-white p-5 sm:p-5">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Güncel durum</p>
                   <p className="mt-2 text-2xl font-semibold text-foreground">{marginStatus.label}</p>
                   <p className="mt-2 text-sm leading-6 text-soft">{marginStatus.description}</p>
                 </GlassCard>
@@ -542,13 +540,13 @@ export default function ProductDetailPage() {
                             <p className="text-sm font-semibold text-foreground">
                               {snapshot.marketplace_name ?? snapshot.marketplace_slug ?? "Kanal"}
                             </p>
-                            <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
+                            <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">
                               {snapshot.marketplace_slug ?? "market"} · {formatCurrency(Number(snapshot.list_price ?? 0))}
                             </p>
                           </div>
                           <span
                             className={cn(
-                              "rounded-md border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]",
+                              "rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]",
                               Number(snapshot.profit_margin_percent ?? 0) >= 30
                                 ? "border-primary/20 bg-primary/10 text-primary"
                                 : "border-warning/20 bg-warning/10 text-warning"
@@ -565,7 +563,7 @@ export default function ProductDetailPage() {
                       </GlassCard>
                     ))
                   ) : (
-                    <GlassCard className="p-5 sm:p-5 text-sm text-muted">
+                    <GlassCard className="rounded-[22px] border-slate-200 bg-white p-5 sm:p-5 text-sm text-slate-500">
                       Bu ürün için henüz kanal verisi yok.
                     </GlassCard>
                   )}
@@ -575,17 +573,17 @@ export default function ProductDetailPage() {
 
             {activeTab === "orders" && (
               <div className="space-y-4">
-                <GlassCard className="p-4 sm:p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Siparişler</p>
-                  <p className="mt-1 text-sm text-muted">
+                <GlassCard className="rounded-[22px] border-slate-200 bg-white p-4 sm:p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Siparişler</p>
+                  <p className="mt-1 text-sm text-slate-500">
                     {formatNumber(orderHistory.length)} kayıt · geçmiş sipariş kayıtları
                   </p>
                 </GlassCard>
 
-                <div className="overflow-x-auto rounded-lg border border-border">
+                <div className="overflow-x-auto rounded-[22px] border border-slate-200">
                   <table className="w-full text-left">
                     <thead>
-                      <tr className="bg-surface-container text-[10px] uppercase tracking-[0.18em] text-muted">
+                      <tr className="bg-slate-50 text-[10px] uppercase tracking-[0.18em] text-slate-400">
                         <th className="px-4 py-3 font-semibold">Tarih</th>
                         <th className="px-4 py-3 font-semibold">Kanal</th>
                         <th className="px-4 py-3 font-semibold">Sipariş</th>
@@ -601,20 +599,20 @@ export default function ProductDetailPage() {
                           const orderStatus = orderStatusCopy(row.status);
 
                           return (
-                            <tr key={`${row.order_id}-${row.external_order_number ?? row.order_id}`} className="hover:bg-surface-container transition-colors duration-200">
+                            <tr key={`${row.order_id}-${row.external_order_number ?? row.order_id}`} className="transition-colors duration-200 hover:bg-slate-50/80">
                               <td className="px-4 py-3 text-xs text-soft">{formatDate(row.order_date)}</td>
                               <td className="px-4 py-3 text-sm font-medium text-foreground">{row.marketplace_name}</td>
-                              <td className="px-4 py-3 text-xs text-muted">
+                              <td className="px-4 py-3 text-xs text-slate-500">
                                 <div className="flex flex-col gap-1">
                                   <span>{row.external_order_number ?? `#${row.order_id}`}</span>
-                                  <span className="text-[10px] text-muted">{row.external_package_number ?? "Paket numarası yok"}</span>
+                                  <span className="text-[10px] text-slate-400">{row.external_package_number ?? "Paket numarası yok"}</span>
                                 </div>
                               </td>
                               <td className="px-4 py-3 text-right text-sm text-soft">{formatNumber(row.quantity)}</td>
                               <td className="px-4 py-3 text-right text-sm text-soft">{formatCurrency(row.unit_price)}</td>
                               <td className="px-4 py-3 text-right text-sm font-semibold text-primary">{formatCurrency(row.line_total)}</td>
                               <td className="px-4 py-3 text-center">
-                                <span className={cn("inline-flex rounded-md border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]", orderStatus.className)}>
+                                <span className={cn("inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]", orderStatus.className)}>
                                   {orderStatus.label}
                                 </span>
                               </td>
@@ -623,7 +621,7 @@ export default function ProductDetailPage() {
                         })
                       ) : (
                         <tr>
-                          <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted">
+                          <td colSpan={7} className="px-4 py-10 text-center text-sm text-slate-500">
                             Bu tarih aralığında sipariş kaydı yok.
                           </td>
                         </tr>
@@ -642,40 +640,40 @@ export default function ProductDetailPage() {
 
 function Kpi({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
-    <GlassCard className={cn("p-4 sm:p-4", accent ? "border-primary/20 bg-primary/5" : "border-border bg-surface-container")}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{label}</p>
-      <p className={cn("mt-2 text-lg font-semibold", accent ? "text-primary" : "text-foreground")}>{value}</p>
+    <GlassCard className={cn("rounded-[22px] p-4 sm:p-4", accent ? "border-primary/20 bg-primary/5" : "border-slate-200 bg-white")}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>
+      <p className={cn("mt-2 text-lg font-semibold", accent ? "text-primary" : "text-slate-900")}>{value}</p>
     </GlassCard>
   );
 }
 
 function MiniStat({ label, value, caption }: { label: string; value: string; caption?: string }) {
   return (
-    <GlassCard className="p-4 sm:p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
-      {caption && <p className="text-[10px] text-muted">{caption}</p>}
+    <GlassCard className="rounded-[22px] border-slate-200 bg-white p-4 sm:p-4">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-slate-900">{value}</p>
+      {caption && <p className="text-[10px] text-slate-500">{caption}</p>}
     </GlassCard>
   );
 }
 
 function MetaCard({ label, value, icon: Icon }: { label: string; value: string; icon?: React.ComponentType<{ className?: string }> }) {
   return (
-    <GlassCard className="p-4 sm:p-4">
+    <GlassCard className="rounded-[22px] border-slate-200 bg-white p-4 sm:p-4">
       <div className="flex items-center gap-2">
         {Icon ? <Icon className="h-4 w-4 text-primary" /> : null}
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{label}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>
       </div>
-      <p className="mt-2 text-sm font-medium text-foreground">{value}</p>
+      <p className="mt-2 text-sm font-medium text-slate-900">{value}</p>
     </GlassCard>
   );
 }
 
 function StatPair({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
-    <GlassCard className={cn("p-3 sm:p-3", accent ? "border-primary/20 bg-primary/5" : "border-border bg-surface-container")}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{label}</p>
-      <p className={cn("mt-1 text-sm font-semibold", accent ? "text-primary" : "text-foreground")}>{value}</p>
+    <GlassCard className={cn("rounded-[20px] p-3 sm:p-3", accent ? "border-primary/20 bg-primary/5" : "border-slate-200 bg-white")}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>
+      <p className={cn("mt-1 text-sm font-semibold", accent ? "text-primary" : "text-slate-900")}>{value}</p>
     </GlassCard>
   );
 }

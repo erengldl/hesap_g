@@ -41,9 +41,9 @@ type CurveTooltipProps = {
 };
 
 const STRATEGY_TONES: Record<OptimizationStrategyKey, string> = {
-  high_sales: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
-  buybox_balance: "border-primary/30 bg-primary/10 text-primary",
-  premium_balance: "border-warning/30 bg-warning/10 text-warning",
+  high_sales: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  buybox_balance: "border-primary/20 bg-primary/10 text-primary",
+  premium_balance: "border-amber-200 bg-amber-50 text-amber-700",
 };
 
 const STRATEGY_POINT_COLORS: Record<OptimizationStrategyKey, string> = {
@@ -56,8 +56,8 @@ type ChartBadgeTone = "default" | "primary" | "success" | "warning";
 
 const CHART_BADGE_STYLES: Record<ChartBadgeTone, { dot: string; shell: string }> = {
   default: {
-    dot: "bg-muted/60",
-    shell: "border-border/70 bg-surface-container/70 text-muted/70",
+    dot: "bg-slate-400",
+    shell: "border-slate-200 bg-white text-slate-500",
   },
   primary: {
     dot: "bg-primary",
@@ -85,7 +85,7 @@ function ChartBadge(props: {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]",
+        "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]",
         toneStyles.shell,
         props.className
       )}
@@ -159,7 +159,7 @@ function StrategyButton(props: {
   return (
     <article
       className={cn(
-        "h-full rounded-2xl border p-2.5 text-left transition-colors duration-200",
+        "h-full rounded-[22px] border p-3 text-left transition-colors duration-200",
         STRATEGY_TONES[props.strategy.key],
         props.active ? "ring-1 ring-current shadow-[var(--shadow-primary)]" : "",
         props.strategy.disabled ? "opacity-60" : ""
@@ -250,8 +250,8 @@ export default function PriceProfitCurve(props: {
   const hasTotalProfit = curveData.some((point) => point.totalProfit !== null);
 
   return (
-    <GlassCard className="overflow-hidden border-border/80">
-      <div className="border-b border-border/70 bg-gradient-to-r from-primary/8 via-transparent to-transparent px-4 py-3">
+    <GlassCard className="overflow-hidden rounded-[28px] border border-slate-200 bg-white">
+      <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#f8fbff,#ffffff)] px-5 py-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
@@ -303,7 +303,7 @@ export default function PriceProfitCurve(props: {
           ))}
         </div>
 
-        <div className="mt-4 rounded-2xl border border-border/70 bg-gradient-to-br from-primary/8 via-panel/80 to-surface-container/35 p-3 shadow-[var(--shadow-card)]">
+        <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50/70 p-3 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap gap-2">
               <ChartBadge tone="success" label="Tahmini toplam kâr" />
@@ -326,7 +326,7 @@ export default function PriceProfitCurve(props: {
             </div>
           </div>
 
-          <div className="mt-3 rounded-2xl border border-border/60 bg-panel/80 p-2 sm:p-3">
+          <div className="mt-3 rounded-[22px] border border-slate-200 bg-white p-2 sm:p-3">
             <div className="h-[340px] min-w-0">
               {isMounted ? (
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={340}>
