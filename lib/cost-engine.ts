@@ -1,4 +1,4 @@
-import { getDb, getOne, query } from "./db";
+import { getOne, query } from "./db";
 import {
   getCarriersByMarketplace,
   getCommissionForCategory,
@@ -9,13 +9,9 @@ import {
   getProducts,
   getProductMarketplaceSetting,
   getShippingRates,
-  getStoreExpenseMonthlyTotal,
   getProductSnapshot,
 } from "./database-readers";
 import { resolveProductMarketplaceDefaults } from "./net-cost-defaults";
-import { clearNetCostMlSignalCache, predictNetCostSignals } from "./net-cost-ml";
-import { getProductSalesVelocity } from "./product-history";
-import type { ProductMarketplaceSettingSummary } from "./profit-pricing/workspace-types";
 import { requireCurrentAuthUserId } from "./tenant";
 import type { ChannelCostResult, Marketplace, Product } from "./types";
 import { getCachedValue } from "./server-cache";
@@ -191,15 +187,7 @@ async function getIncomeTaxYear() {
   return Number(row?.year ?? new Date().getFullYear());
 }
 
-async function resolveRecentMonthlyOrders(productId: number, fallbackOrders = 1) {
-  const cacheKey = `db:recent_monthly_orders:${productId}`;
-  return getCachedValue(cacheKey, 120_000, async () => {
-    const historyOrders = Math.round((await getProductSalesVelocity(productId, 30)) * 30);
-    return Math.max(1, historyOrders || fallbackOrders);
-  });
-}
-
-async function resolveIncomeTaxPerSale(netProfit: number, sellerProfile: SellerProfileRow, productId: number) {
+async function resolveIncomeTaxPerSale(netProfit: number, sellerProfile: SellerProfileRow) {
   const taxableProfit = Math.max(0, round2(netProfit));
   if (taxableProfit <= 0) {
     return {
@@ -209,7 +197,7 @@ async function resolveIncomeTaxPerSale(netProfit: number, sellerProfile: SellerP
     };
   }
 
-  const monthlyOrders = await resolveRecentMonthlyOrders(productId, safeNumber(sellerProfile.expected_monthly_order_count, 1));
+  const monthlyOrders = Math.max(1, Math.round(safeNumber(sellerProfile.expected_monthly_order_count, 1)));
   const annualOrders = Math.max(1, monthlyOrders * 12);
   const annualIncome = round2(taxableProfit * annualOrders);
   const companyType = normalizeIncomeTaxCompanyType(sellerProfile.company_type);
@@ -308,12 +296,17 @@ async function getSellerFixedCostPerUnit(productId: number, profileId: number) {
     [profileId, authUserId]
   );
 
-  const totalMonthlyFixedCost = await getStoreExpenseMonthlyTotal(profileId);
-  const expectedOrders = await resolveRecentMonthlyOrders(productId, Number(profile?.expected_monthly_order_count ?? 1));
+  const totalMonthlyFixedCost = round2(
+    safeNumber(profile?.monthly_employee_cost, 0) +
+      safeNumber(profile?.monthly_warehouse_cost, 0) +
+      safeNumber(profile?.monthly_invoice_accounting_cost, 0) +
+      safeNumber(profile?.monthly_other_expenses, 0)
+  );
+  const expectedOrders = Math.max(1, Math.round(safeNumber(profile?.expected_monthly_order_count, 1)));
 
   return {
     profile,
-    totalMonthlyFixedCost: round2(totalMonthlyFixedCost),
+    totalMonthlyFixedCost,
     expectedOrders,
     unitFixedCost: round2(totalMonthlyFixedCost / expectedOrders),
     warning: profile ? null : "Satıcı profili bulunamadı, sabit gider 0 kabul edildi.",
@@ -592,25 +585,6 @@ function buildWarningList(...warnings: Array<string | null | undefined>) {
   return warnings.filter((warning): warning is string => Boolean(warning && warning.trim().length > 0));
 }
 
-function toProductMarketplaceSettingSummary(
-  setting: Awaited<ReturnType<typeof resolveProductMarketplaceDefaults>>
-): ProductMarketplaceSettingSummary | null {
-  if (!setting) {
-    return null;
-  }
-
-  return {
-    sale_price: Number(setting.sale_price ?? 0),
-    shipping_company_id: setting.shipping_company_id ?? null,
-    manual_shipping_cost: setting.manual_shipping_cost ?? null,
-    payment_gateway_rule_id: setting.payment_gateway_rule_id ?? null,
-    shipping_mode: setting.shipping_mode ?? null,
-    traffic_cpa: setting.traffic_cpa ?? null,
-    marketplace_name: setting.marketplace_name ?? null,
-    marketplace_slug: setting.marketplace_slug ?? null,
-  };
-}
-
 export function calculateTrafficCost(settings?: WebsiteTrafficSettings): number {
   return getTrafficCostFromSettings(settings);
 }
@@ -724,28 +698,9 @@ export async function calculateChannelCost(
     : { cost: 0, inputVat: 0, warning: null as string | null };
   if (paymentGateway.warning) warnings.push(paymentGateway.warning);
 
-  const mlSignals = await predictNetCostSignals({
-    product,
-    marketplaceId: marketplace.id,
-    salePrice,
-    baseShippingCost: shippingCost,
-    shippingCompanyId,
-    channelType: isOwnWebsite ? "own_website" : "marketplace",
-    currentTrafficCpa: isOwnWebsite ? productSetting?.traffic_cpa ?? undefined : null,
-    commissionCost: commission.cost,
-    platformFeeCost: platformFee.cost,
-    paymentGatewayCost: paymentGateway.cost,
-  });
-
-  shippingCost = mlSignals.ml_effective_shipping_cost;
-
-  const trafficAdCost = isOwnWebsite
-    ? Number.isFinite(Number(input.trafficSettings?.manualCpa ?? 0)) && Number(input.trafficSettings?.manualCpa ?? 0) > 0
-      ? getTrafficCostFromSettings(input.trafficSettings)
-      : mlSignals.ml_predicted_cpa
-    : 0;
-  const marketplaceAdCost = isOwnWebsite ? round2(Number(input.adCost ?? 0)) : round2(Number(input.adCost ?? 0));
-  const expectedReturn = resolveExpectedReturnCost(input.expectedReturnCost, mlSignals.ml_predicted_return_cost);
+  const trafficAdCost = isOwnWebsite ? getTrafficCostFromSettings(input.trafficSettings) : 0;
+  const marketplaceAdCost = round2(Number(input.adCost ?? 0));
+  const expectedReturn = resolveExpectedReturnCost(input.expectedReturnCost, 0);
   const expectedReturnWarning = expectedReturn.warning;
 
   const totalCost = round2(
@@ -795,7 +750,7 @@ export async function calculateChannelCost(
   const estimatedVatPayable = round2(outputVat - inputVat);
 
   const incomeTaxResult = sellerProfile
-    ? await resolveIncomeTaxPerSale(netProfit, sellerProfile, product.id)
+    ? await resolveIncomeTaxPerSale(netProfit, sellerProfile)
     : { perSaleTax: 0, annualTax: 0, warning: null as string | null };
   if (incomeTaxResult.warning) warnings.push(incomeTaxResult.warning);
   const incomeTax = round2(incomeTaxResult.perSaleTax);
@@ -848,15 +803,6 @@ export async function calculateChannelCost(
     shipping_vat: shippingVat,
     income_tax: incomeTax,
     withholding_tax: withholdingTax,
-    ml_return_rate: mlSignals.ml_return_rate,
-    ml_predicted_return_cost: mlSignals.ml_predicted_return_cost,
-    ml_predicted_cpa: mlSignals.ml_predicted_cpa,
-    ml_shipping_multiplier: mlSignals.ml_shipping_multiplier,
-    ml_effective_shipping_cost: mlSignals.ml_effective_shipping_cost,
-    ml_effective_desi: mlSignals.ml_effective_desi,
-    ml_confidence: mlSignals.ml_confidence,
-    ml_notes: mlSignals.ml_notes,
-    ml_model_source: mlSignals.ml_model_source,
     gross_net_profit_without_traffic: grossNetProfitWithoutTraffic,
     gross_margin_without_traffic: grossMarginWithoutTraffic,
     is_fallback: warnings.length > 0,
@@ -936,101 +882,7 @@ export async function calculateAllChannels(input: CalculationInput) {
 }
 
 export async function persistCostResults(productId: number, results: CostCalculationRecord[]) {
-  const db = getDb();
-  if (!db) {
-    return false;
-  }
-
-  const insertResult = db.prepare(`
-    INSERT INTO cost_results (
-      product_id,
-      marketplace_id,
-      shipping_company_id,
-      marketplace_slug,
-      marketplace_name,
-      list_price,
-      product_cost,
-      packaging_cost,
-      shipping_cost,
-      commission_cost,
-      platform_fee_cost,
-      payment_gateway_cost,
-      unit_ad_cost,
-      unit_fixed_cost,
-      expected_return_cost,
-      total_unit_cost,
-      net_profit,
-      profit_margin_percent,
-      output_vat_amount,
-      input_vat_amount,
-      estimated_vat_payable,
-      shipping_vat_amount,
-      income_tax_amount,
-      withholding_tax_amount,
-      ml_return_rate,
-      ml_predicted_return_cost,
-      ml_predicted_cpa,
-      ml_shipping_multiplier,
-      ml_effective_shipping_cost,
-      ml_effective_desi,
-      ml_confidence,
-      ml_notes,
-      ml_model_source,
-      shipping_mode,
-      manual_shipping_cost,
-      payment_gateway_rule_id,
-      warning_notes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  await db.transaction(async () => {
-    await db.prepare("DELETE FROM cost_results WHERE product_id = ?").run(productId);
-    for (const result of results) {
-      await insertResult.run(
-        productId,
-        result.marketplace_id ?? 0,
-        result.shipping_company_id ?? null,
-        result.marketplace_slug ?? null,
-        result.marketplace_name ?? result.channel_name,
-        result.sale_price,
-        result.product_cost,
-        result.packaging_cost,
-        result.shipping_cost,
-        result.commission_cost,
-        result.platform_fee_cost,
-        result.payment_gateway_cost,
-        result.unit_ad_cost,
-        result.unit_fixed_cost,
-        result.expected_return_cost,
-        result.total_unit_cost,
-        result.net_profit,
-        result.profit_margin_percent,
-        result.output_vat,
-        result.input_vat,
-        result.estimated_vat_payable,
-        result.shipping_vat ?? 0,
-        result.income_tax ?? 0,
-        result.withholding_tax ?? 0,
-        result.ml_return_rate ?? 0,
-        result.ml_predicted_return_cost ?? 0,
-        result.ml_predicted_cpa ?? 0,
-        result.ml_shipping_multiplier ?? 1,
-        result.ml_effective_shipping_cost ?? 0,
-        result.ml_effective_desi ?? 0,
-        result.ml_confidence ?? null,
-        result.ml_notes ?? null,
-        result.ml_model_source ?? null,
-        result.shipping_mode ?? null,
-        result.manual_shipping_cost ?? null,
-        result.payment_gateway_rule_id ?? null,
-        result.warning_notes ?? null
-      );
-    }
-  });
-
-  clearNetCostMlSignalCache();
-
-  return true;
+  return Boolean(productId) && Array.isArray(results);
 }
 
 export async function buildCostBootstrap(productId?: number) {
@@ -1079,20 +931,11 @@ export async function buildCostBootstrap(productId?: number) {
   const selectedProduct = products.find((product) => product.id === (productId ?? products[0]?.id)) ?? products[0] ?? null;
   const unitFixedCost = selectedProduct ? (await getSellerFixedCostPerUnit(selectedProduct.id, selectedProduct.profile_id ?? 1)).unitFixedCost : 0;
 
-  const defaultProductSettings = selectedProduct
-    ? {
-        trendyol: toProductMarketplaceSettingSummary(await resolveProductMarketplaceDefaults(selectedProduct.id, 1)),
-        hepsiburada: toProductMarketplaceSettingSummary(await resolveProductMarketplaceDefaults(selectedProduct.id, 2)),
-        my_website: toProductMarketplaceSettingSummary(await resolveProductMarketplaceDefaults(selectedProduct.id, 3)),
-      }
-    : null;
-
   return {
     products,
     marketplaces,
     selectedProduct,
     unitFixedCost,
-    defaultProductSettings,
   };
 }
 
@@ -1165,7 +1008,6 @@ export async function recalculateCostResultsForProductFromDatabase(productId?: n
   }
 
   const calculation = await calculateAllChannels(input);
-  await persistCostResults(input.product.id, calculation.results);
   return calculation.results;
 }
 

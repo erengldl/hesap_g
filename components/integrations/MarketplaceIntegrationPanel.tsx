@@ -6,12 +6,10 @@ import {
   AlertTriangle,
   ArrowUpRight,
   Clock3,
-  KeyRound,
   RefreshCw,
   Settings,
   ShieldCheck,
   Sparkles,
-  Zap,
 } from "lucide-react";
 import { ErrorStateCard, GlassCard } from "@/components/ui-custom/GlassComponents";
 import { cn } from "@/lib/utils";
@@ -314,9 +312,7 @@ function CredentialModal({
                 {meta.badge}
               </span>
               <h3 className="mt-4 text-3xl font-extrabold tracking-tight text-foreground">{meta.logoLabel} bağlantısı</h3>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-                Satıcı bilgilerini buradan güncelle.
-              </p>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">Bağlantıyı düzenle.</p>
             </div>
             <button
               type="button"
@@ -374,46 +370,6 @@ function CredentialModal({
               </label>
             </div>
 
-            <div className="space-y-4">
-              <div className="rounded-xl border border-border bg-surface-container p-5">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
-                    <KeyRound className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-primary">Güvenlik</p>
-                    <p className="text-sm text-muted">Anahtarlar gizli saklanır</p>
-                  </div>
-                </div>
-                <div className="mt-4 space-y-3 text-sm text-muted">
-                  <p>• Anahtarlar gizli kalır.</p>
-                  <p>• Boş alanlar mevcut değeri korur.</p>
-                  <p>• Güncelleme saati yenilenir.</p>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-primary/15 bg-primary/5 p-5">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
-                    <Zap className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-primary">Fiyat aktarımı</p>
-                    <p className="text-sm text-muted">Senkron fiyat güncellemelerini de gönderir.</p>
-                  </div>
-                </div>
-                <div className="mt-4 text-sm leading-relaxed text-muted">
-                  Yeni fiyatlar bu bağlantı üzerinden pazaryerine gider.
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border bg-surface-container p-5">
-                <p className="text-[10px] font-extrabold uppercase tracking-[0.25em] text-muted">Durum</p>
-                <p className="mt-2 text-sm text-soft">
-                  {item.last_error ? item.last_error : "Bağlantı hazır."}
-                </p>
-              </div>
-            </div>
           </div>
 
           <div className="mt-8 flex flex-wrap items-center justify-end gap-3">
@@ -678,9 +634,7 @@ export function MarketplaceIntegrationPanel() {
                 Otomatik senkron
               </span>
             </div>
-            <p className="max-w-2xl text-sm leading-relaxed text-muted">
-              Trendyol ve Hepsiburada bağlantılarını tek yerden yönetin. Kaydetme sonrası senkron arka planda başlar.
-            </p>
+            <p className="max-w-2xl text-sm leading-relaxed text-muted">Bağlantıları tek yerden yönet.</p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[420px]">
@@ -759,33 +713,6 @@ export function MarketplaceIntegrationPanel() {
           )}
         </div>
 
-        <GlassCard className="border border-border bg-surface-container">
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Ne yapar</p>
-              <h3 className="mt-2 text-lg font-semibold text-foreground">Tek yerden yönet</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted">
-                Sipariş ve stok akışını çek, sonra yeni fiyatları gönder.
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Nasıl çalışır</p>
-              <ul className="mt-2 space-y-2 text-sm text-muted">
-                <li>• Bağlantılar güvenli saklanır</li>
-                <li>• Gerekirse güncelleme tekrar denenir</li>
-                <li>• Fiyatlar seçili kanallara gider</li>
-              </ul>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">Dikkat</p>
-              <p className="mt-2 text-sm leading-relaxed text-muted">
-                {hasAnyDisconnected
-                  ? "Kırmızı durum, müdahale gerektiren bağlantıları gösterir."
-                  : "Tüm kanallar bağlı; güncelleme ve fiyat aktarımı hazır."}
-              </p>
-            </div>
-          </div>
-        </GlassCard>
       <AnimatePresence>
         {selectedItem ? (
           <CredentialModal

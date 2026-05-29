@@ -469,7 +469,7 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
         <PageHeader
           eyebrow="Karar ekranı"
           title="Kârlılık ve Fiyat Optimizasyonu"
-          description="Ürünün gerçek maliyetini hesapla, kârlı fiyat aralığını aynı ekranda gör."
+          description="Kârlılık için ürün maliyetini ve sonuç fiyatını gör."
         />
         <ProfitPricingEmptyState />
       </div>
@@ -482,7 +482,7 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
         <PageHeader
           eyebrow="Karar ekranı"
           title="Kârlılık ve Fiyat Optimizasyonu"
-          description="Ürünün gerçek maliyetini hesapla, kârlı fiyat aralığını aynı ekranda gör."
+          description="Kârlılık için ürün maliyetini ve sonuç fiyatını gör."
         />
         <ProfitPricingErrorState message={loadError} />
       </div>
@@ -494,8 +494,8 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
       <PageHeader
         eyebrow="Karar ekranı"
         title="Kârlılık ve Fiyat Optimizasyonu"
-        description="Ürünü seç, üç kanalın fiyatını aynı anda yönet ve tek tıkla optimize et."
-      >
+        description="Ürünü seç, fiyatı karşılaştır ve optimize et."
+        >
         <div className="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
           <ShieldCheck className="h-3.5 w-3.5" />
           {syncState === "saving"

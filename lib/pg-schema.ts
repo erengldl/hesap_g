@@ -4,37 +4,54 @@ import bcrypt from "bcryptjs";
 async function isPgSchemaReady(sql: postgres.Sql): Promise<boolean> {
   const rows = await sql<{
     has_products: boolean;
-    has_orders: boolean;
-    has_store_expenses: boolean;
-    has_product_channel_seo_jobs: boolean;
+    has_product_marketplace_settings: boolean;
+    has_seller_profiles: boolean;
+    has_categories: boolean;
+    has_marketplaces: boolean;
+    has_shipping_companies: boolean;
+    has_commission_rules: boolean;
+    has_shipping_rate_rules: boolean;
+    has_platform_fee_rules: boolean;
+    has_category_tax_rules: boolean;
+    has_payment_gateway_rules: boolean;
+    has_income_tax_brackets: boolean;
     has_users_auth_user_id: boolean;
-    has_cost_results_ml_return_rate: boolean;
   }[]>`
     SELECT
       to_regclass('public.products') IS NOT NULL AS has_products,
-      to_regclass('public.orders') IS NOT NULL AS has_orders,
-      to_regclass('public.store_expenses') IS NOT NULL AS has_store_expenses,
-      to_regclass('public.product_channel_seo_jobs') IS NOT NULL AS has_product_channel_seo_jobs,
+      to_regclass('public.product_marketplace_settings') IS NOT NULL AS has_product_marketplace_settings,
+      to_regclass('public.seller_profiles') IS NOT NULL AS has_seller_profiles,
+      to_regclass('public.categories') IS NOT NULL AS has_categories,
+      to_regclass('public.marketplaces') IS NOT NULL AS has_marketplaces,
+      to_regclass('public.shipping_companies') IS NOT NULL AS has_shipping_companies,
+      to_regclass('public.commission_rules') IS NOT NULL AS has_commission_rules,
+      to_regclass('public.shipping_rate_rules') IS NOT NULL AS has_shipping_rate_rules,
+      to_regclass('public.platform_fee_rules') IS NOT NULL AS has_platform_fee_rules,
+      to_regclass('public.category_tax_rules') IS NOT NULL AS has_category_tax_rules,
+      to_regclass('public.payment_gateway_rules') IS NOT NULL AS has_payment_gateway_rules,
+      to_regclass('public.income_tax_brackets') IS NOT NULL AS has_income_tax_brackets,
       EXISTS (
         SELECT 1
         FROM information_schema.columns
         WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'auth_user_id'
-      ) AS has_users_auth_user_id,
-      EXISTS (
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_schema = 'public' AND table_name = 'cost_results' AND column_name = 'ml_return_rate'
-      ) AS has_cost_results_ml_return_rate
+      ) AS has_users_auth_user_id
   `;
 
   const row = rows[0];
   return Boolean(
       row?.has_products &&
-      row.has_orders &&
-      row.has_store_expenses &&
-      row.has_product_channel_seo_jobs &&
-      row.has_users_auth_user_id &&
-      row.has_cost_results_ml_return_rate
+      row.has_product_marketplace_settings &&
+      row.has_seller_profiles &&
+      row.has_categories &&
+      row.has_marketplaces &&
+      row.has_shipping_companies &&
+      row.has_commission_rules &&
+      row.has_shipping_rate_rules &&
+      row.has_platform_fee_rules &&
+      row.has_category_tax_rules &&
+      row.has_payment_gateway_rules &&
+      row.has_income_tax_brackets &&
+      row.has_users_auth_user_id
   );
 }
 

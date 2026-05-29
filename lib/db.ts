@@ -46,19 +46,19 @@ async function applySessionConfig(client: postgres.Sql | postgres.TransactionSql
 }
 
 const RLS_TABLES = [
+  "categories",
+  "marketplaces",
+  "shipping_companies",
   "seller_profiles",
   "products",
   "product_marketplace_settings",
-  "cost_results",
-  "orders",
-  "order_items",
-  "inventory_daily",
-  "demand_forecasts",
-  "seo_generations",
-  "price_optimization_runs",
-  "store_expenses",
-  "data_center_sync_runs",
-  "campaign_profit_metrics",
+  "commission_rules",
+  "shipping_rate_rules",
+  "platform_fee_rules",
+  "category_tax_rules",
+  "payment_gateway_rules",
+  "income_tax_brackets",
+  "marketplace_shipping_options",
   "users"
 ];
 

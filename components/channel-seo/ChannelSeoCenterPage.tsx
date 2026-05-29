@@ -962,7 +962,7 @@ export function ChannelSeoCenterPage() {
     <div className="page-shell space-y-4">
       <ChannelSeoToolbar
         title="SEO"
-        description="Veri merkezindeki ürünleri satış kanallarına göre optimize et."
+        description="Ürünleri kanala göre optimize et."
         query={query}
         onQueryChange={setQuery}
         category={category}
@@ -1014,7 +1014,7 @@ export function ChannelSeoCenterPage() {
           ) : pagination.total === 0 && !hasActiveFilters ? (
             <ChannelSeoEmptyState
               title="Henüz optimize edilmiş içerik yok"
-              description="İlk ürünleri optimize ederek SEO başlıklarını ve açıklamalarını oluşturabilirsiniz."
+              description="İlk ürünü seçip SEO başlığı ve açıklamasını oluştur."
               action={
                 <Link
                   href="/veri-merkezi"
@@ -1027,7 +1027,7 @@ export function ChannelSeoCenterPage() {
           ) : items.length === 0 ? (
             <ChannelSeoEmptyState
               title="Aranan kriterlere uygun ürün bulunamadı"
-              description="Filtreleri daraltmış olabilirsiniz. Aramayı veya kategori/durum seçimlerini temizleyip tekrar deneyin."
+              description="Filtreleri temizleyip tekrar dene."
               onResetFilters={() => {
                 setQuery("");
                 setCategory("");

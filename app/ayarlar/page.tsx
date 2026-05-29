@@ -2,34 +2,24 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { EyebrowBadge, GlassCard, PageHeader } from "@/components/ui-custom/GlassComponents";
+import { GlassCard, PageHeader } from "@/components/ui-custom/GlassComponents";
 import { useAuth } from "@/components/layout/AuthContext";
 import { ThemeModeSelector } from "@/components/theme/ThemeModeSelector";
 import type { AuthUser } from "@/lib/auth";
 import { useToast } from "@/lib/toast";
 import {
-  Bell,
   ChevronRight,
-  CreditCard,
   Eye,
   EyeOff,
-  Globe,
-  Key,
   Loader2,
   Lock,
   LogOut,
-  ShieldCheck,
   SunMoon,
   User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type TabId = "profile" | "security" | "notifications" | "locale" | "appearance" | "billing" | "api";
-
-type SelectOption = {
-  value: string;
-  label: string;
-};
+type TabId = "profile" | "security" | "appearance";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -45,7 +35,7 @@ export default function SettingsPage() {
     <div className="page-shell">
       <PageHeader
         title="Ayarlar"
-        description="Hesap bilgilerini, güvenlik ayarlarını ve bu sürümde aktif olan tercihleri tek akışta yönet."
+        description="Hesap, güvenlik ve görünüm ayarlarını yönet."
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -59,11 +49,7 @@ export default function SettingsPage() {
             <div className="space-y-1">
               <SettingsNavItem icon={User} label="Profil" active={activeTab === "profile"} onClick={() => setActiveTab("profile")} />
               <SettingsNavItem icon={Lock} label="Güvenlik" active={activeTab === "security"} onClick={() => setActiveTab("security")} />
-              <SettingsNavItem icon={Bell} label="Bildirimler" active={activeTab === "notifications"} onClick={() => setActiveTab("notifications")} />
-              <SettingsNavItem icon={Globe} label="Dil ve Bölge" active={activeTab === "locale"} onClick={() => setActiveTab("locale")} />
               <SettingsNavItem icon={SunMoon} label="Görünüm" active={activeTab === "appearance"} onClick={() => setActiveTab("appearance")} />
-              <SettingsNavItem icon={CreditCard} label="Abonelik" active={activeTab === "billing"} onClick={() => setActiveTab("billing")} />
-              <SettingsNavItem icon={ShieldCheck} label="API ve Webhook" active={activeTab === "api"} onClick={() => setActiveTab("api")} />
             </div>
 
             <div className="pt-3">
@@ -81,11 +67,7 @@ export default function SettingsPage() {
         <div>
           {activeTab === "profile" && <ProfileTab user={user} />}
           {activeTab === "security" && <SecurityTab />}
-          {activeTab === "notifications" && <NotificationsTab />}
-          {activeTab === "locale" && <LocaleTab />}
           {activeTab === "appearance" && <AppearanceTab />}
-          {activeTab === "billing" && <BillingTab />}
-          {activeTab === "api" && <ApiTab />}
         </div>
       </div>
     </div>
@@ -296,18 +278,6 @@ function SecurityTab() {
           />
         </div>
 
-        <div className="rounded-lg border border-dashed border-border/80 bg-surface-container/70 p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h4 className="font-semibold text-foreground">İki adımlı doğrulama</h4>
-              <p className="mt-2 text-xs leading-5 text-muted">
-                Gerçek doğrulama akışı henüz aktif değil. Kullanıma açıldığında bu bölümden yönetilecek.
-              </p>
-            </div>
-            <EyebrowBadge variant="default">Yakında</EyebrowBadge>
-          </div>
-        </div>
-
         <div className="flex justify-end border-t border-border pt-5">
           <button onClick={handleChangePassword} disabled={saving} className="btn-primary">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -319,7 +289,7 @@ function SecurityTab() {
   );
 }
 
-function NotificationsTab() {
+export function NotificationsTab() { /*
   const items = [
     { key: "stockAlerts", label: "Stok uyarıları", desc: "Kritik stok eşiği bildirimleri" },
     { key: "priceSuggestions", label: "Fiyat önerileri", desc: "Yeni öneri ve optimizasyon güncellemeleri" },
@@ -361,9 +331,9 @@ function NotificationsTab() {
       </div>
     </GlassCard>
   );
-}
+*/ return null; }
 
-function LocaleTab() {
+export function LocaleTab() { /*
   return (
     <div className="space-y-4">
       <GlassCard>
@@ -412,7 +382,7 @@ function LocaleTab() {
       </div>
     </div>
   );
-}
+*/ return null; }
 
 function AppearanceTab() {
   return (
@@ -426,41 +396,7 @@ function AppearanceTab() {
   );
 }
 
-function BillingTab() {
-  return (
-    <GlassCard>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-semibold text-foreground">Abonelik ve Faturalandırma</h3>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted/70">
-            Bu alan canlı faturalandırma verisi göstermez. Gerçek plan, ödeme yöntemi ve fatura geçmişi bağlantısı hazır
-            olduğunda bu bölüm aktif hale getirilecek.
-          </p>
-        </div>
-        <EyebrowBadge variant="primary">Yakında</EyebrowBadge>
-      </div>
-
-      <div className="mt-5 rounded-lg border border-dashed border-border/80 bg-surface-container/70 p-5">
-        <p className="text-sm font-semibold text-foreground">Canlı faturalandırma akışı bu sürümde kapalıdır.</p>
-        <p className="mt-2 text-xs leading-5 text-muted">
-          Kullanıcı güveni için statik fatura satırları ve ödeme geçmişi kaldırıldı. Gerçek veri kaynağı bağlandığında plan
-          değişikliği, ödeme yöntemi ve fatura geçmişi burada gösterilecek.
-        </p>
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-        {["Plan değişikliği", "Ödeme yöntemi", "Fatura geçmişi"].map((item) => (
-          <div key={item} className="rounded-md border border-border bg-surface-container p-4">
-            <p className="text-sm font-semibold text-foreground">{item}</p>
-            <p className="mt-2 text-xs leading-5 text-muted">Canlı faturalandırma hazır olduğunda bu bölüm açılacak.</p>
-          </div>
-        ))}
-      </div>
-    </GlassCard>
-  );
-}
-
-function ApiTab() {
+export function ApiTab() { /*
   return (
     <div className="space-y-6">
       <GlassCard>
@@ -519,32 +455,10 @@ function ApiTab() {
       </GlassCard>
     </div>
   );
-}
+*/ return null; }
 
-function DisabledSelectCard({
-  title,
-  description,
-  options,
-  ariaLabel,
-}: {
-  title: string;
-  description: string;
-  options: SelectOption[];
-  ariaLabel: string;
-}) {
-  return (
-    <GlassCard>
-      <h4 className="mb-2 font-semibold text-foreground">{title}</h4>
-      <p className="mb-4 text-xs leading-5 text-muted">{description}</p>
-      <select disabled defaultValue={options[0]?.value} aria-label={ariaLabel} className="form-select cursor-not-allowed opacity-60">
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </GlassCard>
-  );
+export function DisabledSelectCard() {
+  return null;
 }
 
 function SettingsNavItem({

@@ -26,8 +26,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hesap G | E-Ticaret Finansal Kontrol Merkezi",
-  description: "E-ticaret satıcıları için premium net maliyet motoru, kâr analizi ve karar destek sistemi.",
+  title: "Hesap G | Net Maliyet Motoru",
+  description: "E-ticaret ürünleri için sadeleştirilmiş net maliyet ve kârlılık hesabı.",
 };
 
 export default function RootLayout({
@@ -38,6 +38,7 @@ export default function RootLayout({
   return (
     <html lang="tr" className="dark" suppressHydrationWarning>
       <head>
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           rel="stylesheet"

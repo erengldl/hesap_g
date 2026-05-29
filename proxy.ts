@@ -5,6 +5,7 @@ import { updateSupabaseSession } from "@/lib/supabase/proxy";
 
 const PUBLIC_ROUTES = new Set(["/login", "/register", "/auth/callback"]);
 const PUBLIC_API_ROUTES = new Set(["/api/auth/config"]);
+const CORE_APP_ROUTES = new Set(["/net-maliyet-motoru", "/profit-pricing"]);
 
 function buildAuthMisconfiguredResponse(nextUrl: URL, pathname: string, search: string) {
   if (pathname.startsWith("/api")) {
@@ -53,6 +54,12 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user) {
+    if (!CORE_APP_ROUTES.has(pathname)) {
+      const liteUrl = nextUrl.clone();
+      liteUrl.pathname = "/net-maliyet-motoru";
+      return NextResponse.redirect(liteUrl);
+    }
+
     return response;
   }
 

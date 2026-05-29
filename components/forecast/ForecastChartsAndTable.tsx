@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { AlertTriangle, BarChart3, FileText, Search, Table2, type LucideIcon } from "lucide-react";
+import { BarChart3, Search, Table2, type LucideIcon } from "lucide-react";
 import type { DemandForecastResult, ForecastRiskLevel } from "@/lib/demand-forecast-types";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatNumber } from "@/lib/formatters";
@@ -24,7 +24,7 @@ interface ForecastChartsAndTableProps {
 
 type SortKey = "date" | "forecast" | "revenue" | "stock";
 type RiskFilter = "all" | "risk" | "safe";
-type WorkspaceTab = "chart" | "table" | "notes";
+type WorkspaceTab = "chart" | "table";
 
 export default function ForecastChartsAndTable({ result }: ForecastChartsAndTableProps) {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("chart");
@@ -91,7 +91,7 @@ export default function ForecastChartsAndTable({ result }: ForecastChartsAndTabl
         <div className="min-w-0 space-y-2">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/80">Özet</p>
           <h2 className="text-xl font-semibold text-foreground">Grafik ve tablo</h2>
-          <p className="max-w-2xl text-sm leading-6 text-soft">Geçmiş, tahmin ve notlar aynı yerde.</p>
+          <p className="max-w-2xl text-sm leading-6 text-soft">Geçmiş, tahmin ve sonuçlar tek yerde.</p>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -105,7 +105,6 @@ export default function ForecastChartsAndTable({ result }: ForecastChartsAndTabl
       <div className="flex flex-wrap gap-2 border-b border-border pb-3">
         <TabButton active={activeTab === "chart"} icon={BarChart3} label="Grafik" onClick={() => setActiveTab("chart")} />
         <TabButton active={activeTab === "table"} icon={Table2} label="Tablo" onClick={() => setActiveTab("table")} />
-        <TabButton active={activeTab === "notes"} icon={FileText} label="Notlar" onClick={() => setActiveTab("notes")} />
       </div>
 
       {activeTab === "chart" ? (
@@ -338,50 +337,6 @@ export default function ForecastChartsAndTable({ result }: ForecastChartsAndTabl
         </div>
       ) : null}
 
-      {activeTab === "notes" ? (
-        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-lg border border-border bg-surface-container p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-foreground">Nasıl çalışır?</h3>
-                <p className="mt-1 text-[11px] text-soft">Model özeti ve kısa açıklamalar.</p>
-              </div>
-              <MetaPill>Tahmin modeli</MetaPill>
-            </div>
-            <p className="mt-4 whitespace-pre-line text-sm leading-7 text-soft">
-              {result.methodology ?? "Yöntem bilgisi yükleniyor."}
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="rounded-lg border border-border bg-surface-container p-4">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-foreground">Kısa özet</h3>
-              <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border/80 bg-surface-container">
-                <MetricTile label="Tahmin" value={summary ? formatNumber(summary.totalForecastUnits) : "Belirlenmedi"} />
-                <MetricTile label="Net kâr" value={summary ? formatCurrency(summary.expectedNetProfit) : "Belirlenmedi"} />
-                <MetricTile label="Tahmini hata" value={summary ? `%${formatNumber(summary.wmape * 100)}` : "Belirlenmedi"} />
-                <MetricTile label="Stok" value={summary?.stockWarning ?? "Belirtilmedi"} />
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-warning/20 bg-warning/10 p-4">
-              <div className="flex items-center gap-2 text-warning">
-                <AlertTriangle className="h-4 w-4" />
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em]">Uyarılar</p>
-              </div>
-              {result.warnings?.length ? (
-                <ul className="mt-3 space-y-2 text-sm leading-6 text-soft">
-                  {result.warnings.slice(0, 3).map((warning) => (
-                    <li key={warning}>{warning}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-3 text-sm leading-6 text-soft">Ek uyarı yok.</p>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
     </GlassCard>
   );
 }

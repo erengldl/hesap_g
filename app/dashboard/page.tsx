@@ -6,8 +6,8 @@ import { useEffect, useState } from "react";
 import { PageHeader, KpiCard, GlassCard, MobileCardList, WarningBadge, SkeletonCard, EmptyState, EyebrowBadge } from "@/components/ui-custom/GlassComponents";
 import { SeedDemoButton } from "@/components/demo/SeedDemoButton";
 import {
-  TrendingUp, Wallet, BarChart3, ShoppingCart, Target, Zap, Info,
-  Package, AlertTriangle, DollarSign, Activity, ChevronRight, Megaphone, Database, Sparkles,
+  TrendingUp, Wallet, BarChart3, ShoppingCart, Zap,
+  Package, AlertTriangle, DollarSign, Activity, Sparkles,
   CircleCheckBig, FlaskConical, ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
@@ -174,16 +174,6 @@ export default function DashboardPage() {
   const results = payload?.results ?? [];
   const bestChannel = payload?.bestChannel;
   const bestChannelName = bestChannel?.channel_name ?? "Kanal";
-  const baseMethodology = payload?.methodology ?? agg?.methodology ?? "";
-  const hasEstimatedTopProductMargin = agg?.topProducts.some((product) => product.marginConfidence === "estimated") ?? false;
-  const methodologyFootnote = [
-    baseMethodology || "Analiz, güncel pazar verileri, komisyon oranları ve lojistik maliyetleri kullanılarak hazırlanır.",
-    hasEstimatedTopProductMargin
-      ? "Tahmini etiketi görünen ürün marjları, sipariş geliri ile ürün ve paketleme maliyetlerinden hesaplanır; ayrıntılı kanal maliyeti eksik olabilir."
-      : "Ürün marjları, sipariş gelirleri ile kanal bazlı maliyet kayıtları birleştirilerek hesaplanır.",
-    "Toplam kâr ve ortalama marj göstergeleri, hızlı karar desteği için hazırlanmış yönetim özetidir.",
-  ].join(" ");
-  const methodology = methodologyFootnote;
   const showCharts = Boolean(agg) && isClient;
   const dataMode = payload?.dataMode ?? "partial";
   const dataQuality = payload?.dataQuality ?? { score: 0, warnings: [], lastSyncAt: null };
@@ -267,7 +257,7 @@ export default function DashboardPage() {
       <PageHeader
         eyebrow="Başlangıç"
         title="Kontrol Merkezi"
-        description="Önce veri kalitesini ve stok uyarılarını kontrol et, sonra kârlılık ve ürün optimizasyonuna geç."
+        description="Veri kalitesi, kârlılık ve kanal sonuçlarını tek bakışta gösterir."
       >
         <EyebrowBadge className={cn("gap-1.5", dataModeMeta.className)}>
           <dataModeMeta.icon className="h-3.5 w-3.5" />
@@ -285,67 +275,11 @@ export default function DashboardPage() {
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
             <div className="space-y-1">
               <p className="text-sm font-semibold text-warning">Karar desteği kısmi veriyle gösteriliyor.</p>
-              <p className="text-sm leading-6 text-soft">Bazı dashboard kartları yedek görünüm veya kısmi veri ile oluşturuldu.</p>
+              <p className="text-sm leading-6 text-soft">Bazı kartlar yedek görünümle oluşturuldu.</p>
             </div>
           </div>
         </GlassCard>
       ) : null}
-
-      {/* Hızlı Başlangıç */}
-      <section className="mb-6">
-        <h2 className="font-heading text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground/60 mb-3">
-          Hızlı Başlangıç
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link
-            href="/integrations"
-            className="glass-panel p-5 rounded-lg flex gap-4 items-start relative overflow-hidden group hover:border-primary/20 transition-all duration-200 cursor-pointer block"
-          >
-            <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0 border border-primary/20 transition-colors duration-200 group-hover:bg-primary/20">
-              <span className="material-symbols-outlined text-[20px]">storefront</span>
-            </div>
-            <div>
-              <h3 className="font-sans text-[11px] font-bold text-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                1. Mağaza Bağlantısı
-                <ChevronRight className="h-3 w-3 opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 text-primary" />
-              </h3>
-              <p className="font-sans text-[13px] text-muted-foreground leading-relaxed">Pazaryeri hesaplarınızı entegre ederek verileri anında çekin.</p>
-            </div>
-          </Link>
-
-          <Link
-            href="/veri-merkezi"
-            className="glass-panel p-5 rounded-lg flex gap-4 items-start relative overflow-hidden group hover:border-secondary/20 transition-all duration-200 cursor-pointer block"
-          >
-            <div className="w-10 h-10 rounded bg-secondary/10 flex items-center justify-center text-secondary shrink-0 border border-secondary/20 transition-colors duration-200 group-hover:bg-secondary/20">
-              <span className="material-symbols-outlined text-[20px]">upload_file</span>
-            </div>
-            <div>
-              <h3 className="font-sans text-[11px] font-bold text-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                2. Maliyet Girişi
-                <ChevronRight className="h-3 w-3 opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 text-secondary" />
-              </h3>
-              <p className="font-sans text-[13px] text-muted-foreground leading-relaxed">Ürün maliyetlerinizi yükleyerek net kar hesaplamalarını başlatın.</p>
-            </div>
-          </Link>
-
-          <Link
-            href="/profit-pricing"
-            className="glass-panel p-5 rounded-lg flex gap-4 items-start relative overflow-hidden group hover:border-white/10 transition-all duration-200 cursor-pointer block"
-          >
-            <div className="w-10 h-10 rounded bg-white/5 flex items-center justify-center text-muted-foreground shrink-0 border border-white/10 transition-colors duration-200 group-hover:bg-white/10">
-              <span className="material-symbols-outlined text-[20px]">insights</span>
-            </div>
-            <div>
-              <h3 className="font-sans text-[11px] font-bold text-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                3. Analiz Bekliyor
-                <ChevronRight className="h-3 w-3 opacity-0 -translate-x-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0 text-muted-foreground" />
-              </h3>
-              <p className="font-sans text-[13px] text-muted-foreground leading-relaxed">Veriler işlendikten sonra karlı büyüme stratejileri oluşturun.</p>
-            </div>
-          </Link>
-        </div>
-      </section>
 
       {/* KPI Grid */}
       <div className="mb-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -394,32 +328,6 @@ export default function DashboardPage() {
           className="border-l-2 border-l-danger"
         />
       </div>
-
-      <GlassCard className="mb-4">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h3 className="panel-title">Hızlı Geçiş</h3>
-          <WarningBadge>Tek akış</WarningBadge>
-        </div>
-        <div className="grid grid-cols-2 gap-2 xl:grid-cols-5">
-          {[
-            { label: "Tahmin", href: "/forecast", icon: TrendingUp },
-            { label: "Kârlılık", href: "/profit-pricing", icon: Target },
-            { label: "Ürünler", href: "/veri-merkezi", icon: Database },
-            { label: "Reklam", href: "/reklam-analizi", icon: Megaphone },
-            { label: "SEO", href: "/channel-seo", icon: Sparkles },
-          ].map((action) => (
-            <Link key={action.href} href={action.href} className="group flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-surface-container px-3 py-2 transition-colors duration-200 hover:border-border-strong hover:bg-surface-soft">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-surface-container text-muted/60 transition-colors duration-200 group-hover:text-primary">
-                  <action.icon className="h-3.5 w-3.5" />
-                </div>
-                <p className="text-sm font-medium text-foreground">{action.label}</p>
-              </div>
-              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted/60 transition-colors duration-200 group-hover:text-primary" />
-            </Link>
-          ))}
-        </div>
-      </GlassCard>
 
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <GlassCard className="overflow-hidden lg:col-span-2">
@@ -814,9 +722,6 @@ export default function DashboardPage() {
               <Sparkles className="h-4 w-4 text-primary" />
               <h3 className="panel-title">Veri Kalitesi</h3>
             </div>
-            <p className="text-xs font-medium text-soft">
-              Veri modunu, güven skorunu ve kritik eksikleri tek yerde özetler.
-            </p>
           </div>
           <EyebrowBadge className={cn("gap-1.5", dataQualityMeta.accentClassName)}>
             <dataQualityMeta.icon className="h-3.5 w-3.5" />
@@ -905,14 +810,6 @@ export default function DashboardPage() {
         </div>
       </GlassCard>
 
-      <GlassCard className="mt-4 flex items-start gap-3 p-3">
-        <div className="rounded-md bg-primary/10 p-2 text-primary">
-          <Info className="h-4 w-4" />
-        </div>
-        <p className="text-xs leading-snug text-soft">
-          {methodology || "Analiz, güncel pazar verileri, komisyon oranları ve lojistik maliyetleri kullanılarak hazırlanır. Gösterilen değerler karar desteği içindir; kesin muhasebe sonucu yerine hızlı bir yönetim özeti sunar."}
-        </p>
-      </GlassCard>
     </div>
   );
 }

@@ -1,12 +1,10 @@
-import { getProducts } from "@/lib/database-readers";
+import { getProductSnapshot } from "@/lib/database-readers";
 import {
   buildCostBootstrap,
   calculateAllChannels,
   calculateChannelCost,
-  persistCostResults,
   type CalculationInput,
 } from "@/lib/cost-engine";
-import { persistNetCostDefaultsFromCalculation, persistNetCostDefaultsFromForm } from "@/lib/net-cost-defaults";
 import { getMarketplaceById, getProductMarketplaceSetting } from "@/lib/database-readers";
 import { NextResponse } from "next/server";
 
@@ -85,21 +83,17 @@ async function calculateWithBody(request: Request, body: Record<string, unknown>
     return NextResponse.json({ success: false, error: "Product id is required" }, { status: 400 });
   }
 
-  const product = (await getProducts()).find((item) => item.id === productId);
+  const product = await getProductSnapshot(productId);
   if (!product) {
     return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 });
   }
 
   if (body.persistDefaultsOnly === true) {
-    const persisted = await persistNetCostDefaultsFromForm(productId, body);
-    if (!persisted) {
-      return NextResponse.json({ success: false, error: "Defaults could not be saved" }, { status: 500 });
-    }
-
     return NextResponse.json({
       success: true,
-      persisted: true,
+      persisted: false,
       product,
+      message: "Lite mode: defaults are not persisted.",
     });
   }
 
@@ -113,9 +107,6 @@ async function calculateWithBody(request: Request, body: Record<string, unknown>
     if (!Array.isArray(calculation.results) || calculation.results.length === 0) {
       return NextResponse.json({ success: false, error: "At least one active channel is required" }, { status: 400 });
     }
-
-    await persistCostResults(productId, calculation.results);
-    await persistNetCostDefaultsFromCalculation(productId, body, calculation.results);
 
     return NextResponse.json({
       success: true,
@@ -144,9 +135,6 @@ async function calculateWithBody(request: Request, body: Record<string, unknown>
     if (!result) {
       return NextResponse.json({ success: false, error: "Calculation failed" }, { status: 500 });
     }
-
-    await persistCostResults(productId, [result]);
-    await persistNetCostDefaultsFromCalculation(productId, body, [result]);
 
     return NextResponse.json({
       success: true,

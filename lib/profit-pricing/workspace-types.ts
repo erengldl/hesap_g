@@ -18,9 +18,4 @@ export interface NetCostBootstrap {
   marketplaces: Marketplace[];
   selectedProduct: Product | null;
   unitFixedCost: number;
-  defaultProductSettings: {
-    trendyol: ProductMarketplaceSettingSummary | null;
-    hepsiburada: ProductMarketplaceSettingSummary | null;
-    my_website: ProductMarketplaceSettingSummary | null;
-  } | null;
 }

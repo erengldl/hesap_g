@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import { ChevronLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBadge } from "@/components/ui-custom/GlassComponents";
 import { useDashboardStats } from "./DashboardStatsProvider";

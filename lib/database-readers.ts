@@ -47,15 +47,6 @@ type ProfitPricingProductOptionRow = {
   marketplace_slug: string | null;
 };
 
-type StoreExpenseRow = {
-  expense_id: number;
-  profile_id: number | null;
-  name: string;
-  monthly_amount: number | null;
-  note: string | null;
-  status: string | null;
-};
-
 function normalizeChannelSlug(slug: string | null | undefined) {
   if (!slug) return null;
 
@@ -362,54 +353,44 @@ export async function getDefaultProductId() {
 }
 
 export async function getStoreExpenses(profileId = 1) {
-  const authUserId = requireCurrentAuthUserId();
-  const cacheKey = buildScopedCacheKey(`db:store_expenses:${profileId}`, authUserId);
-  return getCachedValue(cacheKey, 60_000, () =>
-    query<StoreExpenseRow>(`
-      SELECT
-        expense_id,
-        profile_id,
-        name,
-        monthly_amount,
-        note,
-        status
-      FROM store_expenses
-      WHERE profile_id = ? AND user_id = ?
-      ORDER BY expense_id ASC
-    `, [profileId, authUserId])
-  );
+  void profileId;
+  return [];
 }
 
 export async function getStoreExpenseMonthlyTotal(profileId = 1) {
   const authUserId = requireCurrentAuthUserId();
   const cacheKey = buildScopedCacheKey(`db:store_expense_monthly_total:${profileId}`, authUserId);
   return getCachedValue(cacheKey, 60_000, async () => {
-    const row = await getOne<{ total: number | null }>(`
-      SELECT SUM(monthly_amount) AS total
-      FROM store_expenses
-      WHERE profile_id = ? AND user_id = ? AND COALESCE(status, 'active') = 'active'
-    `, [profileId, authUserId]);
-    return Number(row?.total ?? 0);
+    const row = await getOne<{
+      monthly_employee_cost: number | null;
+      monthly_warehouse_cost: number | null;
+      monthly_invoice_accounting_cost: number | null;
+      monthly_other_expenses: number | null;
+    }>(
+      `
+        SELECT
+          monthly_employee_cost,
+          monthly_warehouse_cost,
+          monthly_invoice_accounting_cost,
+          monthly_other_expenses
+        FROM seller_profiles
+        WHERE profile_id = ? AND user_id = ?
+        LIMIT 1
+      `,
+      [profileId, authUserId]
+    );
+    return Number(
+      (row?.monthly_employee_cost ?? 0) +
+      (row?.monthly_warehouse_cost ?? 0) +
+      (row?.monthly_invoice_accounting_cost ?? 0) +
+      (row?.monthly_other_expenses ?? 0)
+    );
   });
 }
 
 export async function getStoreExpenseById(expenseId: number) {
-  const authUserId = requireCurrentAuthUserId();
-  const cacheKey = buildScopedCacheKey(`db:store_expense_by_id:${expenseId}`, authUserId);
-  return getCachedValue(cacheKey, 60_000, () =>
-    getOne<StoreExpenseRow>(`
-      SELECT
-        expense_id,
-        profile_id,
-        name,
-        monthly_amount,
-        note,
-        status
-      FROM store_expenses
-      WHERE expense_id = ? AND user_id = ?
-      LIMIT 1
-    `, [expenseId, authUserId])
-  );
+  void expenseId;
+  return null;
 }
 
 export async function getSellerProfileById(profileId = 1) {
@@ -469,8 +450,6 @@ export async function getDatabaseCounts() {
     'marketplaces',
     'shipping_companies',
     'products',
-    'price_optimization_runs',
-    'store_expenses',
     'seller_profiles',
     'commission_rules',
     'shipping_rate_rules',
@@ -478,17 +457,15 @@ export async function getDatabaseCounts() {
     'category_tax_rules',
     'payment_gateway_rules',
     'income_tax_brackets',
-    'data_center_sync_runs',
+    'product_marketplace_settings',
   ];
   const counts: Record<string, number | null> = {};
   
   for (const table of tables) {
     const scopedBusinessTables = new Set([
       'products',
-      'price_optimization_runs',
-      'store_expenses',
       'seller_profiles',
-      'data_center_sync_runs',
+      'product_marketplace_settings',
     ]);
     const result = scopedBusinessTables.has(table)
       ? await getOne<{ count: number }>(`SELECT COUNT(*) as count FROM ${table} WHERE user_id = ?`, [authUserId])
