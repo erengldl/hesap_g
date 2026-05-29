@@ -10,6 +10,7 @@ import {
   getProductMarketplaceSetting,
   getShippingRates,
   getStoreExpenseMonthlyTotal,
+  getProductSnapshot,
 } from "./database-readers";
 import { resolveProductMarketplaceDefaults } from "./net-cost-defaults";
 import { clearNetCostMlSignalCache, predictNetCostSignals } from "./net-cost-ml";
@@ -17,6 +18,7 @@ import { getProductSalesVelocity } from "./product-history";
 import type { ProductMarketplaceSettingSummary } from "./profit-pricing/workspace-types";
 import { requireCurrentAuthUserId } from "./tenant";
 import type { ChannelCostResult, Marketplace, Product } from "./types";
+import { getCachedValue } from "./server-cache";
 
 /** Traffic cost calculation mode for "Kendi Websitem" */
 export type TrafficCostMode = "manual_cpa" | "budget_per_order" | "cpc_conversion";
@@ -190,8 +192,11 @@ async function getIncomeTaxYear() {
 }
 
 async function resolveRecentMonthlyOrders(productId: number, fallbackOrders = 1) {
-  const historyOrders = Math.round((await getProductSalesVelocity(productId, 30)) * 30);
-  return Math.max(1, historyOrders || fallbackOrders);
+  const cacheKey = `db:recent_monthly_orders:${productId}`;
+  return getCachedValue(cacheKey, 120_000, async () => {
+    const historyOrders = Math.round((await getProductSalesVelocity(productId, 30)) * 30);
+    return Math.max(1, historyOrders || fallbackOrders);
+  });
 }
 
 async function resolveIncomeTaxPerSale(netProfit: number, sellerProfile: SellerProfileRow, productId: number) {
@@ -324,36 +329,39 @@ async function resolveCategoryVatRate(categoryId: number | null) {
     };
   }
 
-  const visited = new Set<number>();
-  let currentCategoryId: number | null = categoryId;
+  const cacheKey = `db:category_vat:${categoryId}`;
+  return getCachedValue(cacheKey, 600_000, async () => {
+    const visited = new Set<number>();
+    let currentCategoryId: number | null = categoryId;
 
-  while (currentCategoryId && !visited.has(currentCategoryId)) {
-    visited.add(currentCategoryId);
+    while (currentCategoryId && !visited.has(currentCategoryId)) {
+      visited.add(currentCategoryId);
 
-    const directRule = await getOne<CategoryTaxRow>(
-      "SELECT tax_rate FROM category_tax_rules WHERE category_id = ? LIMIT 1",
-      [currentCategoryId]
-    );
-    if (directRule) {
-      return {
-        rate: round2(Number(directRule.tax_rate ?? 0)),
-        sourceCategoryId: currentCategoryId,
-        warning: null,
-      };
+      const directRule = await getOne<CategoryTaxRow>(
+        "SELECT tax_rate FROM category_tax_rules WHERE category_id = ? LIMIT 1",
+        [currentCategoryId]
+      );
+      if (directRule) {
+        return {
+          rate: round2(Number(directRule.tax_rate ?? 0)),
+          sourceCategoryId: currentCategoryId,
+          warning: null,
+        };
+      }
+
+      const parentRow: CategoryParentRow | null = await getOne<CategoryParentRow>(
+        "SELECT parent_id FROM categories WHERE category_id = ? LIMIT 1",
+        [currentCategoryId]
+      );
+      currentCategoryId = parentRow?.parent_id ?? null;
     }
 
-    const parentRow: CategoryParentRow | null = await getOne<CategoryParentRow>(
-      "SELECT parent_id FROM categories WHERE category_id = ? LIMIT 1",
-      [currentCategoryId]
-    );
-    currentCategoryId = parentRow?.parent_id ?? null;
-  }
-
-  return {
-    rate: 0,
-    sourceCategoryId: null as number | null,
-    warning: "Kategori bazlı KDV kuralı bulunamadı; 0% kabul edildi.",
-  };
+    return {
+      rate: 0,
+      sourceCategoryId: null as number | null,
+      warning: "Kategori bazlı KDV kuralı bulunamadı; 0% kabul edildi.",
+    };
+  });
 }
 
 async function resolveCommissionCost(marketplaceName: string, categoryId: number | null, salePrice: number) {
@@ -1089,12 +1097,13 @@ export async function buildCostBootstrap(productId?: number) {
 }
 
 async function buildDatabaseDrivenInput(productId?: number): Promise<CalculationInput | null> {
-  const products = await getProducts();
-  if (products.length === 0) {
+  const selectedProduct = productId
+    ? await getProductSnapshot(productId)
+    : (await getProducts())[0] ?? null;
+
+  if (!selectedProduct) {
     return null;
   }
-
-  const selectedProduct = products.find((product) => product.id === (productId ?? products[0].id)) ?? products[0];
   const trendyolPersistedSetting = await getProductMarketplaceSetting(selectedProduct.id, 1);
   const hepsiburadaPersistedSetting = await getProductMarketplaceSetting(selectedProduct.id, 2);
   const websitePersistedSetting = await getProductMarketplaceSetting(selectedProduct.id, 3);

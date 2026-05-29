@@ -8,6 +8,7 @@ import {
 import { predictNetCostSignals } from "./net-cost-ml";
 import type { NetCostMlInput } from "./net-cost-ml";
 import type { ChannelCostResult } from "./types";
+import { getCachedValue } from "./server-cache";
 
 type ProductMarketplaceSettingRow = {
   setting_id: number;
@@ -94,30 +95,33 @@ async function getProductContext(productId: number) {
 }
 
 async function getHistoricalCostRows(productId: number, marketplaceId: number) {
-  return await query<HistoricalCostRow>(
-    `
-      SELECT
-        cr.product_id,
-        cr.marketplace_id,
-        cr.shipping_company_id,
-        cr.list_price,
-        cr.net_profit,
-        cr.calculated_at,
-        p.category_id,
-        COALESCE(p.category_path, c.path) AS category_path,
-        p.desi,
-        p.cost,
-        p.packaging_cost
-      FROM cost_results cr
-      JOIN products p ON p.product_id = cr.product_id
-      LEFT JOIN categories c ON c.category_id = p.category_id
-      WHERE cr.marketplace_id = ?
-        AND cr.shipping_company_id IS NOT NULL
-        AND cr.product_id <> ?
-      ORDER BY cr.calculated_at DESC, cr.id DESC
-      LIMIT 300
-    `,
-    [marketplaceId, productId]
+  const cacheKey = `db:historical_cost_rows:${productId}:${marketplaceId}`;
+  return getCachedValue(cacheKey, 120_000, () =>
+    query<HistoricalCostRow>(
+      `
+        SELECT
+          cr.product_id,
+          cr.marketplace_id,
+          cr.shipping_company_id,
+          cr.list_price,
+          cr.net_profit,
+          cr.calculated_at,
+          p.category_id,
+          COALESCE(p.category_path, c.path) AS category_path,
+          p.desi,
+          p.cost,
+          p.packaging_cost
+        FROM cost_results cr
+        JOIN products p ON p.product_id = cr.product_id
+        LEFT JOIN categories c ON c.category_id = p.category_id
+        WHERE cr.marketplace_id = ?
+          AND cr.shipping_company_id IS NOT NULL
+          AND cr.product_id <> ?
+        ORDER BY cr.calculated_at DESC, cr.id DESC
+        LIMIT 300
+      `,
+      [marketplaceId, productId]
+    )
   );
 }
 
@@ -147,24 +151,27 @@ function resolveHistoricalWeight(target: ProductRow, row: HistoricalCostRow) {
 }
 
 async function recommendMarketplaceCarrierId(productId: number, marketplaceId: number, product: ProductRow) {
-  const historicalRows = await getHistoricalCostRows(productId, marketplaceId);
-  if (historicalRows.length === 0) {
-    return await getMarketplaceDefaultCarrierId(marketplaceId);
-  }
+  const cacheKey = `db:recommend_carrier_id:${productId}:${marketplaceId}`;
+  return getCachedValue(cacheKey, 120_000, async () => {
+    const historicalRows = await getHistoricalCostRows(productId, marketplaceId);
+    if (historicalRows.length === 0) {
+      return await getMarketplaceDefaultCarrierId(marketplaceId);
+    }
 
-  const scoreMap = new Map<number, number>();
+    const scoreMap = new Map<number, number>();
 
-  for (const row of historicalRows) {
-    if (!row.shipping_company_id) continue;
-    const weight = resolveHistoricalWeight(product, row);
-    scoreMap.set(row.shipping_company_id, (scoreMap.get(row.shipping_company_id) ?? 0) + weight);
-  }
+    for (const row of historicalRows) {
+      if (!row.shipping_company_id) continue;
+      const weight = resolveHistoricalWeight(product, row);
+      scoreMap.set(row.shipping_company_id, (scoreMap.get(row.shipping_company_id) ?? 0) + weight);
+    }
 
-  if (scoreMap.size === 0) {
-    return await getMarketplaceDefaultCarrierId(marketplaceId);
-  }
+    if (scoreMap.size === 0) {
+      return await getMarketplaceDefaultCarrierId(marketplaceId);
+    }
 
-  return [...scoreMap.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] ?? await getMarketplaceDefaultCarrierId(marketplaceId);
+    return [...scoreMap.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] ?? await getMarketplaceDefaultCarrierId(marketplaceId);
+  });
 }
 
 async function buildFallbackProductSetting(product: ProductRow, marketplaceId: number): Promise<ProductMarketplaceSettingRow> {
@@ -211,27 +218,30 @@ async function buildFallbackProductSetting(product: ProductRow, marketplaceId: n
 }
 
 export async function resolveProductMarketplaceDefaults(productId: number, marketplaceId: number) {
-  const persisted = await getProductMarketplaceSetting(productId, marketplaceId);
-  const product = await getProductContext(productId);
-  if (!product) {
-    return persisted ? (persisted as ProductMarketplaceSettingRow) : null;
-  }
+  const cacheKey = `db:product_marketplace_defaults:${productId}:${marketplaceId}`;
+  return getCachedValue(cacheKey, 60_000, async () => {
+    const persisted = await getProductMarketplaceSetting(productId, marketplaceId);
+    const product = await getProductContext(productId);
+    if (!product) {
+      return persisted ? (persisted as ProductMarketplaceSettingRow) : null;
+    }
 
-  const fallback = await buildFallbackProductSetting(product, marketplaceId);
-  if (!persisted) {
-    return fallback;
-  }
+    const fallback = await buildFallbackProductSetting(product, marketplaceId);
+    if (!persisted) {
+      return fallback;
+    }
 
-  return {
-    ...fallback,
-    ...persisted,
-    shipping_company_id: persisted.shipping_company_id ?? fallback.shipping_company_id,
-    sale_price: Number(persisted.sale_price ?? 0) > 0 ? persisted.sale_price : fallback.sale_price,
-    manual_shipping_cost: Number(persisted.manual_shipping_cost ?? 0) > 0 ? persisted.manual_shipping_cost : fallback.manual_shipping_cost,
-    payment_gateway_rule_id: persisted.payment_gateway_rule_id ?? fallback.payment_gateway_rule_id,
-    shipping_mode: persisted.shipping_mode ?? fallback.shipping_mode,
-    traffic_cpa: Number(persisted.traffic_cpa ?? 0) > 0 ? persisted.traffic_cpa : fallback.traffic_cpa,
-  } as ProductMarketplaceSettingRow;
+    return {
+      ...fallback,
+      ...persisted,
+      shipping_company_id: persisted.shipping_company_id ?? fallback.shipping_company_id,
+      sale_price: Number(persisted.sale_price ?? 0) > 0 ? persisted.sale_price : fallback.sale_price,
+      manual_shipping_cost: Number(persisted.manual_shipping_cost ?? 0) > 0 ? persisted.manual_shipping_cost : fallback.manual_shipping_cost,
+      payment_gateway_rule_id: persisted.payment_gateway_rule_id ?? fallback.payment_gateway_rule_id,
+      shipping_mode: persisted.shipping_mode ?? fallback.shipping_mode,
+      traffic_cpa: Number(persisted.traffic_cpa ?? 0) > 0 ? persisted.traffic_cpa : fallback.traffic_cpa,
+    } as ProductMarketplaceSettingRow;
+  });
 }
 
 function readChannelInput(body: Record<string, unknown>, channelKey: string) {

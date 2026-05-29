@@ -1,6 +1,7 @@
 import { query, getOne } from './db';
 import type { Marketplace, Product } from './types';
 import { requireCurrentAuthUserId } from './tenant';
+import { getCachedValue, buildScopedCacheKey } from './server-cache';
 
 type RawMarketplaceRow = {
   id: number;
@@ -149,19 +150,23 @@ export async function getProfitPricingProductOptions() {
 }
 
 export async function getMarketplaces() {
-  return await query<RawMarketplaceRow>("SELECT marketplace_id AS id, name, COALESCE(slug, '') AS slug FROM marketplaces");
+  return getCachedValue('db:marketplaces', 600_000, () =>
+    query<RawMarketplaceRow>("SELECT marketplace_id AS id, name, COALESCE(slug, '') AS slug FROM marketplaces")
+  );
 }
 
 export async function getCategories() {
-  return await query('SELECT * FROM categories');
+  return getCachedValue('db:categories', 600_000, () => query('SELECT * FROM categories'));
 }
 
 export async function getMarketplaceCategories() {
-  return await query('SELECT category_id, parent_id, name, level, path FROM categories ORDER BY level, name');
+  return getCachedValue('db:marketplace_categories', 600_000, () =>
+    query('SELECT category_id, parent_id, name, level, path FROM categories ORDER BY level, name')
+  );
 }
 
 export async function getShippingCompanies() {
-  return await query('SELECT * FROM shipping_companies');
+  return getCachedValue('db:shipping_companies', 600_000, () => query('SELECT * FROM shipping_companies'));
 }
 
 /**
@@ -169,19 +174,22 @@ export async function getShippingCompanies() {
  * Joins marketplace_shipping_options with shipping_companies.
  */
 export async function getCarriersByMarketplace(marketplaceName: string) {
-  return await query<{ shipping_company_id: number; name: string }>(
-    `SELECT sc.shipping_company_id, sc.name
-     FROM marketplace_shipping_options mso
-     JOIN shipping_companies sc ON sc.shipping_company_id = mso.shipping_company_id
-     JOIN marketplaces m ON m.marketplace_id = mso.marketplace_id
-     WHERE m.name = ?
-     ORDER BY sc.name`,
-    [marketplaceName]
+  const cacheKey = `db:carriers_by_marketplace:${marketplaceName}`;
+  return getCachedValue(cacheKey, 600_000, () =>
+    query<{ shipping_company_id: number; name: string }>(
+      `SELECT sc.shipping_company_id, sc.name
+       FROM marketplace_shipping_options mso
+       JOIN shipping_companies sc ON sc.shipping_company_id = mso.shipping_company_id
+       JOIN marketplaces m ON m.marketplace_id = mso.marketplace_id
+       WHERE m.name = ?
+       ORDER BY sc.name`,
+      [marketplaceName]
+    )
   );
 }
 
 export async function getShippingRates() {
-  return await query('SELECT * FROM shipping_rate_rules');
+  return getCachedValue('db:shipping_rates', 600_000, () => query('SELECT * FROM shipping_rate_rules'));
 }
 
 /**
@@ -206,19 +214,23 @@ export async function getCheapestCarrierForDesi(marketplaceName: string, desi: n
 }
 
 export async function getCommissionRules() {
-  return await query('SELECT * FROM commission_rules');
+  return getCachedValue('db:commission_rules', 600_000, () => query('SELECT * FROM commission_rules'));
 }
 
 export async function getPlatformFeeRules() {
-  return await query('SELECT * FROM platform_fee_rules');
+  return getCachedValue('db:platform_fee_rules', 600_000, () => query('SELECT * FROM platform_fee_rules'));
 }
 
 export async function getPaymentGatewayRules() {
-  return await query('SELECT * FROM payment_gateway_rules');
+  return getCachedValue('db:payment_gateway_rules', 600_000, () => query('SELECT * FROM payment_gateway_rules'));
 }
 
 export async function getSellerProfiles() {
-  return await query('SELECT * FROM seller_profiles WHERE user_id = ?', [requireCurrentAuthUserId()]);
+  const authUserId = requireCurrentAuthUserId();
+  const cacheKey = buildScopedCacheKey('db:seller_profiles', authUserId);
+  return getCachedValue(cacheKey, 60_000, () =>
+    query('SELECT * FROM seller_profiles WHERE user_id = ?', [authUserId])
+  );
 }
 
 export async function getProducts() {
@@ -351,80 +363,96 @@ export async function getDefaultProductId() {
 
 export async function getStoreExpenses(profileId = 1) {
   const authUserId = requireCurrentAuthUserId();
-  return await query<StoreExpenseRow>(`
-    SELECT
-      expense_id,
-      profile_id,
-      name,
-      monthly_amount,
-      note,
-      status
-    FROM store_expenses
-    WHERE profile_id = ? AND user_id = ?
-    ORDER BY expense_id ASC
-  `, [profileId, authUserId]);
+  const cacheKey = buildScopedCacheKey(`db:store_expenses:${profileId}`, authUserId);
+  return getCachedValue(cacheKey, 60_000, () =>
+    query<StoreExpenseRow>(`
+      SELECT
+        expense_id,
+        profile_id,
+        name,
+        monthly_amount,
+        note,
+        status
+      FROM store_expenses
+      WHERE profile_id = ? AND user_id = ?
+      ORDER BY expense_id ASC
+    `, [profileId, authUserId])
+  );
 }
 
 export async function getStoreExpenseMonthlyTotal(profileId = 1) {
   const authUserId = requireCurrentAuthUserId();
-  const row = await getOne<{ total: number | null }>(`
-    SELECT SUM(monthly_amount) AS total
-    FROM store_expenses
-    WHERE profile_id = ? AND user_id = ? AND COALESCE(status, 'active') = 'active'
-  `, [profileId, authUserId]);
-  return Number(row?.total ?? 0);
+  const cacheKey = buildScopedCacheKey(`db:store_expense_monthly_total:${profileId}`, authUserId);
+  return getCachedValue(cacheKey, 60_000, async () => {
+    const row = await getOne<{ total: number | null }>(`
+      SELECT SUM(monthly_amount) AS total
+      FROM store_expenses
+      WHERE profile_id = ? AND user_id = ? AND COALESCE(status, 'active') = 'active'
+    `, [profileId, authUserId]);
+    return Number(row?.total ?? 0);
+  });
 }
 
 export async function getStoreExpenseById(expenseId: number) {
   const authUserId = requireCurrentAuthUserId();
-  return await getOne<StoreExpenseRow>(`
-    SELECT
-      expense_id,
-      profile_id,
-      name,
-      monthly_amount,
-      note,
-      status
-    FROM store_expenses
-    WHERE expense_id = ? AND user_id = ?
-    LIMIT 1
-  `, [expenseId, authUserId]);
+  const cacheKey = buildScopedCacheKey(`db:store_expense_by_id:${expenseId}`, authUserId);
+  return getCachedValue(cacheKey, 60_000, () =>
+    getOne<StoreExpenseRow>(`
+      SELECT
+        expense_id,
+        profile_id,
+        name,
+        monthly_amount,
+        note,
+        status
+      FROM store_expenses
+      WHERE expense_id = ? AND user_id = ?
+      LIMIT 1
+    `, [expenseId, authUserId])
+  );
 }
 
 export async function getSellerProfileById(profileId = 1) {
-  return await getOne<Record<string, unknown>>(
-    'SELECT * FROM seller_profiles WHERE profile_id = ? AND user_id = ? LIMIT 1',
-    [profileId, requireCurrentAuthUserId()],
+  const authUserId = requireCurrentAuthUserId();
+  const cacheKey = buildScopedCacheKey(`db:seller_profile_by_id:${profileId}`, authUserId);
+  return getCachedValue(cacheKey, 60_000, () =>
+    getOne<Record<string, unknown>>(
+      'SELECT * FROM seller_profiles WHERE profile_id = ? AND user_id = ? LIMIT 1',
+      [profileId, authUserId]
+    )
   );
 }
 
 export async function getOwnWebsiteGatewayRule() {
   const authUserId = requireCurrentAuthUserId();
-  return await getOne<{
-    id: number;
-    seller_profile_id: number | null;
-    marketplace_id: number;
-    gateway_name: string;
-    fee_rate_percent: number | null;
-    fixed_fee_per_order: number | null;
-    vat_rate_percent: number | null;
-    fee_values_include_vat: number | null;
-    manual_shipping_cost: number | null;
-    avg_ad_cost: number | null;
-    avg_conversion_rate: number | null;
-    is_active: number | null;
-  }>(`
-    SELECT
-      pgr.*,
-      m.name AS marketplace_name,
-      m.slug AS marketplace_slug
-    FROM payment_gateway_rules pgr
-    JOIN seller_profiles sp ON sp.profile_id = pgr.seller_profile_id
-    LEFT JOIN marketplaces m ON m.marketplace_id = pgr.marketplace_id
-    WHERE m.slug = 'own_website' AND sp.user_id = ?
-    ORDER BY pgr.id ASC
-    LIMIT 1
-  `, [authUserId]);
+  const cacheKey = buildScopedCacheKey('db:own_website_gateway_rule', authUserId);
+  return getCachedValue(cacheKey, 600_000, () =>
+    getOne<{
+      id: number;
+      seller_profile_id: number | null;
+      marketplace_id: number;
+      gateway_name: string;
+      fee_rate_percent: number | null;
+      fixed_fee_per_order: number | null;
+      vat_rate_percent: number | null;
+      fee_values_include_vat: number | null;
+      manual_shipping_cost: number | null;
+      avg_ad_cost: number | null;
+      avg_conversion_rate: number | null;
+      is_active: number | null;
+    }>(`
+      SELECT
+        pgr.*,
+        m.name AS marketplace_name,
+        m.slug AS marketplace_slug
+      FROM payment_gateway_rules pgr
+      JOIN seller_profiles sp ON sp.profile_id = pgr.seller_profile_id
+      LEFT JOIN marketplaces m ON m.marketplace_id = pgr.marketplace_id
+      WHERE m.slug = 'own_website' AND sp.user_id = ?
+      ORDER BY pgr.id ASC
+      LIMIT 1
+    `, [authUserId])
+  );
 }
 
 export async function getProductMarketplaceSettings(productId: number) {
@@ -521,55 +549,64 @@ export async function getProductMarketplaceSetting(productId: number, marketplac
 }
 
 export async function getPlatformFeeRulesByMarketplaceId(marketplaceId: number) {
-  return await query(`
-    SELECT *
-    FROM platform_fee_rules
-    WHERE marketplace_id = ? AND COALESCE(is_active, 1) = 1
-    ORDER BY id ASC
-  `, [marketplaceId]);
+  const cacheKey = `db:platform_fee_rules_by_marketplace:${marketplaceId}`;
+  return getCachedValue(cacheKey, 600_000, () =>
+    query(`
+      SELECT *
+      FROM platform_fee_rules
+      WHERE marketplace_id = ? AND COALESCE(is_active, 1) = 1
+      ORDER BY id ASC
+    `, [marketplaceId])
+  );
 }
 
 export async function getPaymentGatewayRuleById(ruleId: number) {
   const authUserId = requireCurrentAuthUserId();
-  return await getOne<{
-    id: number;
-    seller_profile_id: number | null;
-    marketplace_id: number;
-    gateway_name: string;
-    fee_rate_percent: number | null;
-    fixed_fee_per_order: number | null;
-    vat_rate_percent: number | null;
-    fee_values_include_vat: number | null;
-    manual_shipping_cost: number | null;
-    avg_ad_cost: number | null;
-    avg_conversion_rate: number | null;
-    is_active: number | null;
-  }>(`
-    SELECT pgr.*
-    FROM payment_gateway_rules pgr
-    JOIN seller_profiles sp ON sp.profile_id = pgr.seller_profile_id
-    WHERE pgr.id = ? AND sp.user_id = ?
-    LIMIT 1
-  `, [ruleId, authUserId]);
+  const cacheKey = buildScopedCacheKey(`db:payment_gateway_rule:${ruleId}`, authUserId);
+  return getCachedValue(cacheKey, 600_000, () =>
+    getOne<{
+      id: number;
+      seller_profile_id: number | null;
+      marketplace_id: number;
+      gateway_name: string;
+      fee_rate_percent: number | null;
+      fixed_fee_per_order: number | null;
+      vat_rate_percent: number | null;
+      fee_values_include_vat: number | null;
+      manual_shipping_cost: number | null;
+      avg_ad_cost: number | null;
+      avg_conversion_rate: number | null;
+      is_active: number | null;
+    }>(`
+      SELECT pgr.*
+      FROM payment_gateway_rules pgr
+      JOIN seller_profiles sp ON sp.profile_id = pgr.seller_profile_id
+      WHERE pgr.id = ? AND sp.user_id = ?
+      LIMIT 1
+    `, [ruleId, authUserId])
+  );
 }
 
 // Tariff Readers
 
 export async function getCommissionTariffsByMarketplace(marketplaceName: string) {
-  const m = await getOne<{ marketplace_id: number }>('SELECT marketplace_id FROM marketplaces WHERE name = ?', [marketplaceName]);
-  if (!m) return [];
+  const cacheKey = `db:commission_tariffs_by_marketplace:${marketplaceName}`;
+  return getCachedValue(cacheKey, 600_000, async () => {
+    const m = await getOne<{ marketplace_id: number }>('SELECT marketplace_id FROM marketplaces WHERE name = ?', [marketplaceName]);
+    if (!m) return [];
 
-  return await query(`
-    SELECT 
-      cr.*, 
-      c.name as category_name, 
-      c.path as category_path,
-      c.level as category_level
-    FROM commission_rules cr
-    LEFT JOIN categories c ON c.category_id = cr.category_id
-    WHERE cr.marketplace_id = ?
-    ORDER BY c.path ASC
-  `, [m.marketplace_id]);
+    return await query(`
+      SELECT 
+        cr.*, 
+        c.name as category_name, 
+        c.path as category_path,
+        c.level as category_level
+      FROM commission_rules cr
+      LEFT JOIN categories c ON c.category_id = cr.category_id
+      WHERE cr.marketplace_id = ?
+      ORDER BY c.path ASC
+    `, [m.marketplace_id]);
+  });
 }
 
 export async function getCommissionTariffSummaryByMarketplace(marketplaceName: string) {
@@ -606,44 +643,21 @@ export async function getCommissionTariffSummaryByMarketplace(marketplaceName: s
 }
 
 export async function getCommissionForCategory(marketplaceName: string, categoryId: number) {
-  const m = await getOne<{ marketplace_id: number }>('SELECT marketplace_id FROM marketplaces WHERE name = ?', [marketplaceName]);
-  if (!m) return null;
+  const cacheKey = `db:commission_for_category:${marketplaceName}:${categoryId}`;
+  return getCachedValue(cacheKey, 600_000, async () => {
+    const m = await getOne<{ marketplace_id: number }>('SELECT marketplace_id FROM marketplaces WHERE name = ?', [marketplaceName]);
+    if (!m) return null;
 
-  const targetCategory = await getOne<{ name: string, path: string }>('SELECT name, path FROM categories WHERE category_id = ?', [categoryId]);
-  const selectedCategoryPath = targetCategory?.path || targetCategory?.name || "Bilinmeyen Kategori";
+    const targetCategory = await getOne<{ name: string, path: string }>('SELECT name, path FROM categories WHERE category_id = ?', [categoryId]);
+    const selectedCategoryPath = targetCategory?.path || targetCategory?.name || "Bilinmeyen Kategori";
 
-  // 1. Direct match
-  let rule = await getOne<any>(`
-    SELECT cr.*, c.path as category_path, c.name as category_name
-    FROM commission_rules cr
-    JOIN categories c ON c.category_id = cr.category_id
-    WHERE cr.marketplace_id = ? AND cr.category_id = ?
-  `, [m.marketplace_id, categoryId]);
-
-  if (rule) {
-    return {
-      marketplace: marketplaceName,
-      selectedCategory: selectedCategoryPath,
-      matchedCategory: rule.category_path || rule.category_name,
-      commissionRate: rule.commission_rate_percent,
-      matchType: 'direct',
-      warning: null
-    };
-  }
-
-  // 2. Parent fallback
-  let currentCategoryId = categoryId;
-  while (true) {
-    const cat = await getOne<{ parent_id: number }>('SELECT parent_id FROM categories WHERE category_id = ?', [currentCategoryId]);
-    if (!cat || !cat.parent_id) break;
-
-    currentCategoryId = cat.parent_id;
-    rule = await getOne<any>(`
+    // 1. Direct match
+    let rule = await getOne<any>(`
       SELECT cr.*, c.path as category_path, c.name as category_name
       FROM commission_rules cr
       JOIN categories c ON c.category_id = cr.category_id
       WHERE cr.marketplace_id = ? AND cr.category_id = ?
-    `, [m.marketplace_id, currentCategoryId]);
+    `, [m.marketplace_id, categoryId]);
 
     if (rule) {
       return {
@@ -651,32 +665,58 @@ export async function getCommissionForCategory(marketplaceName: string, category
         selectedCategory: selectedCategoryPath,
         matchedCategory: rule.category_path || rule.category_name,
         commissionRate: rule.commission_rate_percent,
-        matchType: 'parent_fallback',
-        warning: 'Bu kategori için birebir komisyon kuralı bulunamadı. En yakın üst kategori kuralı kullanılıyor.'
+        matchType: 'direct',
+        warning: null
       };
     }
-  }
 
-  // 3. Global fallback
-  rule = await getOne<any>(`
-    SELECT cr.*
-    FROM commission_rules cr
-    WHERE cr.marketplace_id = ?
-    LIMIT 1
-  `, [m.marketplace_id]);
+    // 2. Parent fallback
+    let currentCategoryId = categoryId;
+    while (true) {
+      const cat = await getOne<{ parent_id: number }>('SELECT parent_id FROM categories WHERE category_id = ?', [currentCategoryId]);
+      if (!cat || !cat.parent_id) break;
 
-  if (rule) {
-    return {
-      marketplace: marketplaceName,
-      selectedCategory: selectedCategoryPath,
-      matchedCategory: 'Genel Pazar Yeri Kuralı',
-      commissionRate: rule.commission_rate_percent,
-      matchType: 'global_fallback',
-      warning: 'Bu kategori veya üst kategorileri için komisyon kuralı bulunamadı. Genel pazar yeri kuralı kullanılıyor.'
-    };
-  }
+      currentCategoryId = cat.parent_id;
+      rule = await getOne<any>(`
+        SELECT cr.*, c.path as category_path, c.name as category_name
+        FROM commission_rules cr
+        JOIN categories c ON c.category_id = cr.category_id
+        WHERE cr.marketplace_id = ? AND cr.category_id = ?
+      `, [m.marketplace_id, currentCategoryId]);
 
-  return null;
+      if (rule) {
+        return {
+          marketplace: marketplaceName,
+          selectedCategory: selectedCategoryPath,
+          matchedCategory: rule.category_path || rule.category_name,
+          commissionRate: rule.commission_rate_percent,
+          matchType: 'parent_fallback',
+          warning: 'Bu kategori için birebir komisyon kuralı bulunamadı. En yakın üst kategori kuralı kullanılıyor.'
+        };
+      }
+    }
+
+    // 3. Global fallback
+    rule = await getOne<any>(`
+      SELECT cr.*
+      FROM commission_rules cr
+      WHERE cr.marketplace_id = ?
+      LIMIT 1
+    `, [m.marketplace_id]);
+
+    if (rule) {
+      return {
+        marketplace: marketplaceName,
+        selectedCategory: selectedCategoryPath,
+        matchedCategory: 'Genel Pazar Yeri Kuralı',
+        commissionRate: rule.commission_rate_percent,
+        matchType: 'global_fallback',
+        warning: 'Bu kategori veya üst kategorileri için komisyon kuralı bulunamadı. Genel pazar yeri kuralı kullanılıyor.'
+      };
+    }
+
+    return null;
+  });
 }
 
 export async function getShippingTariffMatrix(marketplaceName: string) {
@@ -714,4 +754,5 @@ export async function getShippingTariffMatrix(marketplaceName: string) {
     carriers: companies.map(c => c.name),
     rows: Array.from(desiMap.values()).sort((a, b) => a.desi - b.desi)
   };
+});
 }
