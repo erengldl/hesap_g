@@ -720,39 +720,41 @@ export async function getCommissionForCategory(marketplaceName: string, category
 }
 
 export async function getShippingTariffMatrix(marketplaceName: string) {
-  const m = await getOne<{ marketplace_id: number }>('SELECT marketplace_id FROM marketplaces WHERE name = ?', [marketplaceName]);
-  if (!m) return null;
+  const cacheKey = `db:shipping_tariff_matrix:${marketplaceName}`;
+  return getCachedValue(cacheKey, 600_000, async () => {
+    const m = await getOne<{ marketplace_id: number }>('SELECT marketplace_id FROM marketplaces WHERE name = ?', [marketplaceName]);
+    if (!m) return null;
 
-  const companies = await query<{ shipping_company_id: number, name: string }>(`
-    SELECT DISTINCT sc.shipping_company_id, sc.name
-    FROM shipping_companies sc
-    JOIN shipping_rate_rules srr ON srr.shipping_company_id = sc.shipping_company_id
-    WHERE srr.marketplace_id = ?
-  `, [m.marketplace_id]);
+    const companies = await query<{ shipping_company_id: number, name: string }>(`
+      SELECT DISTINCT sc.shipping_company_id, sc.name
+      FROM shipping_companies sc
+      JOIN shipping_rate_rules srr ON srr.shipping_company_id = sc.shipping_company_id
+      WHERE srr.marketplace_id = ?
+    `, [m.marketplace_id]);
 
-  const rules = await query<any>(`
-    SELECT * FROM shipping_rate_rules 
-    WHERE marketplace_id = ?
-    ORDER BY desi_min ASC
-  `, [m.marketplace_id]);
+    const rules = await query<any>(`
+      SELECT * FROM shipping_rate_rules 
+      WHERE marketplace_id = ?
+      ORDER BY desi_min ASC
+    `, [m.marketplace_id]);
 
-  // Group by desi
-  const desiMap = new Map<number, any>();
-  rules.forEach((r: any) => {
-    const desi = r.desi_min; // Assuming desi_min is the key for "Desi X"
-    if (!desiMap.has(desi)) {
-      desiMap.set(desi, { desi, prices: {} });
-    }
-    const company = companies.find(c => c.shipping_company_id === r.shipping_company_id);
-    if (company) {
-      desiMap.get(desi).prices[company.name] = r.price;
-    }
+    // Group by desi
+    const desiMap = new Map<number, any>();
+    rules.forEach((r: any) => {
+      const desi = r.desi_min; // Assuming desi_min is the key for "Desi X"
+      if (!desiMap.has(desi)) {
+        desiMap.set(desi, { desi, prices: {} });
+      }
+      const company = companies.find(c => c.shipping_company_id === r.shipping_company_id);
+      if (company) {
+        desiMap.get(desi).prices[company.name] = r.price;
+      }
+    });
+
+    return {
+      marketplace: marketplaceName,
+      carriers: companies.map(c => c.name),
+      rows: Array.from(desiMap.values()).sort((a, b) => a.desi - b.desi)
+    };
   });
-
-  return {
-    marketplace: marketplaceName,
-    carriers: companies.map(c => c.name),
-    rows: Array.from(desiMap.values()).sort((a, b) => a.desi - b.desi)
-  };
-});
 }
