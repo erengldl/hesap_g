@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { query } from "@/lib/db";
-import { requireAuth } from "@/lib/api-auth";
+import { getDb, query } from "@/lib/db";
+import { primeRequestContextFromApiContext, requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +29,7 @@ type TopProductRow = {
 
 type SalesHistoryRow = {
   order_id: number;
+  order_item_id: number;
   order_date: string;
   status: string | null;
   external_order_number: string | null;
@@ -70,13 +71,35 @@ function addDays(dateKey: string, days: number) {
   return date.toISOString().slice(0, 10);
 }
 
+async function resolveMarketplaceId(slugOrName: string): Promise<number> {
+  const normalized = String(slugOrName || "").trim().toLowerCase();
+  if (normalized.includes("trendyol")) return 1;
+  if (normalized.includes("hepsiburada") || normalized.includes("hepsi")) return 2;
+  return 3; // Kendi Websitem
+}
+
+async function resolveProductIdBySkuOrName(sku?: string, name?: string): Promise<number | null> {
+  const db = getDb();
+  if (sku) {
+    const row = await db.prepare("SELECT product_id FROM products WHERE sku = ? LIMIT 1").get(sku) as { product_id: number } | undefined;
+    if (row) return row.product_id;
+  }
+  if (name) {
+    const row = await db.prepare("SELECT product_id FROM products WHERE name = ? LIMIT 1").get(name) as { product_id: number } | undefined;
+    if (row) return row.product_id;
+  }
+  const row = await db.prepare("SELECT product_id FROM products LIMIT 1").get() as { product_id: number } | undefined;
+  return row?.product_id ?? null;
+}
+
 export async function GET(request: Request) {
-  const session = await requireAuth();
+  const session = await requireAuth(request);
   if (session instanceof NextResponse) return session;
   const authUserId = session.authUserId?.trim() || "";
   if (!authUserId) {
     return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
   }
+  primeRequestContextFromApiContext(session);
   try {
     const url = new URL(request.url);
     const viewParam = url.searchParams.get("view") ?? "sales";
@@ -221,10 +244,12 @@ export async function GET(request: Request) {
     const salesHistoryQuery = `
         SELECT
           o.order_id,
+          oi.order_item_id,
           o.order_date,
           COALESCE(o.status, 'completed') AS status,
           o.external_order_number,
           o.external_package_number,
+          o.marketplace_id,
           COALESCE(m.name, m.slug, 'Kanal') AS marketplace_name,
           COALESCE(m.slug, 'market') AS marketplace_slug,
           COALESCE(oi.product_id, o.product_id) AS product_id,
@@ -291,5 +316,160 @@ export async function GET(request: Request) {
       },
       { status: 500 }
     );
+  }
+}
+
+export async function POST(request: Request) {
+  const session = await requireAuth(request);
+  if (session instanceof NextResponse) return session;
+  const authUserId = session.authUserId?.trim() || "";
+  if (!authUserId) {
+    return NextResponse.json({ success: false, error: "Oturum kullanıcı kimliği alınamadı." }, { status: 500 });
+  }
+  primeRequestContextFromApiContext(session);
+
+  try {
+    const body = await request.json();
+    const db = getDb();
+    if (!db) {
+      return NextResponse.json({ success: false, error: "Veritabanı bağlantısı yok" }, { status: 500 });
+    }
+
+    if (body.bulk === true && Array.isArray(body.items)) {
+      // Bulk upload
+      let successCount = 0;
+      await db.transaction(async () => {
+        for (const item of body.items) {
+          const mId = await resolveMarketplaceId(item.marketplace_name);
+          const pId = await resolveProductIdBySkuOrName(item.product_sku, item.product_name);
+          if (!pId) continue;
+
+          const resOrder = await db.prepare(`
+            INSERT INTO orders (
+              product_id,
+              marketplace_id,
+              order_date,
+              quantity,
+              unit_price,
+              status,
+              external_order_number,
+              external_package_number,
+              merchant_sku
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).run(
+            pId,
+            mId,
+            item.order_date,
+            item.quantity,
+            item.unit_price,
+            item.status || 'completed',
+            item.external_order_number || null,
+            item.external_package_number || null,
+            item.product_sku || null
+          );
+
+          const orderId = resOrder.lastInsertRowid;
+
+          await db.prepare(`
+            INSERT INTO order_items (
+              order_id,
+              product_id,
+              quantity,
+              unit_price,
+              line_total,
+              merchant_sku,
+              marketplace_order_number,
+              package_number
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `).run(
+            orderId,
+            pId,
+            item.quantity,
+            item.unit_price,
+            item.quantity * item.unit_price,
+            item.product_sku || null,
+            item.external_order_number || null,
+            item.external_package_number || null
+          );
+
+          successCount++;
+        }
+      });
+
+      return NextResponse.json({ success: true, count: successCount });
+    } else {
+      // Single manual order item
+      const {
+        order_date,
+        product_id,
+        marketplace_id,
+        quantity,
+        unit_price,
+        status,
+        external_order_number,
+        external_package_number,
+        merchant_sku,
+      } = body;
+
+      if (!order_date || !product_id || !marketplace_id || !quantity || unit_price == null) {
+        return NextResponse.json({ success: false, error: "Eksik parametreler" }, { status: 400 });
+      }
+
+      let orderId = 0;
+      await db.transaction(async () => {
+        const resOrder = await db.prepare(`
+          INSERT INTO orders (
+            product_id,
+            marketplace_id,
+            order_date,
+            quantity,
+            unit_price,
+            status,
+            external_order_number,
+            external_package_number,
+            merchant_sku
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          product_id,
+          marketplace_id,
+          order_date,
+          quantity,
+          unit_price,
+          status || 'completed',
+          external_order_number || null,
+          external_package_number || null,
+          merchant_sku || null
+        );
+
+        orderId = resOrder.lastInsertRowid;
+
+        await db.prepare(`
+          INSERT INTO order_items (
+            order_id,
+            product_id,
+            quantity,
+            unit_price,
+            line_total,
+            merchant_sku,
+            marketplace_order_number,
+            package_number
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          orderId,
+          product_id,
+          quantity,
+          unit_price,
+          quantity * unit_price,
+          merchant_sku || null,
+          external_order_number || null,
+          external_package_number || null
+        );
+      });
+
+      return NextResponse.json({ success: true, order_id: orderId });
+    }
+  } catch (error) {
+    console.error("Order POST error:", error);
+    return NextResponse.json({ success: false, error: "Kayıt eklenemedi." }, { status: 500 });
   }
 }

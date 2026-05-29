@@ -471,3 +471,233 @@ export async function parseProductsFromExcel(file: File): Promise<ProductUpsertI
   const result = await parseProductsFromExcelDetailed(file);
   return result.products.map(stripParseMetadata);
 }
+
+export const SALES_EXCEL_HEADERS = [
+  "Tarih",
+  "Ürün",
+  "SKU",
+  "Kanal",
+  "Sipariş",
+  "Paket",
+  "Adet",
+  "Birim Fiyat",
+  "Durum"
+] as const;
+
+type SalesExcelHeader = (typeof SALES_EXCEL_HEADERS)[number];
+
+export type ParsedSalesExcelRow = {
+  rowNumber: number;
+  order_date: string;
+  product_name: string;
+  product_sku: string;
+  marketplace_name: string;
+  external_order_number: string;
+  external_package_number: string;
+  quantity: number;
+  unit_price: number;
+  status: string;
+};
+
+export type SalesExcelParseResult = {
+  headers: string[];
+  sales: ParsedSalesExcelRow[];
+  preview: ParsedSalesExcelRow[];
+  errors: ExcelRowError[];
+  totalRows: number;
+  validRows: number;
+  skippedRows: number;
+};
+
+const SALES_HEADER_TO_FIELD: Record<SalesExcelHeader, keyof Omit<ParsedSalesExcelRow, "rowNumber">> = {
+  "Tarih": "order_date",
+  "Ürün": "product_name",
+  "SKU": "product_sku",
+  "Kanal": "marketplace_name",
+  "Sipariş": "external_order_number",
+  "Paket": "external_package_number",
+  "Adet": "quantity",
+  "Birim Fiyat": "unit_price",
+  "Durum": "status",
+};
+
+export function validateSalesExcelHeaders(headers: string[]) {
+  const normalizedHeaders = headers.map((header) => simplifyText(header));
+  const missingHeaders = SALES_EXCEL_HEADERS.filter((header) => !normalizedHeaders.includes(simplifyText(header)));
+  const errors: string[] = [];
+
+  if (headers.length === 0) {
+    errors.push("Başlık satırı bulunamadı.");
+  }
+
+  if (missingHeaders.length > 0) {
+    errors.push(`Eksik kolonlar: ${missingHeaders.join(", ")}`);
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+function getSalesHeaderIndexMap(headers: string[]) {
+  const indexMap = new Map<keyof Omit<ParsedSalesExcelRow, "rowNumber">, number>();
+  const entries = Object.entries(SALES_HEADER_TO_FIELD) as Array<[SalesExcelHeader, keyof Omit<ParsedSalesExcelRow, "rowNumber">]>;
+
+  for (const [header, field] of entries) {
+    const headerIndex = headers.findIndex((currentHeader) => simplifyText(currentHeader) === simplifyText(header));
+    if (headerIndex >= 0) {
+      indexMap.set(field, headerIndex);
+    }
+  }
+
+  return indexMap;
+}
+
+export async function parseSalesFromExcelDetailed(file: File): Promise<SalesExcelParseResult> {
+  const buffer = await readExcelFileBuffer(file);
+  const workbook = XLSX.read(buffer, { type: "array", dense: true });
+  const firstSheetName = workbook.SheetNames[0];
+  const firstSheet = firstSheetName ? workbook.Sheets[firstSheetName] : null;
+
+  if (!firstSheet) {
+    return {
+      headers: [],
+      sales: [],
+      preview: [],
+      errors: [{ rowNumber: 1, message: "Excel dosyasında okunabilir bir sayfa bulunamadı." }],
+      totalRows: 0,
+      validRows: 0,
+      skippedRows: 0,
+    };
+  }
+
+  const matrix = XLSX.utils.sheet_to_json<Array<string | number | boolean | null>>(firstSheet, {
+    header: 1,
+    raw: false,
+    defval: "",
+    blankrows: false,
+  });
+
+  const headers = (matrix[0] ?? []).map((value) => sanitizeCellValue(value));
+  const headerValidation = validateSalesExcelHeaders(headers);
+
+  if (!headerValidation.valid) {
+    return {
+      headers,
+      sales: [],
+      preview: [],
+      errors: headerValidation.errors.map((message) => ({ rowNumber: 1, message, field: "Başlık" })),
+      totalRows: Math.max(0, matrix.length - 1),
+      validRows: 0,
+      skippedRows: 0,
+    };
+  }
+
+  const headerIndexMap = getSalesHeaderIndexMap(headers);
+  const sales: ParsedSalesExcelRow[] = [];
+  const errors: ExcelRowError[] = [];
+  let totalRows = 0;
+  let skippedRows = 0;
+
+  for (let rowIndex = 1; rowIndex < matrix.length; rowIndex += 1) {
+    const row = matrix[rowIndex] ?? [];
+    const rowNumber = rowIndex + 1;
+
+    if (row.every((cell) => sanitizeCellValue(cell).length === 0)) {
+      skippedRows += 1;
+      continue;
+    }
+
+    totalRows += 1;
+
+    const getValue = (field: keyof Omit<ParsedSalesExcelRow, "rowNumber">) => {
+      const columnIndex = headerIndexMap.get(field);
+      return typeof columnIndex === "number" ? row[columnIndex] : "";
+    };
+
+    let orderDate = sanitizeCellValue(getValue("order_date"));
+    const productName = sanitizeCellValue(getValue("product_name"));
+    const productSku = sanitizeCellValue(getValue("product_sku"));
+    const marketplaceName = sanitizeCellValue(getValue("marketplace_name"));
+    const externalOrderNumber = sanitizeCellValue(getValue("external_order_number"));
+    const externalPackageNumber = sanitizeCellValue(getValue("external_package_number"));
+    const quantity = parseLocalizedNumber(getValue("quantity"));
+    const unitPrice = parseLocalizedNumber(getValue("unit_price"));
+    const status = sanitizeCellValue(getValue("status")) || "completed";
+
+    const rowErrors: ExcelRowError[] = [];
+
+    if (!orderDate) {
+      rowErrors.push({ rowNumber, field: "Tarih", message: "Tarih boş bırakılamaz." });
+    } else {
+      // Handle Excel serial date if it's a number
+      if (/^\d+(\.\d+)?$/.test(orderDate)) {
+        try {
+          const serial = Number(orderDate);
+          const date = new Date((serial - 25569) * 86400 * 1000);
+          orderDate = date.toISOString().slice(0, 10);
+        } catch {
+          rowErrors.push({ rowNumber, field: "Tarih", message: "Tarih okunamadı." });
+        }
+      } else {
+        const dateParts = orderDate.split(/[-/.]/);
+        if (dateParts.length === 3) {
+          // Normalize to YYYY-MM-DD
+          let y = dateParts[0];
+          const m = dateParts[1];
+          let d = dateParts[2];
+          if (y.length === 2) y = `20${y}`;
+          if (d.length === 4) {
+            // format was DD/MM/YYYY or DD.MM.YYYY
+            y = dateParts[2];
+            d = dateParts[0];
+          }
+          orderDate = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+        } else {
+          rowErrors.push({ rowNumber, field: "Tarih", message: "Tarih formatı YYYY-MM-DD olmalıdır." });
+        }
+      }
+    }
+
+    if (!productName && !productSku) {
+      rowErrors.push({ rowNumber, field: "Ürün / SKU", message: "Ürün adı veya SKU kodundan en az biri bulunmalıdır." });
+    }
+
+    if (quantity == null || quantity <= 0) {
+      rowErrors.push({ rowNumber, field: "Adet", message: "Adet 0'dan büyük bir sayı olmalıdır." });
+    }
+
+    if (unitPrice == null || unitPrice < 0) {
+      rowErrors.push({ rowNumber, field: "Birim Fiyat", message: "Birim fiyat 0 veya daha büyük bir sayı olmalıdır." });
+    }
+
+    if (rowErrors.length > 0) {
+      errors.push(...rowErrors);
+      continue;
+    }
+
+    sales.push({
+      rowNumber,
+      order_date: orderDate,
+      product_name: productName,
+      product_sku: productSku,
+      marketplace_name: marketplaceName,
+      external_order_number: externalOrderNumber,
+      external_package_number: externalPackageNumber,
+      quantity: quantity ?? 1,
+      unit_price: unitPrice ?? 0,
+      status: status.toLowerCase() === "iade" || status.toLowerCase() === "returned" ? "returned" : "completed",
+    });
+  }
+
+  return {
+    headers,
+    sales,
+    preview: sales.slice(0, 5),
+    errors,
+    totalRows,
+    validRows: sales.length,
+    skippedRows,
+  };
+}

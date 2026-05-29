@@ -1,15 +1,38 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CircleAlert, DollarSign, Download, FileSpreadsheet, Loader2, Package, RefreshCcw, Search, ShoppingCart, TrendingUp } from "lucide-react";
+import {
+  CircleAlert,
+  DollarSign,
+  Download,
+  FileSpreadsheet,
+  Loader2,
+  Package,
+  Pencil,
+  Plus,
+  RefreshCcw,
+  Search,
+  ShoppingCart,
+  Trash2,
+  TrendingUp,
+  Upload,
+  X,
+} from "lucide-react";
+import { ResponsiveContainer, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, Area } from "recharts";
 import { EmptyState, ErrorStateCard, GlassCard, KpiCard, SkeletonCard, SkeletonTable } from "@/components/ui-custom/GlassComponents";
 import { exportSalesToExcel, type SalesRow } from "@/lib/excel";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/formatters";
+import { useToast } from "@/lib/toast";
+import SalesDataForm from "@/components/data-center/SalesDataForm";
+import { SalesExcelImportModal } from "@/components/data-center/SalesExcelImportModal";
 
-type SalesHistoryRow = SalesRow;
+type SalesHistoryRow = SalesRow & {
+  order_item_id: number;
+  marketplace_id?: number;
+};
 
 type SalesHistorySummary = {
   total_orders: number;
@@ -105,6 +128,8 @@ export default function SalesHistorySection() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const toast = useToast();
+
   const commandSearch = (searchParams.get("search") ?? "").trim();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -119,6 +144,23 @@ export default function SalesHistorySection() {
   const [appliedRange, setAppliedRange] = useState<{ from: string; to: string; days: number } | null>(null);
   const [exportingExcel, setExportingExcel] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+
+  // Redesign state additions
+  const [isClient, setIsClient] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [selectedSale, setSelectedSale] = useState<SalesHistoryRow | null>(null);
+  const [isSubmittingForm, setIsSubmittingForm] = useState(false);
+  const [isDeletingId, setIsDeletingId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState(commandSearch);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    setSearchQuery(commandSearch);
+  }, [commandSearch]);
 
   const buildQuery = useCallback((
     view: HistoryViewMode,
@@ -191,10 +233,23 @@ export default function SalesHistorySection() {
   }, [buildQuery]);
 
   useEffect(() => {
-    void loadSalesHistory("sales", "90", 1, undefined, undefined, commandSearch);
-  }, [commandSearch, loadSalesHistory]);
+    void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo, commandSearch);
+  }, [commandSearch, viewMode, rangeMode, page, customFrom, customTo, loadSalesHistory]);
 
   const isReturnsView = viewMode === "returns";
+
+  const aggregatedData = useMemo(() => {
+    const groups: Record<string, { date: string; revenue: number; quantity: number }> = {};
+    rows.forEach((row) => {
+      const dateKey = row.order_date;
+      if (!groups[dateKey]) {
+        groups[dateKey] = { date: dateKey, revenue: 0, quantity: 0 };
+      }
+      groups[dateKey].revenue += row.line_total ?? 0;
+      groups[dateKey].quantity += row.quantity ?? 0;
+    });
+    return Object.values(groups).sort((a, b) => a.date.localeCompare(b.date));
+  }, [rows]);
 
   async function downloadExcel() {
     if (rows.length === 0 || exportingExcel) return;
@@ -215,8 +270,8 @@ export default function SalesHistorySection() {
       }
 
       exportSalesToExcel(json.sales_history as SalesHistoryRow[]);
-    } catch (error) {
-      setExportError(error instanceof Error ? error.message : "Satış verileri Excel olarak dışa aktarılamadı.");
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "Satış verileri Excel olarak dışa aktarılamadı.");
     } finally {
       setExportingExcel(false);
     }
@@ -235,6 +290,7 @@ export default function SalesHistorySection() {
   })();
 
   function clearCommandSearch() {
+    setSearchQuery("");
     const params = new URLSearchParams(searchParams.toString());
     params.delete("search");
     router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname, { scroll: false });
@@ -327,6 +383,98 @@ export default function SalesHistorySection() {
     if (!customTo) setCustomTo(today);
     setRangeMode("custom");
   }
+
+  const handleSearchSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const params = new URLSearchParams(searchParams.toString());
+    if (searchQuery.trim()) {
+      params.set("search", searchQuery.trim());
+    } else {
+      params.delete("search");
+    }
+    params.set("page", "1");
+    router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname, { scroll: false });
+  };
+
+  const handleDeleteSale = async (orderItemId: number) => {
+    if (!window.confirm("Bu satış kaydını silmek istediğinizden emin misiniz?")) {
+      return;
+    }
+
+    setIsDeletingId(orderItemId);
+    try {
+      const response = await fetch(`/api/data-center/sales-history/${orderItemId}`, {
+        method: "DELETE",
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error ?? "Silme işlemi başarısız.");
+      }
+      toast.success("Kayıt silindi", "Satış kaydı başarıyla veritabanından kaldırıldı.");
+      void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo, commandSearch);
+    } catch (err: any) {
+      toast.error("Hata", err?.message || "Silme işlemi sırasında hata oluştu.");
+    } finally {
+      setIsDeletingId(null);
+    }
+  };
+
+  const handleFormSubmit = async (payload: any) => {
+    setIsSubmittingForm(true);
+    try {
+      const url = selectedSale
+        ? `/api/data-center/sales-history/${selectedSale.order_item_id}`
+        : "/api/data-center/sales-history";
+      const method = selectedSale ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error ?? "İşlem başarısız.");
+      }
+
+      toast.success(
+        selectedSale ? "Kayıt güncellendi" : "Kayıt eklendi",
+        selectedSale
+          ? "Satış kaydı başarıyla güncellendi."
+          : "Yeni satış kaydı başarıyla eklendi."
+      );
+
+      setIsFormOpen(false);
+      setSelectedSale(null);
+      void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo, commandSearch);
+    } catch (err: any) {
+      toast.error("Hata", err?.message || "İşlem sırasında hata oluştu.");
+      throw err;
+    } finally {
+      setIsSubmittingForm(false);
+    }
+  };
+
+  const openNewSaleForm = () => {
+    setSelectedSale(null);
+    setIsFormOpen(true);
+  };
+
+  const openEditSaleForm = (sale: SalesHistoryRow) => {
+    setSelectedSale(sale);
+    setIsFormOpen(true);
+  };
+
+  const handleNotify = useCallback((msg: { text: string; type: "success" | "warning" | "error" }) => {
+    if (msg.type === "success") {
+      toast.success(msg.text);
+    } else if (msg.type === "error") {
+      toast.error(msg.text);
+    } else {
+      toast.warning(msg.text);
+    }
+  }, [toast]);
 
   if (loading) {
     return (
@@ -484,11 +632,53 @@ export default function SalesHistorySection() {
           >
             Özel aralık
           </button>
+        </div>
+      </div>
+
+      {/* Elegant search and actions control bar */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between bg-surface-container/35 p-3 rounded-2xl border border-border">
+        <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-md w-full">
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <input
+            type="text"
+            placeholder="Ürün adı, SKU veya sipariş no ara..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-xl border border-border bg-surface-container pl-10 pr-8 py-2 text-sm text-foreground outline-none transition-colors duration-200 placeholder:text-muted focus:border-primary/30"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={clearCommandSearch}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </form>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={openNewSaleForm}
+            className="inline-flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-colors duration-200 hover:bg-primary/15"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Yeni Satış
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsImportOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl border border-info/20 bg-info/10 px-3 py-2 text-xs font-semibold text-info transition-colors duration-200 hover:bg-info/15"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Excel İçe Aktar
+          </button>
           <button
             type="button"
             onClick={() => void downloadExcel()}
             disabled={rows.length === 0 || exportingExcel}
-            className="inline-flex items-center gap-2 rounded-full border border-success/20 bg-success/10 px-3 py-2 text-xs font-semibold text-success transition-colors duration-200 hover:bg-success/15 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-success/20 bg-success/10 px-3 py-2 text-xs font-semibold text-success transition-colors duration-200 hover:bg-success/15 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {exportingExcel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5" />}
             Excel dışa aktar
@@ -497,7 +687,7 @@ export default function SalesHistorySection() {
             type="button"
             onClick={downloadCsv}
             disabled={rows.length === 0 || exportingExcel}
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-container px-3 py-2 text-xs font-semibold text-muted transition-colors duration-200 hover:bg-surface-container hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface-container px-3 py-2 text-xs font-semibold text-muted transition-colors duration-200 hover:bg-surface-container hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Download className="h-3.5 w-3.5" />
             CSV indir
@@ -505,7 +695,7 @@ export default function SalesHistorySection() {
           <button
             type="button"
             onClick={() => void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo, commandSearch)}
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-container px-3 py-2 text-xs font-semibold text-muted transition-colors duration-200 hover:bg-surface-container hover:text-foreground"
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface-container px-3 py-2 text-xs font-semibold text-muted transition-colors duration-200 hover:bg-surface-container hover:text-foreground"
           >
             <RefreshCcw className="h-3.5 w-3.5" />
             Yenile
@@ -523,7 +713,7 @@ export default function SalesHistorySection() {
       {commandSearch ? (
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
           <Search className="h-4 w-4 shrink-0" />
-          <span>Komut araması filtresi: &quot;{commandSearch}&quot;</span>
+          <span>Filtre uygulanıyor: &quot;{commandSearch}&quot;</span>
           <button
             type="button"
             onClick={clearCommandSearch}
@@ -629,6 +819,77 @@ export default function SalesHistorySection() {
         />
       </div>
 
+      {/* Visual Recharts area chart showing sales trend velocity */}
+      <GlassCard className="border-border bg-surface-container">
+        <div className="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+          <div>
+            <h4 className="text-base font-bold text-foreground">Günlük Satış Trendi</h4>
+            <p className="text-xs text-muted-foreground">Seçili tarih aralığındaki günlük ciro dağılımı</p>
+          </div>
+          {isClient && aggregatedData.length > 0 && (
+            <div className="text-xs font-semibold text-muted">
+              En Yüksek Günlük Ciro: {formatCurrency(Math.max(...aggregatedData.map((d) => d.revenue), 0))}
+            </div>
+          )}
+        </div>
+        <div className="h-[240px] min-w-0 w-full">
+          {isClient && aggregatedData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} initialDimension={{ width: 1, height: 1 }}>
+              <AreaChart data={aggregatedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="salesTrendGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-soft)" strokeOpacity={0.25} vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  stroke="var(--text-muted)"
+                  strokeOpacity={0.45}
+                  fontSize={10}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(d: string) => d.slice(5)}
+                />
+                <YAxis
+                  stroke="var(--text-muted)"
+                  strokeOpacity={0.45}
+                  fontSize={10}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "var(--bg-elevated)",
+                    border: "1px solid var(--border-soft)",
+                    borderRadius: "var(--radius)",
+                    color: "var(--text-main)",
+                  }}
+                  itemStyle={{ color: "var(--chart-1)" }}
+                  formatter={(value) => [formatCurrency(Number(value)), "Ciro"]}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="var(--chart-1)"
+                  strokeWidth={2.5}
+                  isAnimationActive={true}
+                  animationDuration={400}
+                  fill="url(#salesTrendGradient)"
+                  dot={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-border bg-surface-container/30 text-xs text-soft">
+              Gösterilecek grafik verisi bulunmuyor.
+            </div>
+          )}
+        </div>
+      </GlassCard>
+
       <div className="grid gap-4 lg:grid-cols-2">
         <GlassCard className="border-border bg-surface-container">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">
@@ -698,6 +959,7 @@ export default function SalesHistorySection() {
                   <th className="px-5 py-3 font-semibold text-right">Birim</th>
                   <th className="px-5 py-3 font-semibold text-right">Tutar</th>
                   <th className="px-5 py-3 font-semibold text-center">Durum</th>
+                  <th className="px-5 py-3 font-semibold text-center">İşlemler</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -710,9 +972,9 @@ export default function SalesHistorySection() {
                         <td className="px-5 py-4">
                           <div className="space-y-1">
                             {row.product_id ? (
-                              <Link href={`/urun/${row.product_id}`} className="block text-sm font-semibold text-foreground transition-colors duration-200 hover:text-primary">
-                                {row.product_name ?? "Ürün"}
-                              </Link>
+                               <Link href={`/urun/${row.product_id}`} className="block text-sm font-semibold text-foreground transition-colors duration-200 hover:text-primary">
+                                 {row.product_name ?? "Ürün"}
+                               </Link>
                             ) : (
                               <p className="text-sm font-semibold text-foreground">{row.product_name ?? "Ürün"}</p>
                             )}
@@ -741,12 +1003,37 @@ export default function SalesHistorySection() {
                             {status.label}
                           </span>
                         </td>
+                        <td className="px-5 py-4 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => openEditSaleForm(row)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface-container text-muted transition-colors duration-200 hover:text-primary hover:border-primary/20"
+                              title="Düzenle"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSale(row.order_item_id)}
+                              disabled={isDeletingId === row.order_item_id}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface-container text-muted transition-colors duration-200 hover:text-danger hover:border-danger/20 disabled:opacity-40"
+                              title="Sil"
+                            >
+                              {isDeletingId === row.order_item_id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={8} className="px-5 py-8">
+                    <td colSpan={9} className="px-5 py-8">
                       <EmptyState
                         icon={CircleAlert}
                         title="Satış kaydı bulunamadı"
@@ -825,6 +1112,29 @@ export default function SalesHistorySection() {
           )}
         </GlassCard>
       )}
+
+      {/* Edit / New Sale Modal */}
+      <SalesDataForm
+        isOpen={isFormOpen}
+        sale={selectedSale}
+        onClose={() => {
+          setIsFormOpen(false);
+          setSelectedSale(null);
+        }}
+        onSubmit={handleFormSubmit}
+        isSubmitting={isSubmittingForm}
+      />
+
+      {/* Bulk Excel Upload Modal */}
+      <SalesExcelImportModal
+        open={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImported={() => {
+          void loadSalesHistory(viewMode, rangeMode, page, customFrom, customTo, commandSearch);
+        }}
+        onNotify={handleNotify}
+      />
     </div>
   );
 }
+
