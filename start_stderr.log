@@ -1,0 +1,8 @@
+⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+Login error: Error: JWT_SECRET must be set in production.
+    at h (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\server\app\api\auth\change-password\route.js:1:9169)
+    at l (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\server\app\api\auth\change-password\route.js:1:9476)
+    at j (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\server\app\api\auth\login\route.js:1:9272)
+    at async j (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\server\app\api\auth\login\route.js:1:4105)
+    at async h (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\server\app\api\auth\login\route.js:1:5117)
+    at async Module.y (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\server\app\api\auth\login\route.js:1:6213)

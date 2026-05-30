@@ -31,7 +31,7 @@ function MobileSidebarLink({ item, isActive, onSelect, badge }: MobileLinkProps)
       href={item.href}
       onClick={onSelect}
       className={cn(
-        "group flex items-center gap-3 rounded-lg px-3 py-3 transition-all duration-200",
+        "group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200",
         isActive ? "bg-primary/12 text-primary" : "text-muted hover:bg-surface-container/75 hover:text-foreground"
       )}
     >
@@ -85,9 +85,9 @@ export default function MobileNavigation({ open, onOpenChange }: MobileNavigatio
       />
 
       <aside className="absolute left-0 top-0 flex h-full w-[86vw] max-w-sm animate-slide-in-left flex-col border-r border-border/80 bg-panel/98 shadow-[var(--shadow-card)] backdrop-blur-2xl">
-        <div className="border-b border-border/80 px-4 pb-5 pt-4">
+        <div className="border-b border-border/80 px-4 pb-4 pt-4">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-border/70 bg-surface-container/58 px-3.5 py-3.5">
+            <div className="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-border/70 bg-surface-container/58 px-3.5 py-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/12 text-primary">
                 <LineChart className="h-5 w-5" />
               </div>
@@ -95,6 +95,7 @@ export default function MobileNavigation({ open, onOpenChange }: MobileNavigatio
                 <p className="truncate text-sm font-semibold tracking-[-0.02em] text-foreground">
                   Hesap G
                 </p>
+                <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-muted">Karar akışı</p>
               </div>
             </div>
 
@@ -109,7 +110,7 @@ export default function MobileNavigation({ open, onOpenChange }: MobileNavigatio
           </div>
         </div>
 
-        <nav className="custom-scrollbar flex-1 overflow-y-auto px-4 py-5">
+        <nav className="custom-scrollbar flex-1 overflow-y-auto px-4 py-4">
           <div className="space-y-6">
             {navigationSections.map((section) => (
               <section key={section.title}>

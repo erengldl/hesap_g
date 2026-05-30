@@ -24,11 +24,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const sidebarHydratedRef = useRef(false);
   const isAuthRoute = pathname === "/login" || pathname === "/register";
   const sidebarStyle = {
-    "--sidebar-width": sidebarCollapsed ? "96px" : "304px",
+    "--sidebar-width": sidebarCollapsed ? "88px" : "288px",
   } as React.CSSProperties & { "--sidebar-width": string };
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <ToastProvider>
         <AuthProvider>
           {isAuthRoute ? (
-            <main className="min-h-screen animate-[fadeInUp_0.4s_ease-out]">
+            <main className="min-h-screen animate-page-load">
               <ErrorBoundary>
                 {children}
               </ErrorBoundary>
@@ -76,7 +76,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <Topbar
                     onOpenMobileNavigation={openMobileNavigation}
                   />
-                  <main className="min-h-screen pt-[72px] animate-[fadeInUp_0.4s_ease-out]">
+                  <main className="min-h-screen pt-[64px] animate-page-load">
                     <ErrorBoundary>
                       {children}
                     </ErrorBoundary>

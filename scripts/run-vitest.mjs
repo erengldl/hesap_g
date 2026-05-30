@@ -16,6 +16,7 @@ const cliOptions = {
   globals: true,
   fileParallelism: false,
   testTimeout: 10000,
+  setupFiles: [path.join(repoRoot, "test", "setup.ts")],
 };
 
 const viteOverrides = {

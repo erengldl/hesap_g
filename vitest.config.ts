@@ -10,6 +10,7 @@ export default defineConfig({
     globals: true,
     fileParallelism: false,
     testTimeout: 10000,
+    setupFiles: ["./test/setup.ts"],
   },
   resolve: {
     alias: {

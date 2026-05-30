@@ -52,3 +52,13 @@
  GET /dashboard 500 in 30ms (next.js: 5ms, application-code: 25ms)
  GET /login 500 in 11ms (next.js: 3ms, application-code: 7ms)
  GET /dashboard 500 in 12ms (next.js: 3ms, application-code: 9ms)
+▲ Next.js 16.2.6 (webpack)
+- Local:         http://127.0.0.1:3001
+- Network:       http://127.0.0.1:3001
+✓ Ready in 622ms
+
+▲ Next.js 16.2.6 (webpack)
+- Local:         http://127.0.0.1:3001
+- Network:       http://127.0.0.1:3001
+✓ Ready in 387ms
+
