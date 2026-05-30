@@ -76,7 +76,7 @@
   --card: #111119;
   --card-foreground: #f4f2fb;
   --primary: #6d5efc;
-  --primary-foreground: #fbfaff;
+  --primary-foreground: #05030d;
   --primary-soft: rgba(109, 94, 252, 0.14);
   --primary-soft-foreground: #cbc5ff;
   --secondary: #bcb5ff;
@@ -84,7 +84,7 @@
   --accent: #ff8e63;
   --accent-foreground: #251108;
   --muted: #171722;
-  --muted-foreground: #8d8c9d;
+  --muted-foreground: #adadbc;
   --border: var(--surface-strong);
   --input: #171722;
   --ring: #8578ff;
@@ -110,12 +110,12 @@
   --card-bg: rgba(17, 17, 25, 0.94);
   --input-bg: rgba(18, 18, 27, 0.96);
   --surface-container: rgba(255, 255, 255, 0.035);
-  --primary-dark: #4f42ca;
+  --primary-dark: #5648da;
   --neon: #bcb5ff;
   --glow: rgba(109, 94, 252, 0.24);
   --text-main: var(--foreground);
   --text-muted: var(--muted-foreground);
-  --text-soft: #c3c2d2;
+  --text-soft: #d4d3df;
   --border-soft: var(--border);
   --border-strong: rgba(255, 255, 255, 0.14);
   --border-green: var(--primary);
@@ -157,7 +157,7 @@ html.light {
   --accent: #f37d4f;
   --accent-foreground: #2d1408;
   --muted: #f2f2f7;
-  --muted-foreground: #6b6d7e;
+  --muted-foreground: #575b6d;
   --border: rgba(23, 23, 32, 0.08);
   --input: #f5f5fa;
   --ring: #6a59ff;
@@ -188,7 +188,7 @@ html.light {
   --glow: rgba(91, 73, 255, 0.14);
   --text-main: var(--foreground);
   --text-muted: var(--muted-foreground);
-  --text-soft: #4a4b5a;
+  --text-soft: #3d4050;
   --border-soft: var(--border);
   --border-strong: rgba(23, 23, 32, 0.13);
   --border-green: var(--primary);
@@ -225,9 +225,9 @@ html.light {
     min-height: 100vh;
     margin: 0;
     background-image:
-      radial-gradient(circle at 14% 0%, rgba(109, 94, 252, 0.16) 0, transparent 24%),
-      radial-gradient(circle at 84% 10%, rgba(188, 181, 255, 0.1) 0, transparent 20%),
-      radial-gradient(circle at 50% 100%, rgba(255, 142, 99, 0.08) 0, transparent 28%),
+      radial-gradient(circle at 14% 0%, rgba(109, 94, 252, 0.12) 0, transparent 22%),
+      radial-gradient(circle at 84% 10%, rgba(188, 181, 255, 0.07) 0, transparent 18%),
+      radial-gradient(circle at 50% 100%, rgba(255, 142, 99, 0.06) 0, transparent 24%),
       linear-gradient(180deg, var(--bg-gradient-1) 0%, var(--bg-main) 28%, var(--bg-gradient-2) 100%);
     background-attachment: fixed;
   }
@@ -243,10 +243,10 @@ html.light {
   body::before {
     z-index: -2;
     background:
-      radial-gradient(circle at 20% 0%, rgba(109, 94, 252, 0.18) 0, transparent 22%),
-      radial-gradient(circle at 80% 10%, rgba(255, 142, 99, 0.08) 0, transparent 18%),
-      radial-gradient(circle at 50% 100%, rgba(131, 169, 255, 0.06) 0, transparent 24%);
-    opacity: 0.9;
+      radial-gradient(circle at 20% 0%, rgba(109, 94, 252, 0.14) 0, transparent 20%),
+      radial-gradient(circle at 80% 10%, rgba(255, 142, 99, 0.06) 0, transparent 16%),
+      radial-gradient(circle at 50% 100%, rgba(131, 169, 255, 0.05) 0, transparent 22%);
+    opacity: 0.78;
   }
 
   body::after {
@@ -256,7 +256,7 @@ html.light {
       linear-gradient(to bottom, color-mix(in srgb, var(--grid-line) 70%, transparent) 1px, transparent 1px);
     background-size: 96px 96px;
     mask-image: radial-gradient(circle at center, black 28%, transparent 100%);
-    opacity: 0.26;
+    opacity: 0.18;
   }
 
   h1,
@@ -265,7 +265,8 @@ html.light {
   h4,
   h5,
   h6 {
-    @apply font-heading font-semibold tracking-tight;
+    @apply font-heading font-semibold;
+    letter-spacing: -0.03em;
     text-wrap: balance;
   }
 
@@ -362,8 +363,8 @@ html.light {
       linear-gradient(180deg, color-mix(in srgb, var(--card-bg) 98%, transparent) 0%, color-mix(in srgb, var(--surface-soft) 92%, transparent) 100%);
     border: 1px solid color-mix(in srgb, var(--border-soft) 70%, transparent);
     box-shadow: var(--shadow-card);
-    backdrop-filter: blur(18px) saturate(1.05);
-    -webkit-backdrop-filter: blur(18px) saturate(1.05);
+    backdrop-filter: blur(14px) saturate(1.04);
+    -webkit-backdrop-filter: blur(14px) saturate(1.04);
     transition:
       border-color 0.25s ease,
       background-color 0.25s ease,
@@ -383,8 +384,8 @@ html.light {
       linear-gradient(180deg, color-mix(in srgb, var(--panel-bg) 98%, transparent) 0%, color-mix(in srgb, var(--surface) 94%, transparent) 100%);
     border: 1px solid color-mix(in srgb, var(--border-soft) 70%, transparent);
     box-shadow: var(--shadow-panel);
-    backdrop-filter: blur(20px) saturate(1.05);
-    -webkit-backdrop-filter: blur(20px) saturate(1.05);
+    backdrop-filter: blur(16px) saturate(1.04);
+    -webkit-backdrop-filter: blur(16px) saturate(1.04);
   }
 
   .premium-surface {
@@ -392,8 +393,8 @@ html.light {
       linear-gradient(180deg, color-mix(in srgb, var(--panel-bg) 98%, transparent) 0%, color-mix(in srgb, var(--surface-soft) 96%, transparent) 100%);
     border: 1px solid color-mix(in srgb, var(--border-soft) 70%, transparent);
     box-shadow: var(--shadow-card);
-    backdrop-filter: blur(16px) saturate(1.03);
-    -webkit-backdrop-filter: blur(16px) saturate(1.03);
+    backdrop-filter: blur(12px) saturate(1.02);
+    -webkit-backdrop-filter: blur(12px) saturate(1.02);
   }
 
   .rounded-sm {
@@ -417,11 +418,12 @@ html.light {
   }
 
   .page-shell {
-    @apply mx-auto flex-1 w-full max-w-[1480px] px-4 py-5 sm:px-6 sm:py-6 lg:px-7 lg:py-7;
+    @apply mx-auto flex-1 w-full max-w-[1480px] px-4 py-4 sm:px-6 sm:py-5 lg:px-7 lg:py-6;
   }
 
   .panel-title {
-    @apply font-heading text-[13px] font-semibold tracking-[-0.03em] text-foreground;
+    @apply font-heading text-[13px] font-semibold text-foreground;
+    letter-spacing: -0.02em;
   }
 
   .btn-primary,
@@ -561,7 +563,7 @@ html.light {
   }
 
   .form-label {
-    @apply mb-2 block text-[10px] font-bold uppercase tracking-[0.18em] text-muted/60;
+    @apply mb-2 block text-[11px] font-bold uppercase tracking-[0.14em] text-muted;
   }
 
   .form-select {
@@ -582,7 +584,7 @@ html.light {
   }
 
   .data-table thead th {
-    @apply pr-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/60;
+    @apply pr-3 pb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted;
   }
 
   .data-table tbody {
@@ -800,8 +802,8 @@ html.light {
   .glass-card,
   .glass-panel,
   .premium-surface {
-    backdrop-filter: blur(14px) saturate(1.02);
-    -webkit-backdrop-filter: blur(14px) saturate(1.02);
+    backdrop-filter: blur(10px) saturate(1.02);
+    -webkit-backdrop-filter: blur(10px) saturate(1.02);
   }
 }
 

@@ -74,8 +74,8 @@ export default function LoginPage() {
                     <LineChart className="h-6 w-6" />
                   </div>
                   <div>
-                    <p className="text-xl font-semibold tracking-[-0.05em] text-foreground">Hesap G</p>
-                    <p className="text-[10px] uppercase tracking-[0.22em] text-muted/60">Commerce control</p>
+                    <p className="text-xl font-semibold tracking-[-0.03em] text-foreground">Hesap G</p>
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Commerce control</p>
                   </div>
                 </div>
 
@@ -86,7 +86,7 @@ export default function LoginPage() {
                 <h1 className="mt-8 max-w-md font-heading text-[2.6rem] font-semibold tracking-[-0.08em] text-foreground">
                   Finans, ürün ve reklam akışını tek panelden yönetin.
                 </h1>
-                <p className="mt-5 max-w-md text-sm leading-7 text-muted/60">
+                <p className="mt-5 max-w-md text-sm leading-7 text-muted">
                   Yeni arayüz daha yoğun veri tüketimi, net hiyerarşi ve daha güçlü kontrast için tasarlandı. Girişten sonra aynı sistem bütün uygulamaya yayılır.
                 </p>
               </div>
@@ -99,7 +99,7 @@ export default function LoginPage() {
                 ].map(([title, text]) => (
                   <div key={title} className="rounded-xl border border-border/70 bg-surface-container/55 px-4 py-3.5">
                     <p className="text-sm font-semibold text-foreground">{title}</p>
-                    <p className="mt-1 text-xs leading-6 text-muted/60">{text}</p>
+                    <p className="mt-1 text-xs leading-6 text-muted">{text}</p>
                   </div>
                 ))}
               </div>
@@ -112,19 +112,19 @@ export default function LoginPage() {
                 <LineChart className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-lg font-semibold tracking-[-0.05em] text-foreground">Hesap G</p>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-muted/60">Commerce control</p>
+                <p className="text-lg font-semibold tracking-[-0.03em] text-foreground">Hesap G</p>
+                <p className="text-[11px] uppercase tracking-[0.16em] text-muted">Commerce control</p>
               </div>
             </div>
 
             <div className="mb-8">
-              <span className="inline-flex items-center gap-2 rounded-md border border-border/80 bg-surface-container/75 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/60">
+              <span className="inline-flex items-center gap-2 rounded-md border border-border/80 bg-surface-container/75 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
                 Güvenli erişim
               </span>
               <h2 className="mt-5 font-heading text-[2rem] font-semibold tracking-[-0.06em] text-foreground">
                 Hoş geldiniz
               </h2>
-              <p className="mt-3 max-w-md text-sm leading-7 text-muted/60">
+              <p className="mt-3 max-w-md text-sm leading-7 text-muted">
                 E-ticaret finansal kontrol merkezine erişmek için giriş yapın.
               </p>
             </div>
@@ -167,8 +167,9 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+                    aria-pressed={showPassword}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-muted transition-colors duration-200 hover:text-foreground"
-                    tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -197,7 +198,7 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="mt-8 flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-surface-container/55 px-4 py-3 text-xs text-muted/60">
+            <div className="mt-8 flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-surface-container/55 px-4 py-3 text-xs text-muted">
               <span>Demo erişim</span>
               <span className="font-semibold text-foreground">admin@hesapg.com / admin123</span>
             </div>

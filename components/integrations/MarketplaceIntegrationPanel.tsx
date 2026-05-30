@@ -428,7 +428,7 @@ function CredentialModal({
               type="button"
               onClick={onSave}
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-extrabold text-black transition-[color,transform] duration-200 hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-extrabold text-primary-foreground transition-[color,transform] duration-200 hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
               <RefreshCw className={cn("h-4 w-4", saving && "animate-spin")} />
               {saving ? "Kaydediliyor" : "Kaydet ve güncelle"}
@@ -706,7 +706,7 @@ export function MarketplaceIntegrationPanel() {
                 type="button"
                 onClick={syncAll}
                 disabled={syncingSlug === "all" || loading}
-                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-black transition-[color,transform] duration-200 hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-[color,transform] duration-200 hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <RefreshCw className={cn("h-4 w-4", syncingSlug === "all" && "animate-spin")} />
                 {syncingSlug === "all" ? "Güncelleme sürüyor" : "Tümünü güncelle"}

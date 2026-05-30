@@ -245,7 +245,7 @@ export function StoreExpensesSection() {
           <button
             type="button"
             onClick={() => openEditor()}
-            className="inline-flex items-center gap-2 self-start rounded-xl bg-success px-4 py-2.5 text-sm font-bold text-black transition-colors duration-200 hover:bg-success"
+            className="inline-flex items-center gap-2 self-start rounded-xl bg-success px-4 py-2.5 text-sm font-bold text-success-foreground transition-colors duration-200 hover:bg-success"
           >
             <Plus className="h-4 w-4" />
             Yeni Gider Ekle
@@ -287,7 +287,7 @@ export function StoreExpensesSection() {
               <button
                 type="button"
                 onClick={() => openEditor()}
-                className="inline-flex items-center gap-2 rounded-md bg-success px-4 py-2.5 text-sm font-bold text-black transition-colors duration-200 hover:bg-success"
+                className="inline-flex items-center gap-2 rounded-md bg-success px-4 py-2.5 text-sm font-bold text-success-foreground transition-colors duration-200 hover:bg-success"
               >
                 <Plus className="h-4 w-4" />
                 İlk Gideri Ekle
@@ -479,7 +479,7 @@ export function StoreExpensesSection() {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex-1 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-black transition-colors duration-200 hover:bg-primary/90 disabled:opacity-60"
+                className="flex-1 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground transition-colors duration-200 hover:bg-primary/90 disabled:opacity-60"
               >
                 {saving ? "Kaydediliyor..." : editingExpense ? "Güncelle" : "Ekle"}
               </button>

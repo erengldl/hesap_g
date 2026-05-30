@@ -248,7 +248,7 @@ export function SellerProfileForm() {
           <button
             type="submit"
             disabled={saving}
-            className="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-black transition-colors duration-200 hover:bg-primary/90 disabled:opacity-60"
+            className="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-colors duration-200 hover:bg-primary/90 disabled:opacity-60"
           >
             {saving ? (
               <span className="inline-flex items-center gap-2">

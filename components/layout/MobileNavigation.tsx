@@ -7,7 +7,7 @@ import { ChevronRight, LineChart, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBadge } from "@/components/ui-custom/GlassComponents";
 import { useDashboardStats } from "./DashboardStatsProvider";
-import { navigationItems, type NavigationItem } from "./navigation";
+import { navigationSections, type NavigationItem } from "./navigation";
 
 type MobileNavigationProps = {
   open: boolean;
@@ -92,7 +92,7 @@ export default function MobileNavigation({ open, onOpenChange }: MobileNavigatio
                 <LineChart className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold tracking-[-0.04em] text-foreground">
+                <p className="truncate text-sm font-semibold tracking-[-0.02em] text-foreground">
                   Hesap G
                 </p>
               </div>
@@ -111,22 +111,24 @@ export default function MobileNavigation({ open, onOpenChange }: MobileNavigatio
 
         <nav className="custom-scrollbar flex-1 overflow-y-auto px-4 py-5">
           <div className="space-y-6">
-            <section>
-              <p className="mb-3 px-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-muted/60">
-                Genel Bakış
-              </p>
-              <div className="space-y-1.5">
-                {navigationItems.map((item) => (
-                  <MobileSidebarLink
-                    key={item.href}
-                    item={item}
-                    isActive={isActivePath(pathname, item.href)}
-                    onSelect={() => onOpenChange(false)}
-                    badge={item.href === "/veri-merkezi" ? alertCount : undefined}
-                  />
-                ))}
-              </div>
-            </section>
+            {navigationSections.map((section) => (
+              <section key={section.title}>
+                <p className="mb-3 px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+                  {section.title}
+                </p>
+                <div className="space-y-1.5">
+                  {section.items.map((item) => (
+                    <MobileSidebarLink
+                      key={item.href}
+                      item={item}
+                      isActive={isActivePath(pathname, item.href)}
+                      onSelect={() => onOpenChange(false)}
+                      badge={item.href === "/veri-merkezi" ? alertCount : undefined}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
         </nav>
       </aside>

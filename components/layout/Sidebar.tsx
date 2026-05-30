@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, LineChart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBadge } from "@/components/ui-custom/GlassComponents";
 import { useDashboardStats } from "./DashboardStatsProvider";
-import { navigationItems, type NavigationItem } from "./navigation";
+import { navigationSections, type NavigationItem } from "./navigation";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -99,7 +99,7 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
 
             {!collapsed && (
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[1rem] font-semibold tracking-[-0.04em] text-foreground">
+                <p className="truncate text-[1rem] font-semibold tracking-[-0.02em] text-foreground">
                   Hesap G
                 </p>
               </div>
@@ -122,25 +122,27 @@ export default function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
 
       <nav className="custom-scrollbar flex-1 overflow-y-auto px-4 py-5">
         <div className="space-y-6">
-          <section>
-            {!collapsed && (
-              <p className="mb-3 px-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-muted/60">
-                Genel Bakış
-              </p>
-            )}
-            <div className={cn("space-y-1.5", collapsed && "space-y-2")}>
-              {navigationItems.map((item, index) => (
-                <SidebarLink
-                  key={item.href}
-                  item={item}
-                  collapsed={collapsed}
-                  isActive={isActivePath(pathname, item.href)}
-                  badge={item.href === "/veri-merkezi" ? alertCount : undefined}
-                  staggerIndex={index}
-                />
-              ))}
-            </div>
-          </section>
+          {navigationSections.map((section, sectionIndex) => (
+            <section key={section.title}>
+              {!collapsed && (
+                <p className="mb-3 px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+                  {section.title}
+                </p>
+              )}
+              <div className={cn("space-y-1.5", collapsed && "space-y-2")}>
+                {section.items.map((item, itemIndex) => (
+                  <SidebarLink
+                    key={item.href}
+                    item={item}
+                    collapsed={collapsed}
+                    isActive={isActivePath(pathname, item.href)}
+                    badge={item.href === "/veri-merkezi" ? alertCount : undefined}
+                    staggerIndex={sectionIndex * 4 + itemIndex}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
       </nav>
     </aside>

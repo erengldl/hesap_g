@@ -673,7 +673,7 @@ export default function ProductDataForm({
                 type="submit"
                 form="product-data-form"
                 disabled={isSubmitting || isUploadingImage}
-                className="w-full flex-1 rounded-xl bg-primary py-3 text-sm font-bold text-black transition-colors duration-200 hover:bg-primary/90 shadow-[var(--shadow-primary)] disabled:opacity-60"
+                className="w-full flex-1 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors duration-200 hover:bg-primary/90 shadow-[var(--shadow-primary)] disabled:opacity-60"
               >
                 {isSubmitting ? "Kaydediliyor..." : isUploadingImage ? "Görsel yükleniyor..." : product ? "Güncelle" : "Ürünü Ekle"}
               </button>

@@ -164,7 +164,7 @@ export default function ForecastControlPanel({
         type="button"
         onClick={onRunForecast}
         disabled={submitting}
-        className="inline-flex items-center justify-center gap-2 rounded-md border border-primary/30 bg-primary px-4 py-3 text-sm font-semibold text-black transition-[filter] duration-200 hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex items-center justify-center gap-2 rounded-md border border-primary/30 bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-[filter] duration-200 hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {submitting ? (
           <>

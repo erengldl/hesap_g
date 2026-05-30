@@ -1,0 +1,542 @@
+⨯ ./lib/auth.ts:1:1
+Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts
+⨯ ./lib/auth.ts:1:1
+Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename 'C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\dev\cache\webpack\client-development-fallback\0.pack.gz_' -> 'C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\dev\cache\webpack\client-development-fallback\0.pack.gz'
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename 'C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\dev\cache\webpack\client-development-fallback\0.pack.gz_' -> 'C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\dev\cache\webpack\client-development-fallback\0.pack.gz'
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename 'C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\dev\cache\webpack\client-development-fallback\0.pack.gz_' -> 'C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\dev\cache\webpack\client-development-fallback\0.pack.gz'
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename 'C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\dev\cache\webpack\client-development-fallback\0.pack.gz_' -> 'C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\dev\cache\webpack\client-development-fallback\0.pack.gz'
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename 'C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\dev\cache\webpack\client-development-fallback\0.pack.gz_' -> 'C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\dev\cache\webpack\client-development-fallback\0.pack.gz'
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename 'C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\dev\cache\webpack\client-development-fallback\0.pack.gz_' -> 'C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\dev\cache\webpack\client-development-fallback\0.pack.gz'
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename 'C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\dev\cache\webpack\client-development-fallback\0.pack.gz_' -> 'C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\dev\cache\webpack\client-development-fallback\0.pack.gz'
+[browser] ./lib/auth.ts:1:1
+Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts 
+[browser] ./lib/db.ts:1:1
+Module not found: Can't resolve 'better-sqlite3'
+> 1 | import Database from 'better-sqlite3';
+    | ^
+  2 | import bcrypt from 'bcryptjs';
+  3 | import { resolveDatabaseUrl } from './database-url';
+  4 | import { resolveLocalDatabasePath } from './local-sqlite';
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts 
+[browser] ./lib/auth.ts:1:1
+Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts 
+[browser] ./lib/db.ts:1:1
+Module not found: Can't resolve 'better-sqlite3'
+> 1 | import Database from 'better-sqlite3';
+    | ^
+  2 | import bcrypt from 'bcryptjs';
+  3 | import { resolveDatabaseUrl } from './database-url';
+  4 | import { resolveLocalDatabasePath } from './local-sqlite';
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts 
+[browser] ./lib/auth.ts:1:1
+Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts 
+[browser] ./lib/db.ts:1:1
+Module not found: Can't resolve 'better-sqlite3'
+> 1 | import Database from 'better-sqlite3';
+    | ^
+  2 | import bcrypt from 'bcryptjs';
+  3 | import { resolveDatabaseUrl } from './database-url';
+  4 | import { resolveLocalDatabasePath } from './local-sqlite';
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts 
+[browser] ./lib/auth.ts:1:1
+Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts 
+[browser] ./lib/db.ts:1:1
+Module not found: Can't resolve 'better-sqlite3'
+> 1 | import Database from 'better-sqlite3';
+    | ^
+  2 | import bcrypt from 'bcryptjs';
+  3 | import { resolveDatabaseUrl } from './database-url';
+  4 | import { resolveLocalDatabasePath } from './local-sqlite';
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts 
+[browser] ./lib/auth.ts:1:1
+Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts 
+[browser] ./lib/db.ts:1:1
+Module not found: Can't resolve 'better-sqlite3'
+> 1 | import Database from 'better-sqlite3';
+    | ^
+  2 | import bcrypt from 'bcryptjs';
+  3 | import { resolveDatabaseUrl } from './database-url';
+  4 | import { resolveLocalDatabasePath } from './local-sqlite';
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts 
+[browser] ./lib/auth.ts:1:1
+Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts 
+[browser] ./lib/db.ts:1:1
+Module not found: Can't resolve 'better-sqlite3'
+> 1 | import Database from 'better-sqlite3';
+    | ^
+  2 | import bcrypt from 'bcryptjs';
+  3 | import { resolveDatabaseUrl } from './database-url';
+  4 | import { resolveLocalDatabasePath } from './local-sqlite';
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts 
+⨯ ./lib/db.ts:1:1
+Module not found: Can't resolve 'better-sqlite3'
+> 1 | import Database from 'better-sqlite3';
+    | ^
+  2 | import bcrypt from 'bcryptjs';
+  3 | import { resolveDatabaseUrl } from './database-url';
+  4 | import { resolveLocalDatabasePath } from './local-sqlite';
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./lib/ad-analysis.ts
+./app/api/dashboard/route.ts
+[browser] Uncaught Error: Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[browser] Uncaught Error: Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ./lib/db.ts:1:1
+Module not found: Can't resolve 'better-sqlite3'
+> 1 | import Database from 'better-sqlite3';
+    | ^
+  2 | import bcrypt from 'bcryptjs';
+  3 | import { resolveDatabaseUrl } from './database-url';
+  4 | import { resolveLocalDatabasePath } from './local-sqlite';
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./lib/portfolio-analytics.ts
+./app/api/dashboard/route.ts
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[browser] ./lib/db.ts:1:1
+Module not found: Can't resolve 'better-sqlite3'
+> 1 | import Database from 'better-sqlite3';
+    | ^
+  2 | import bcrypt from 'bcryptjs';
+  3 | import { resolveDatabaseUrl } from './database-url';
+  4 | import { resolveLocalDatabasePath } from './local-sqlite';
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./lib/portfolio-analytics.ts
+./app/api/dashboard/route.ts 
+[browser] ./lib/db.ts:1:1
+Module not found: Can't resolve 'better-sqlite3'
+> 1 | import Database from 'better-sqlite3';
+    | ^
+  2 | import bcrypt from 'bcryptjs';
+  3 | import { resolveDatabaseUrl } from './database-url';
+  4 | import { resolveLocalDatabasePath } from './local-sqlite';
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./lib/portfolio-analytics.ts
+./app/api/dashboard/route.ts 
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/dashboard" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <LoadingBoundaryProvider loading={[...]}>
+                      <SegmentViewNode type="layout" pagePath="layout.tsx">
+                        <SegmentTrieNode>
+                        <link>
+                        <RootLayout>
+                          <html lang="tr" className="dark" suppressHydrationWarning={true}>
+                            <body
+                              className="min-h-screen bg-background font-sans antialiased text-foreground"
+-                             style={{overflow-x:"hidden",overflow-y:"hidden"}}
+                            >
+                  ...
+ 
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ./lib/auth.ts:1:1
+Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts
+[browser] ./lib/auth.ts:1:1
+Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts 
+[browser] ./lib/db.ts:1:1
+Module not found: Can't resolve 'better-sqlite3'
+> 1 | import Database from 'better-sqlite3';
+    | ^
+  2 | import bcrypt from 'bcryptjs';
+  3 | import { resolveDatabaseUrl } from './database-url';
+  4 | import { resolveLocalDatabasePath } from './local-sqlite';
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./lib/portfolio-analytics.ts
+./app/api/dashboard/route.ts 
+[browser] ./lib/auth.ts:1:1
+Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts 
+[browser] ./lib/db.ts:1:1
+Module not found: Can't resolve 'better-sqlite3'
+> 1 | import Database from 'better-sqlite3';
+    | ^
+  2 | import bcrypt from 'bcryptjs';
+  3 | import { resolveDatabaseUrl } from './database-url';
+  4 | import { resolveLocalDatabasePath } from './local-sqlite';
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/app-stats/route.ts 
+[browser] Dashboard load error: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON (app\dashboard\page.tsx:57:17)
+[browser] Uncaught Error: Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] Uncaught Error: Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] Uncaught Error: Module not found: Can't resolve 'better-sqlite3'
+> 1 | import Database from 'better-sqlite3';
+    | ^
+  2 | import bcrypt from 'bcryptjs';
+  3 | import { resolveDatabaseUrl } from './database-url';
+  4 | import { resolveLocalDatabasePath } from './local-sqlite';
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./lib/portfolio-analytics.ts
+./app/api/dashboard/route.ts
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] Uncaught Error: Module not found: Can't resolve 'better-sqlite3'
+> 1 | import Database from 'better-sqlite3';
+    | ^
+  2 | import bcrypt from 'bcryptjs';
+  3 | import { resolveDatabaseUrl } from './database-url';
+  4 | import { resolveLocalDatabasePath } from './local-sqlite';
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./lib/portfolio-analytics.ts
+./app/api/dashboard/route.ts
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] Uncaught Error: Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] ./lib/auth.ts:1:1
+Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts 
+[browser] ./lib/db.ts:1:1
+Module not found: Can't resolve 'better-sqlite3'
+> 1 | import Database from 'better-sqlite3';
+    | ^
+  2 | import bcrypt from 'bcryptjs';
+  3 | import { resolveDatabaseUrl } from './database-url';
+  4 | import { resolveLocalDatabasePath } from './local-sqlite';
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/app-stats/route.ts 
+[browser] Uncaught Error: Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] ./lib/auth.ts:1:1
+Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts 
+[browser] ./lib/db.ts:1:1
+Module not found: Can't resolve 'better-sqlite3'
+> 1 | import Database from 'better-sqlite3';
+    | ^
+  2 | import bcrypt from 'bcryptjs';
+  3 | import { resolveDatabaseUrl } from './database-url';
+  4 | import { resolveLocalDatabasePath } from './local-sqlite';
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/app-stats/route.ts 
+[browser] Uncaught Error: Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] ./lib/auth.ts:1:1
+Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts 
+[browser] ./lib/db.ts:1:1
+Module not found: Can't resolve 'better-sqlite3'
+> 1 | import Database from 'better-sqlite3';
+    | ^
+  2 | import bcrypt from 'bcryptjs';
+  3 | import { resolveDatabaseUrl } from './database-url';
+  4 | import { resolveLocalDatabasePath } from './local-sqlite';
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/app-stats/route.ts 
+[browser] Uncaught Error: Module not found: Can't resolve 'jose'
+> 1 | import { SignJWT, jwtVerify } from "jose";
+    | ^
+  2 | import bcrypt from "bcryptjs";
+  3 | import { getJwtSecret } from "@/lib/jwt-secret";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/auth/me/route.ts
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)

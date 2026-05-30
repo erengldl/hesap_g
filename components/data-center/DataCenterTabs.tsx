@@ -472,7 +472,7 @@ export function DataCenterTabs() {
                     setEditingProduct(null);
                     setIsProductFormOpen(true);
                   }}
-                  className="flex items-center gap-2 rounded-md bg-primary px-3.5 py-2.5 text-sm font-semibold text-black transition-colors duration-200 hover:bg-primary/90"
+                  className="flex items-center gap-2 rounded-md bg-primary px-3.5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors duration-200 hover:bg-primary/90"
                 >
                   <Plus className="h-4 w-4" />
                   Ürün Ekle
@@ -541,7 +541,7 @@ export function DataCenterTabs() {
                       setEditingProduct(null);
                       setIsProductFormOpen(true);
                     }}
-                    className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-black transition-colors duration-200 hover:bg-primary/90"
+                    className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors duration-200 hover:bg-primary/90"
                   >
                     <Plus className="h-4 w-4" />
                     Ürün Ekle

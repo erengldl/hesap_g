@@ -1,0 +1,54 @@
+
+> frontend@0.1.0 dev
+> next dev --webpack --hostname 127.0.0.1 --port 3001
+
+▲ Next.js 16.2.6 (webpack)
+- Local:         http://127.0.0.1:3001
+- Network:       http://127.0.0.1:3001
+✓ Ready in 912ms
+
+○ Compiling /login ...
+ GET /login 200 in 16.4s (next.js: 13.5s, application-code: 3.0s)
+ GET /dashboard 200 in 13.3s (next.js: 9.9s, application-code: 3.5s)
+ GET /dashboard 200 in 31.9s (next.js: 28.4s, application-code: 3.5s)
+ GET /login 200 in 36.0s (next.js: 32.4s, application-code: 3.6s)
+○ Compiling /api/app-stats ...
+ GET /login 500 in 105s (next.js: 101s, application-code: 3.1s)
+ GET /dashboard 500 in 103s (next.js: 100s, application-code: 3.1s)
+ GET /api/auth/me 500 in 107s (next.js: 104s, application-code: 3.1s)
+ GET /api/app-stats 500 in 108s (next.js: 105s, application-code: 3.1s)
+ GET /api/app-stats 500 in 107s (next.js: 104s, application-code: 3.2s)
+ GET /api/auth/me 500 in 107s (next.js: 104s, application-code: 3.2s)
+ GET /api/auth/me 500 in 108s (next.js: 105s, application-code: 3.2s)
+ GET /api/auth/me 500 in 107s (next.js: 104s, application-code: 3.2s)
+ GET /login 200 in 7.8s (next.js: 5.4s, application-code: 2.4s)
+ GET /login 200 in 26.6s (next.js: 24.2s, application-code: 2.4s)
+ GET /dashboard 200 in 26.6s (next.js: 24.2s, application-code: 2.4s)
+ GET /login 200 in 7.8s (next.js: 5.4s, application-code: 2.4s)
+ GET /dashboard 200 in 7.9s (next.js: 5.4s, application-code: 2.4s)
+ GET /login 200 in 26.7s (next.js: 24.2s, application-code: 2.4s)
+ GET /dashboard 200 in 7.9s (next.js: 5.4s, application-code: 2.5s)
+ GET /dashboard 200 in 26.7s (next.js: 24.2s, application-code: 2.5s)
+ GET /login 200 in 16.1s (next.js: 13.0s, application-code: 3.1s)
+ GET /dashboard 200 in 16.1s (next.js: 13.0s, application-code: 3.1s)
+○ Compiling /_not-found ...
+ GET /dashboard 500 in 2.9s
+ GET /login 500 in 4.1s
+ GET /dashboard 500 in 2.7s
+ GET /login 500 in 1519ms
+ GET /api/dashboard 500 in 13.9s (next.js: 13.6s, application-code: 314ms)
+ GET /api/dashboard 500 in 13.6s (next.js: 13.3s, application-code: 313ms)
+ GET /dashboard 500 in 9.8s (next.js: 9.5s, application-code: 307ms)
+ GET /dashboard 500 in 9.6s (next.js: 9.3s, application-code: 307ms)
+ GET /login 500 in 875ms (next.js: 738ms, application-code: 137ms)
+ GET /dashboard 500 in 878ms (next.js: 744ms, application-code: 134ms)
+ GET /api/app-stats 500 in 3.9s (next.js: 3.8s, application-code: 43ms)
+ GET /api/auth/me 500 in 3.9s (next.js: 3.8s, application-code: 52ms)
+ GET /api/dashboard 500 in 42ms (next.js: 10ms, application-code: 32ms)
+ GET /dashboard 500 in 57ms (next.js: 8ms, application-code: 49ms)
+ GET /login 500 in 25ms (next.js: 5ms, application-code: 20ms)
+ GET /login 500 in 15ms (next.js: 5ms, application-code: 11ms)
+ GET /login 500 in 54ms (next.js: 14ms, application-code: 40ms)
+ GET /dashboard 500 in 30ms (next.js: 5ms, application-code: 25ms)
+ GET /login 500 in 11ms (next.js: 3ms, application-code: 7ms)
+ GET /dashboard 500 in 12ms (next.js: 3ms, application-code: 9ms)

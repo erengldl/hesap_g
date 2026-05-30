@@ -46,11 +46,11 @@ export function KpiCard({ title, value, subValue, icon: Icon, trend, className }
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/45 to-transparent" />
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted/60">{title}</p>
-          <h3 className="font-heading mt-3 max-w-full truncate text-[1.65rem] font-semibold leading-none tracking-[-0.05em] text-foreground sm:text-[1.9rem]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">{title}</p>
+          <h3 className="font-heading mt-3 max-w-full truncate text-[1.65rem] font-semibold leading-none tracking-[-0.03em] text-foreground sm:text-[1.85rem]">
             {value}
           </h3>
-          {subValue && <p className="mt-2 text-[12px] font-medium text-muted/60">{subValue}</p>}
+          {subValue && <p className="mt-2 text-[12px] font-medium text-muted">{subValue}</p>}
           {(trend || subValue) && (
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <span
@@ -63,7 +63,7 @@ export function KpiCard({ title, value, subValue, icon: Icon, trend, className }
               >
                 {trend?.value ?? "Durum"}
               </span>
-              {subValue && <span className="text-[11px] text-muted/60">Güncel akış</span>}
+              {subValue && <span className="text-[11px] text-muted">Güncel akış</span>}
             </div>
           )}
         </div>
@@ -130,17 +130,17 @@ export function PageHeader({
     <div className="mb-6 flex flex-col gap-4 lg:mb-7 lg:flex-row lg:items-end lg:justify-between">
       <div className="max-w-3xl space-y-2">
         {eyebrow && (
-          <div className="inline-flex items-center gap-2 rounded-md border border-border/80 bg-surface-container/70 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted/60">
+          <div className="inline-flex items-center gap-2 rounded-md border border-border/80 bg-surface-container/70 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             {eyebrow}
           </div>
         )}
         <div className="space-y-2">
-          <h1 className="font-heading text-[2.15rem] font-semibold tracking-[-0.06em] text-foreground sm:text-[2.65rem] lg:text-[2.95rem]">
+          <h1 className="font-heading text-[1.95rem] font-semibold tracking-[-0.04em] text-foreground sm:text-[2.3rem] lg:text-[2.55rem]">
             {title}
           </h1>
           {description && (
-            <p className="max-w-2xl text-sm leading-6 text-muted/60 sm:text-[15px]">
+            <p className="max-w-2xl text-sm leading-6 text-muted sm:text-[15px]">
               {description}
             </p>
           )}
@@ -250,7 +250,7 @@ export function EmptyState({
         {title}
       </h3>
       {description && (
-        <p className={cn("mx-auto mt-2 leading-6 text-muted/60", isInline ? "max-w-xs text-xs" : "max-w-sm text-sm")}>
+        <p className={cn("mx-auto mt-2 leading-6 text-muted", isInline ? "max-w-xs text-xs" : "max-w-sm text-sm")}>
           {description}
         </p>
       )}
@@ -282,7 +282,7 @@ export function ErrorStateCard({
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-semibold text-foreground">{title}</h3>
-          <p className="mt-1 text-sm leading-6 text-muted/60">{description}</p>
+          <p className="mt-1 text-sm leading-6 text-muted">{description}</p>
           {action ? <div className="mt-4 flex flex-wrap gap-2">{action}</div> : null}
         </div>
       </div>

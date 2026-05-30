@@ -179,7 +179,7 @@ export default function Topbar({ onOpenMobileNavigation }: TopbarProps) {
 
   return (
     <header className="fixed left-0 right-0 top-0 z-40 border-b border-border/80 bg-panel/94 px-4 shadow-[var(--shadow-card)] backdrop-blur-2xl md:left-[var(--sidebar-width)] md:px-5">
-      <div className="flex h-[76px] items-center justify-between gap-3">
+      <div className="flex h-[72px] items-center justify-between gap-3">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <button
             type="button"
@@ -199,20 +199,20 @@ export default function Topbar({ onOpenMobileNavigation }: TopbarProps) {
               <LineChart className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-sm font-semibold tracking-[-0.04em] text-foreground">Hesap G</p>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted/60">{meta.eyebrow}</p>
+              <p className="text-sm font-semibold tracking-[-0.02em] text-foreground">Hesap G</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-muted">{meta.eyebrow}</p>
             </div>
           </Link>
 
           <div className="hidden min-w-0 lg:block">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted/60">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
               {meta.eyebrow}
             </p>
             <div className="mt-1 flex min-w-0 items-center gap-3">
-              <h1 className="truncate text-[1.05rem] font-semibold tracking-[-0.05em] text-foreground">
+              <h1 className="truncate text-[1rem] font-semibold tracking-[-0.03em] text-foreground xl:text-[1.05rem]">
                 {meta.title}
               </h1>
-              <p className="hidden truncate text-sm text-muted/60 xl:block">
+              <p className="hidden truncate text-sm text-muted xl:block">
                 {meta.description}
               </p>
             </div>
@@ -256,7 +256,7 @@ export default function Topbar({ onOpenMobileNavigation }: TopbarProps) {
             >
               <div className="hidden text-right sm:block">
                 <p className="text-sm font-semibold text-foreground">{user?.name || "Kullanıcı"}</p>
-                <p className="text-[10px] uppercase tracking-[0.18em] text-muted/60">{user?.plan || "Premium plan"}</p>
+                <p className="text-[11px] uppercase tracking-[0.14em] text-muted">{user?.plan || "Premium plan"}</p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground transition-[filter] duration-200 group-hover:brightness-110">
                 <User className="h-4 w-4" />
@@ -268,7 +268,7 @@ export default function Topbar({ onOpenMobileNavigation }: TopbarProps) {
               <div className="absolute right-0 top-full mt-2 w-60 origin-top-right animate-scale-in overflow-hidden rounded-xl border border-border/80 bg-panel/98 shadow-[var(--shadow-card)] backdrop-blur-2xl">
                 <div className="border-b border-border/80 p-4">
                   <p className="truncate text-sm font-semibold text-foreground">{user?.name}</p>
-                  <p className="mt-1 truncate text-[11px] text-muted/60">{user?.email}</p>
+                  <p className="mt-1 truncate text-[11px] text-muted">{user?.email}</p>
                 </div>
                 <div className="p-2">
                   <button
@@ -316,10 +316,10 @@ function TopbarMetric({
 }) {
   return (
     <div className="min-w-[88px]">
-      <p className={cn("text-[10px] font-semibold uppercase tracking-[0.18em]", tone === "primary" ? "text-primary/72" : "text-muted/60")}>
+      <p className={cn("text-[11px] font-semibold uppercase tracking-[0.14em]", tone === "primary" ? "text-primary/80" : "text-muted")}>
         {label}
       </p>
-      <p className={cn("mt-1 whitespace-nowrap text-sm font-semibold tracking-[-0.03em]", tone === "primary" ? "text-primary" : "text-foreground")}>
+      <p className={cn("mt-1 whitespace-nowrap text-sm font-semibold tracking-[-0.02em]", tone === "primary" ? "text-primary" : "text-foreground")}>
         {value}
       </p>
     </div>

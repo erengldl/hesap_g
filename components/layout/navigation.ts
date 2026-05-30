@@ -47,6 +47,11 @@ export const accountNavigationItems: NavigationItem[] = [
 export const navigationSections: NavigationSection[] = [
   { title: "Ana İşler", items: primaryNavigationItems },
   { title: "Diğer Araçlar", items: advancedNavigationItems },
+  { title: "Hesap", items: accountNavigationItems },
 ];
 
-export const navigationItems: NavigationItem[] = [...primaryNavigationItems, ...advancedNavigationItems];
+export const navigationItems: NavigationItem[] = [
+  ...primaryNavigationItems,
+  ...advancedNavigationItems,
+  ...accountNavigationItems,
+];

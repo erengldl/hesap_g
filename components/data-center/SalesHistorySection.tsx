@@ -508,7 +508,7 @@ export default function SalesHistorySection() {
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-black transition-colors duration-200 hover:bg-primary/90"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors duration-200 hover:bg-primary/90"
               >
                 <Search className="h-4 w-4" />
                 Uygula

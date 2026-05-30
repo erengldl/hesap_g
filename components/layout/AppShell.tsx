@@ -76,7 +76,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <Topbar
                     onOpenMobileNavigation={openMobileNavigation}
                   />
-                  <main className="min-h-screen pt-[76px] animate-[fadeInUp_0.4s_ease-out]">
+                  <main className="min-h-screen pt-[72px] animate-[fadeInUp_0.4s_ease-out]">
                     <ErrorBoundary>
                       {children}
                     </ErrorBoundary>
