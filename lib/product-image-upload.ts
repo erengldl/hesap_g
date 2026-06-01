@@ -3,6 +3,8 @@ import { Buffer } from "node:buffer";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import { extname, join, posix } from "node:path";
 
+import { resolveFromAppRoot } from "./runtime-paths";
+
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
 const MIME_TO_EXTENSION = new Map<string, string>([
@@ -38,7 +40,7 @@ export async function saveProductImageUpload(file: File) {
     throw new Error("Sadece JPG, PNG, WebP veya GIF yüklenebilir.");
   }
 
-  const uploadDirectory = join(process.cwd(), "public", "uploads", "products");
+  const uploadDirectory = resolveFromAppRoot("public", "uploads", "products");
   await mkdir(uploadDirectory, { recursive: true });
 
   const fileName = `${Date.now()}-${randomUUID()}${extension}`;
@@ -70,7 +72,7 @@ export async function deleteProductImageUpload(imageUrl: string) {
     return false;
   }
 
-  const absolutePath = join(process.cwd(), "public", ...normalizedPath.split("/").filter(Boolean));
+  const absolutePath = resolveFromAppRoot("public", ...normalizedPath.split("/").filter(Boolean));
 
   try {
     await unlink(absolutePath);

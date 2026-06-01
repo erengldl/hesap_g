@@ -4,8 +4,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 import type { ReturnRiskModelArtifact } from "./types";
+import { resolveFromAppRoot } from "../runtime-paths";
 
-const MODEL_DIR = path.join(process.cwd(), "Veri Merkezi", "return-risk-models");
+const MODEL_DIR = resolveFromAppRoot("Veri Merkezi", "return-risk-models");
 const LATEST_MODEL_FILE = path.join(MODEL_DIR, "latest.json");
 
 function ensureModelDir() {

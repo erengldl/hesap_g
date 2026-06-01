@@ -51,7 +51,10 @@ async function main() {
   const child = spawn(process.execPath, ["server.js"], {
     cwd: standaloneDir,
     stdio: "inherit",
-    env: process.env,
+    env: {
+      ...process.env,
+      HESAP_G_APP_ROOT: repoRoot,
+    },
   });
 
   child.on("exit", (code, signal) => {

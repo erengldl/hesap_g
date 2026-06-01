@@ -2,7 +2,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-export const BUNDLED_DATABASE_PATH = path.join(process.cwd(), "Veri Merkezi", "kategoriagaci.db");
+import { resolveFromAppRoot } from "./runtime-paths";
+
+export const BUNDLED_DATABASE_PATH = resolveFromAppRoot("Veri Merkezi", "kategoriagaci.db");
 export const TEMP_DATABASE_PATH = path.join(os.tmpdir(), "hesap-g-kategoriagaci.db");
 
 function pathExists(filePath: string) {
@@ -51,4 +53,3 @@ export function resolveLocalDatabasePath(options: { preferWritableCopy?: boolean
 export function isBundledDatabaseAvailable() {
   return pathExists(BUNDLED_DATABASE_PATH) || pathExists(TEMP_DATABASE_PATH);
 }
-

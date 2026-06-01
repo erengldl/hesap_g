@@ -100,6 +100,10 @@ function ensureAppSchema(database: AppDatabase) {
     database.exec("ALTER TABLE products ADD COLUMN description TEXT");
   }
 
+  if (!hasColumn(database, 'products', 'updated_at')) {
+    database.exec("ALTER TABLE products ADD COLUMN updated_at DATETIME");
+  }
+
   if (!hasColumn(database, 'payment_gateway_rules', 'manual_shipping_cost')) {
     database.exec("ALTER TABLE payment_gateway_rules ADD COLUMN manual_shipping_cost REAL DEFAULT 95");
   }
@@ -891,8 +895,9 @@ function ensureAppSchema(database: AppDatabase) {
   database.exec(`
     UPDATE products
     SET status = COALESCE(status, 'active'),
-        profile_id = COALESCE(profile_id, 1)
-    WHERE profile_id IS NULL OR status IS NULL
+        profile_id = COALESCE(profile_id, 1),
+        updated_at = COALESCE(updated_at, CURRENT_TIMESTAMP)
+    WHERE profile_id IS NULL OR status IS NULL OR updated_at IS NULL
   `);
 
   database.exec(`

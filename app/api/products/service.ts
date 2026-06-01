@@ -124,12 +124,12 @@ export function saveProductRecord(payload: ProductUpsertInput, productId?: numbe
     : 1;
 
   const insertProduct = db.prepare(`
-    INSERT INTO products (name, sku, barcode, image_url, category_id, category_path, description, profile_id, cost, packaging_cost, desi, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (name, sku, barcode, image_url, category_id, category_path, description, profile_id, cost, packaging_cost, desi, status, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
   `);
   const updateProduct = db.prepare(`
     UPDATE products
-    SET name = ?, sku = ?, barcode = ?, image_url = ?, category_id = ?, category_path = ?, description = ?, profile_id = ?, cost = ?, packaging_cost = ?, desi = ?, status = ?
+    SET name = ?, sku = ?, barcode = ?, image_url = ?, category_id = ?, category_path = ?, description = ?, profile_id = ?, cost = ?, packaging_cost = ?, desi = ?, status = ?, updated_at = CURRENT_TIMESTAMP
     WHERE product_id = ?
   `);
 

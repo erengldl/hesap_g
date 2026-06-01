@@ -1,0 +1,42 @@
+JWT_SECRET ayarli degil. Production login akisi calismayacak.
+Query error: 
+    SELECT
+      p.product_id AS id,
+      p.name,
+      p.sku,
+      p.barcode,
+      p.image_url,
+      p.category_id,
+      p.profile_id,
+      c.name AS category_name,
+      COALESCE(p.category_path, c.path) AS category_path,
+      p.description,
+      p.cost,
+      p.packaging_cost,
+      p.desi,
+      p.status,
+      p.updated_at,
+      (
+        SELECT MAX(cr.profit_margin_percent)
+        FROM cost_results cr
+        WHERE cr.product_id = p.product_id
+      ) AS profit_margin_percent,
+      (
+        SELECT COALESCE(SUM(id.stock_qty - COALESCE(id.reserved_qty, 0)), 0)
+        FROM inventory_daily id
+        WHERE id.product_id = p.product_id
+          AND id.inventory_date = (
+            SELECT MAX(id2.inventory_date)
+            FROM inventory_daily id2
+            WHERE id2.product_id = p.product_id
+          )
+      ) AS stock_qty
+    FROM products p
+    LEFT JOIN categories c ON c.category_id = p.category_id
+    ORDER BY p.product_id DESC
+   SqliteError: no such column: p.updated_at
+    at u (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\standalone\.next\server\chunks\1204.js:682:473)
+    at u (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\standalone\.next\server\app\api\cost\tariffs\route.js:22:306)
+    at k (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\standalone\.next\server\app\api\products\route.js:1:3270) {
+  code: 'SQLITE_ERROR'
+}

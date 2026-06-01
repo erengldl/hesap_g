@@ -205,11 +205,12 @@ function buildDemoChannels(product: DemoProduct) {
 
   return channelSpecs.map((spec) => {
     const salePrice = round2(product.sale_price * spec.saleMultiplier);
+    const commission = round2(salePrice * spec.commissionRate);
     const totalCost = round2(
       product.cost +
       product.packaging_cost +
       spec.shipping +
-      (salePrice * spec.commissionRate) +
+      commission +
       spec.platformFee +
       spec.paymentGateway +
       spec.adCost
@@ -224,6 +225,7 @@ function buildDemoChannels(product: DemoProduct) {
       buyboxPrice: round2(salePrice * 0.95),
       shippingCompanyId: spec.shippingCompanyId,
       shipping: spec.shipping,
+      commission,
       mode: spec.mode,
       totalCost,
       netProfit,
