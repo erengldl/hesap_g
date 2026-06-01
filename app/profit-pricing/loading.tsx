@@ -5,9 +5,8 @@ export default function ProfitPricingLoadingRoute() {
   return (
     <div className="page-shell">
       <PageHeader
-        eyebrow="Karar ekrani"
-        title="Karlilik ve Fiyat Optimizasyonu"
-        description="Urunun gercek maliyetini hesapla, karli fiyat araligini ayni ekranda gor."
+        title="Kârlılık ve Fiyat Optimizasyonu"
+        description="Ürünü seç, kanal fiyatlarını kontrol et, en iyi fiyat stratejisini uygula."
       />
       <ProfitPricingLoadingState />
     </div>

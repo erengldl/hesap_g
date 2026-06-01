@@ -62,3 +62,18 @@
 - Network:       http://127.0.0.1:3001
 ✓ Ready in 387ms
 
+○ Compiling /profit-pricing ...
+ GET /profit-pricing 200 in 381ms (next.js: 6ms, application-code: 374ms)
+ GET /profit-pricing 200 in 360ms (next.js: 4ms, application-code: 357ms)
+ GET /api/app-stats 200 in 3.4s (next.js: 3.2s, application-code: 196ms)
+ GET /api/auth/me 401 in 3.4s (next.js: 3.2s, application-code: 195ms)
+ GET /profit-pricing 200 in 613ms (next.js: 102ms, application-code: 511ms)
+ GET /profit-pricing 200 in 1565ms (next.js: 209ms, application-code: 1355ms)
+ GET /api/auth/me 401 in 1604ms (next.js: 1540ms, application-code: 64ms)
+ GET /api/app-stats 200 in 1614ms (next.js: 1551ms, application-code: 64ms)
+ GET /profit-pricing 200 in 772ms (next.js: 74ms, application-code: 698ms)
+ GET /profit-pricing 200 in 401ms (next.js: 3ms, application-code: 398ms)
+ GET /profit-pricing 200 in 186ms (next.js: 4ms, application-code: 182ms)
+ GET /profit-pricing 200 in 916ms (next.js: 5ms, application-code: 910ms)
+ GET /api/app-stats 200 in 17ms (next.js: 3ms, application-code: 14ms)
+ GET /api/auth/me 401 in 8ms (next.js: 3ms, application-code: 5ms)

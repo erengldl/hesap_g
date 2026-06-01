@@ -40,3 +40,19 @@ Query error:
     at k (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\standalone\.next\server\app\api\products\route.js:1:3270) {
   code: 'SQLITE_ERROR'
 }
+⨯ Error [InvariantError]: Invariant: The client reference manifest for route "/profit-pricing" does not exist. This is a bug in Next.js.
+    at Object.get (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\standalone\.next\server\chunks\4741.js:11:4608)
+    at async q (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\standalone\.next\server\app\profit-pricing\page.js:1:13495)
+⨯ Error [InvariantError]: Invariant: The client reference manifest for route "/profit-pricing" does not exist. This is a bug in Next.js.
+    at Object.get (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\standalone\.next\server\chunks\4741.js:11:4608)
+    at async q (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\standalone\.next\server\app\profit-pricing\page.js:1:13495)
+⨯ Error: Failed to load static file for page: /500 ENOENT: no such file or directory, open 'C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\standalone\.next\server\pages\500.html'
+    at ignore-listed frames
+⨯ Error [InvariantError]: Invariant: The client reference manifest for route "/profit-pricing" does not exist. This is a bug in Next.js.
+    at Object.get (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\standalone\.next\server\chunks\4741.js:11:4608)
+    at async q (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\standalone\.next\server\app\profit-pricing\page.js:1:13495)
+⨯ Error [InvariantError]: Invariant: The client reference manifest for route "/profit-pricing" does not exist. This is a bug in Next.js.
+    at Object.get (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\standalone\.next\server\chunks\4741.js:11:4608)
+    at async q (C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\standalone\.next\server\app\profit-pricing\page.js:1:13495)
+⨯ Error: Failed to load static file for page: /500 ENOENT: no such file or directory, open 'C:\Users\Eren\OneDrive\Desktop\Hesap G\hesap_g\.next\standalone\.next\server\pages\500.html'
+    at ignore-listed frames

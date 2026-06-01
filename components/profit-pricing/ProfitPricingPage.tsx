@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   useEffect,
   useMemo,
@@ -7,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { AlertTriangle, LineChart, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Check, CircleAlert, LineChart } from "lucide-react";
 
 import { GlassCard, PageHeader } from "@/components/ui-custom/GlassComponents";
 import { calculateProfitPricing } from "@/lib/profit-pricing/orchestrator";
@@ -24,7 +25,6 @@ import type {
   SalesChannel,
 } from "@/lib/profit-pricing/types";
 
-import ChannelCostWaterfall from "./ChannelCostWaterfall";
 import OptimizationRecommendationTable from "./OptimizationRecommendationTable";
 import PriceProfitCurve from "./PriceProfitCurve";
 import ProfitPricingControlPanel from "./ProfitPricingControlPanel";
@@ -38,6 +38,13 @@ type Feedback = {
   tone: "success" | "error" | "info";
   text: string;
 } | null;
+
+const WORKFLOW_STEPS = [
+  "Ürünü Seç",
+  "Kanal Fiyatlarını Kontrol Et",
+  "Optimize Et",
+  "Öneriyi Kaydet",
+] as const;
 
 type ProfitPricingState = {
   channelProfiles: ProfitPricingChannelProfile[];
@@ -220,6 +227,87 @@ function pickSelectableChannel(channelProfiles: ProfitPricingChannelProfile[], f
   return channelProfiles[0]?.channel ?? "trendyol";
 }
 
+function collectMissingDataIssues(
+  channelProfiles: ProfitPricingChannelProfile[],
+  resultsByChannel: Partial<Record<SalesChannel, ProfitPricingResult>>
+) {
+  const issues: string[] = [];
+
+  const hasMissingCost = channelProfiles.some((profile) => {
+    const result = resultsByChannel[profile.channel];
+    return (
+      !Number.isFinite(profile.input.productCost) ||
+      profile.input.productCost <= 0 ||
+      Boolean(result?.missingFields.some((item) => item.includes("Ürün maliyeti")))
+    );
+  });
+
+  const hasMissingCommission = channelProfiles.some((profile) => {
+    if (profile.channel === "website") {
+      return false;
+    }
+
+    const result = resultsByChannel[profile.channel];
+    return (
+      profile.input.commissionRate === undefined ||
+      profile.input.commissionRate <= 0 ||
+      Boolean(result?.assumptions.some((item) => item.includes("Komisyon oranı")))
+    );
+  });
+
+  const hasMissingShipping = channelProfiles.some((profile) => {
+    const result = resultsByChannel[profile.channel];
+    return (
+      profile.input.shippingCost === undefined ||
+      profile.input.shippingCost <= 0 ||
+      Boolean(result?.assumptions.some((item) => item.includes("Kargo maliyeti"))) ||
+      Boolean(result?.missingFields.some((item) => item.includes("Kargo maliyeti")))
+    );
+  });
+
+  const hasMissingSalesHistory = channelProfiles.some((profile) => {
+    const result = resultsByChannel[profile.channel];
+    const noDemandSignal =
+      result?.priceGrid.length
+        ? result.priceGrid.every(
+            (point) => point.estimatedDemand === null || point.estimatedDemand <= 0
+          )
+        : false;
+
+    return (
+      profile.input.baseDemand === undefined ||
+      profile.input.baseDemand <= 0 ||
+      noDemandSignal
+    );
+  });
+
+  if (hasMissingCost) {
+    issues.push(
+      "Ürün maliyeti eksik veya 0 görünüyor. Net kâr hesabını güvenle kullanmadan önce maliyet alanını tamamlayın."
+    );
+  }
+
+  if (hasMissingCommission) {
+    issues.push(
+      "Komisyon oranı doğrulanamadı. Pazaryeri komisyonu eksikse kanal kârlılığı olduğundan iyi görünebilir."
+    );
+  }
+
+  if (hasMissingShipping) {
+    issues.push(
+      "Kargo maliyeti eksik. Özellikle kendi web sitenizde toplam kâr tahmini bu alan olmadan zayıflar."
+    );
+  }
+
+  if (hasMissingSalesHistory) {
+    issues.push(
+      "Satış geçmişi sınırlı. Talep ve toplam kâr tahminleri daha düşük güvenle hesaplanıyor."
+    );
+  }
+
+  return issues;
+}
+
 export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBootstrap }) {
   const [state, dispatch] = useReducer(reducer, props.bootstrap, createInitialState);
   const [selectionLoading, setSelectionLoading] = useState(false);
@@ -232,8 +320,8 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
   const lastSyncedSignatureRef = useRef(
     createChannelSignature(props.bootstrap.channelProfiles)
   );
+  const recommendationSectionRef = useRef<HTMLDivElement | null>(null);
   const graphSectionRef = useRef<HTMLDivElement | null>(null);
-  const waterfallSectionRef = useRef<HTMLDivElement | null>(null);
 
   const resultsByChannel = useMemo(
     () => buildResultsByChannel(state.channelProfiles),
@@ -254,6 +342,10 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
   const strategies = useMemo(
     () => buildOptimizationSuggestions(resultsByChannel, state.selectedChannel),
     [resultsByChannel, state.selectedChannel]
+  );
+  const missingDataIssues = useMemo(
+    () => collectMissingDataIssues(state.channelProfiles, resultsByChannel),
+    [resultsByChannel, state.channelProfiles]
   );
 
   useEffect(() => {
@@ -395,7 +487,10 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
         tone: "info",
         text: "Öneriler hazır. Kanal bazlı fiyat seçenekleri aşağıda üretildi.",
       });
-      graphSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      recommendationSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
     } catch (error) {
       setSyncState("error");
       setFeedback({
@@ -422,16 +517,16 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
         return profile;
       }
 
-        return {
-          ...profile,
-          input: {
-            ...profile.input,
-            salePrice: target.price,
-            basePrice: target.price,
-            dataSource: "mixed" as const,
-          },
-        };
-      });
+      return {
+        ...profile,
+        input: {
+          ...profile.input,
+          salePrice: target.price,
+          basePrice: target.price,
+          dataSource: "mixed" as const,
+        },
+      };
+    });
 
     setApplyingStrategy(strategy);
     setFeedback(null);
@@ -449,7 +544,7 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
         tone: "success",
         text: `${currentProductName} ürünü için tüm kanallarda fiyat optimize edildi.`,
       });
-      waterfallSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      graphSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (error) {
       setSyncState("error");
       setFeedback({
@@ -464,13 +559,20 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
     }
   };
 
+  const activeStepIndex = state.activeStrategy
+    ? 3
+    : state.optimizationReady
+      ? 2
+      : currentProductId
+        ? 1
+        : 0;
+
   if (props.bootstrap.products.length === 0) {
     return (
       <div className="page-shell">
         <PageHeader
-          eyebrow="Karar ekranı"
           title="Kârlılık ve Fiyat Optimizasyonu"
-          description="Ürünün gerçek maliyetini hesapla, kârlı fiyat aralığını aynı ekranda gör."
+          description="Ürünü seç, kanal fiyatlarını kontrol et, en iyi fiyat stratejisini uygula."
         />
         <ProfitPricingEmptyState />
       </div>
@@ -481,9 +583,8 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
     return (
       <div className="page-shell">
         <PageHeader
-          eyebrow="Karar ekranı"
           title="Kârlılık ve Fiyat Optimizasyonu"
-          description="Ürünün gerçek maliyetini hesapla, kârlı fiyat aralığını aynı ekranda gör."
+          description="Ürünü seç, kanal fiyatlarını kontrol et, en iyi fiyat stratejisini uygula."
         />
         <ProfitPricingErrorState message={loadError} />
       </div>
@@ -492,20 +593,14 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
 
   return (
     <div className="page-shell">
+      <div className="sticky top-[76px] z-30 mb-4 sm:mb-5">
+        <WorkflowStepper activeStepIndex={activeStepIndex} />
+      </div>
+
       <PageHeader
-        eyebrow="Karar ekranı"
         title="Kârlılık ve Fiyat Optimizasyonu"
-        description="Ürünü seç, üç kanalın fiyatını aynı anda yönet ve tek tıkla optimize et."
-      >
-        <div className="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
-          <ShieldCheck className="h-3.5 w-3.5" />
-          {syncState === "saving"
-            ? "Veri Merkezi güncelleniyor..."
-            : syncState === "saved"
-              ? "Veri Merkezi güncel"
-              : "Canlı fiyat yönetimi"}
-        </div>
-      </PageHeader>
+        description="Ürünü seç, kanal fiyatlarını kontrol et, en iyi fiyat stratejisini uygula."
+      />
 
       {selectionLoading ? (
         <ProfitPricingLoadingState />
@@ -531,10 +626,11 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
             />
           </section>
 
-          <section className="flex w-full flex-col gap-4">
+          <section ref={recommendationSectionRef} className="flex w-full flex-col gap-4">
             {activeResult ? (
               <OptimizationRecommendationTable
                 resultsByChannel={resultsByChannel}
+                selectedChannel={state.selectedChannel}
                 strategies={strategies}
                 activeStrategy={state.activeStrategy}
                 applyingStrategy={applyingStrategy}
@@ -553,8 +649,6 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
                   selectedChannel={state.selectedChannel}
                   strategies={strategies}
                   activeStrategy={state.activeStrategy}
-                  applyingStrategy={applyingStrategy}
-                  onApplyStrategy={handleApplyStrategy}
                 />
               ) : (
                 <DeferredPanelPlaceholder title="Fiyat talep eğrisi yüklenemedi." />
@@ -562,38 +656,110 @@ export default function ProfitPricingPage(props: { bootstrap: ProfitPricingBoots
             </div>
           </section>
 
-          <section className="flex w-full flex-col gap-4">
-            <div ref={waterfallSectionRef}>
-              {activeResult ? (
-                <ChannelCostWaterfall result={activeResult} />
-              ) : (
-                <DeferredPanelPlaceholder title="Waterfall maliyet grafiği yüklenemedi." />
-              )}
-            </div>
-          </section>
-
-          {activeResult &&
-          (activeResult.warnings.length > 0 || activeResult.missingFields.length > 0) ? (
-            <GlassCard className="border-warning/20 bg-warning/5">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-warning/20 bg-warning/10 text-warning">
-                  <AlertTriangle className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    Veri kalitesi dikkat istiyor
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-soft">
-                    Eksik alanlar ve varsayımlar karar çıktısını etkileyebilir. Önce ürün
-                    maliyeti, komisyon ve kargo alanlarını doğrulayın.
-                  </p>
-                </div>
-              </div>
-            </GlassCard>
+          {missingDataIssues.length > 0 ? (
+            <MissingDataPanel issues={missingDataIssues} />
           ) : null}
         </div>
       )}
     </div>
+  );
+}
+
+function WorkflowStepper(props: { activeStepIndex: number }) {
+  return (
+    <GlassCard className="overflow-hidden border-border/80 bg-panel/96 px-3 py-3 shadow-[var(--shadow-panel)] backdrop-blur-2xl sm:px-4">
+      <div className="flex min-w-max items-center gap-2 md:gap-3">
+        {WORKFLOW_STEPS.map((step, index) => {
+          const state =
+            index < props.activeStepIndex
+              ? "complete"
+              : index === props.activeStepIndex
+                ? "active"
+                : "upcoming";
+
+          return (
+            <div key={step} className="flex items-center gap-2 md:gap-3">
+              <div
+                className={[
+                  "flex min-w-[180px] items-center gap-3 rounded-2xl border px-3 py-2.5 transition-colors",
+                  state === "complete"
+                    ? "border-profit/20 bg-profit/[0.08] text-profit"
+                    : state === "active"
+                      ? "border-primary/25 bg-primary/[0.1] text-primary shadow-[var(--shadow-primary)]"
+                      : "border-border/80 bg-surface-container/70 text-muted",
+                ].join(" ")}
+              >
+                <span
+                  className={[
+                    "inline-flex h-8 w-8 items-center justify-center rounded-xl border text-[11px] font-semibold",
+                    state === "complete"
+                      ? "border-profit/20 bg-profit/12 text-profit"
+                      : state === "active"
+                        ? "border-primary/20 bg-primary/16 text-primary"
+                        : "border-border/70 bg-surface-soft/80 text-muted",
+                  ].join(" ")}
+                >
+                  {state === "complete" ? <Check className="h-4 w-4" /> : index + 1}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] opacity-75">
+                    Adım {index + 1}
+                  </p>
+                  <p className="mt-1 truncate text-sm font-semibold">{step}</p>
+                </div>
+              </div>
+              {index < WORKFLOW_STEPS.length - 1 ? (
+                <span className="text-muted/50" aria-hidden="true">
+                  →
+                </span>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </GlassCard>
+  );
+}
+
+function MissingDataPanel(props: { issues: string[] }) {
+  return (
+    <GlassCard className="border-warning/20 bg-warning/[0.06]">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-warning/25 bg-warning/10 text-warning">
+            <CircleAlert className="h-5 w-5" />
+          </div>
+          <div className="space-y-2">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-warning/80">
+                Veri eksik
+              </p>
+              <h3 className="mt-1 text-base font-semibold text-foreground">
+                Kararı uygulamadan önce veri tabanını tamamlayın
+              </h3>
+            </div>
+            <p className="text-sm leading-6 text-soft">
+              Bu fiyat önerileri üretildi, ancak aşağıdaki boşluklar güven seviyesini düşürüyor.
+            </p>
+            <div className="flex flex-col gap-2">
+              {props.issues.map((issue) => (
+                <div key={issue} className="flex items-start gap-2 text-sm leading-6 text-soft">
+                  <AlertTriangle className="mt-1 h-4 w-4 shrink-0 text-warning" />
+                  <span>{issue}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <Link
+          href="/veri-merkezi"
+          className="btn-secondary min-h-11 whitespace-nowrap px-5 text-sm"
+        >
+          Veri Merkezi&apos;nde tamamla
+        </Link>
+      </div>
+    </GlassCard>
   );
 }
 

@@ -13,7 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Loader2, Save } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 
 import { GlassCard } from "@/components/ui-custom/GlassComponents";
 import {
@@ -40,16 +40,16 @@ type CurveTooltipProps = {
   payload?: Array<{ payload: CurvePoint }>;
 };
 
-const STRATEGY_TONES: Record<OptimizationStrategyKey, string> = {
-  high_sales: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
-  buybox_balance: "border-primary/30 bg-primary/10 text-primary",
-  premium_balance: "border-warning/30 bg-warning/10 text-warning",
-};
+const TOTAL_PROFIT_COLOR = "var(--profit)";
+const UNIT_PROFIT_COLOR = "#8f6bff";
+const DEMAND_COLOR = "#62a8ff";
+const CURRENT_PRICE_COLOR = "#ff7f6d";
+const BUYBOX_COLOR = "var(--warning)";
 
 const STRATEGY_POINT_COLORS: Record<OptimizationStrategyKey, string> = {
-  high_sales: "#2dd4bf",
-  buybox_balance: "#7c5cff",
-  premium_balance: "#f59e0b",
+  high_sales: "#31d0aa",
+  buybox_balance: "#8f6bff",
+  premium_balance: "#f5b759",
 };
 
 function CurveTooltip({ active, payload }: CurveTooltipProps) {
@@ -63,9 +63,9 @@ function CurveTooltip({ active, payload }: CurveTooltipProps) {
   }
 
   return (
-    <div className="w-[220px] rounded-2xl border border-border bg-[var(--panel-bg)] p-2.5 text-sm text-foreground shadow-[var(--shadow-card)]">
+    <div className="w-[248px] rounded-2xl border border-border bg-[var(--panel-bg)] p-3 text-sm text-foreground shadow-[var(--shadow-card)]">
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
-        Fiyat adayı
+        Fiyat noktası
       </p>
       <h4 className="mt-2 text-base font-semibold text-foreground">
         {formatProfitPricingCurrency(point.price)}
@@ -90,85 +90,45 @@ function CurveTooltip({ active, payload }: CurveTooltipProps) {
           </p>
         </div>
       </div>
+      <p className="mt-3 text-[11px] leading-5 text-muted">
+        Bu fiyat seviyesinde talep tahmini ile birim ve toplam kâr birlikte okunur.
+      </p>
     </div>
   );
 }
 
-function StrategyButton(props: {
-  strategy: OptimizationStrategySuggestion;
-  selectedChannel: SalesChannel;
-  active: boolean;
-  applying: boolean;
-  anyApplying: boolean;
-  onApply: (key: OptimizationStrategyKey) => void;
+function cockpitChannelLabel(channel: SalesChannel) {
+  return channel === "website" ? "Kendi Websitem" : channelLabel(channel);
+}
+
+function findCurvePoint(points: CurvePoint[], price: number | null | undefined) {
+  if (price === null || price === undefined || !Number.isFinite(price)) {
+    return null;
+  }
+
+  return points.find((point) => Math.abs(point.price - price) < 0.01) ?? null;
+}
+
+function LegendChip(props: {
+  label: string;
+  color: string;
+  dashed?: boolean;
+  dot?: boolean;
 }) {
-  const selectedChannelTarget =
-    props.strategy.channelTargets.find(
-      (target) => target.channel === props.selectedChannel
-    ) ?? props.strategy.channelTargets[0];
-
   return (
-    <article
-      className={cn(
-        "h-full rounded-2xl border p-2.5 text-left transition-all duration-200",
-        STRATEGY_TONES[props.strategy.key],
-        props.active ? "ring-1 ring-current shadow-[var(--shadow-primary)]" : "",
-        props.strategy.disabled ? "opacity-60" : ""
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold">{props.strategy.label}</p>
-          <p className="mt-1 text-xs opacity-80">{props.strategy.subtitle}</p>
-        </div>
-        <span className="rounded-full border border-current/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]">
-          {props.strategy.disabled ? "Veri eksik" : channelLabel(props.selectedChannel)}
-        </span>
-      </div>
-
-      <p className="mt-2.5 text-lg font-semibold">
-        {formatProfitPricingCurrency(selectedChannelTarget?.price)}
-      </p>
-
-      <div className="mt-2 space-y-1 text-[10px] opacity-85">
-        <span>
-          Talep: {formatProfitPricingNumber(props.strategy.selectedChannelDemand)}
-        </span>
-        <span>
-          Toplam kâr:{" "}
-          {formatProfitPricingCurrency(props.strategy.selectedChannelTotalProfit)}
-        </span>
-      </div>
-
-      <div className="mt-2.5 flex flex-wrap gap-1">
-        {props.strategy.channelTargets.map((target) => (
-          <span
-            key={`${props.strategy.key}-${target.channel}`}
-            className="rounded-full border border-current/15 px-1.5 py-0.5 text-[8px] font-semibold"
-          >
-            {target.label} {formatProfitPricingCurrency(target.price)}
-          </span>
-        ))}
-      </div>
-
-      <p className="mt-4 text-[11px] leading-5 opacity-85">
-        {props.strategy.selectedChannelNote ?? props.strategy.description}
-      </p>
-
-      <button
-        type="button"
-        disabled={props.strategy.disabled || props.anyApplying}
-        onClick={() => props.onApply(props.strategy.key)}
-        className="mt-2.5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-current/20 bg-current/10 px-2 py-1.5 text-[10px] font-semibold text-inherit transition hover:bg-current/15 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {props.applying ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        ) : (
-          <Save className="h-3.5 w-3.5" />
+    <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-surface-container/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+      <span
+        className={cn(
+          props.dot ? "h-2.5 w-2.5 rounded-full" : "h-0.5 w-4 rounded-full",
+          props.dashed && "border-t border-dashed bg-transparent"
         )}
-        {props.applying ? "Veri Merkezi'ne kaydediliyor" : "Bu öneriyi Veri Merkezi'ne kaydet"}
-      </button>
-    </article>
+        style={{
+          backgroundColor: props.dashed ? "transparent" : props.color,
+          borderColor: props.dashed ? props.color : undefined,
+        }}
+      />
+      {props.label}
+    </span>
   );
 }
 
@@ -177,11 +137,9 @@ export default function PriceProfitCurve(props: {
   selectedChannel: SalesChannel;
   strategies: OptimizationStrategySuggestion[];
   activeStrategy: OptimizationStrategyKey | null;
-  applyingStrategy: OptimizationStrategyKey | null;
-  onApplyStrategy: (key: OptimizationStrategyKey) => void;
 }) {
   const [isMounted, setIsMounted] = useState(false);
-  const { result, strategies, activeStrategy, applyingStrategy } = props;
+  const { result, strategies, activeStrategy } = props;
 
   useEffect(() => {
     setIsMounted(true);
@@ -195,149 +153,200 @@ export default function PriceProfitCurve(props: {
     demand: point.estimatedDemand ?? null,
     totalProfit: point.estimatedTotalProfit ?? null,
     unitProfit: point.netProfit,
-  }));
+  })).sort((left, right) => left.price - right.price);
 
   const hasDemand = curveData.some((point) => point.demand !== null);
   const hasTotalProfit = curveData.some((point) => point.totalProfit !== null);
+  const currentPoint = findCurvePoint(curveData, result.input.salePrice);
+  const buyboxPoint = findCurvePoint(curveData, result.input.buyboxPrice);
 
   return (
     <GlassCard className="border-border/80">
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
-            Fiyat talep eğrisi
+            Fiyat ve kâr eğrisi
           </p>
           <h3 className="mt-2 text-lg font-semibold text-foreground">
-            Üç farklı optimizasyon önerisi tek tıkla uygulanır
+            {cockpitChannelLabel(props.selectedChannel)} için fiyat aralığını güvenle karşılaştır
           </h3>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-soft">
-            Seçili kanal için talep ve toplam kâr eğrisi gösterilir. Üstteki öneri
-            butonlarından biri seçildiğinde aynı strateji ürünün tüm kanallarına kaydedilir.
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-soft">
+            Toplam kâr, birim kâr ve talep aynı eksende izlenir. Mevcut fiyat, buybox çizgisi
+            ve strateji noktaları karar anında görünür kalır.
           </p>
         </div>
 
-        <div className="grid w-full gap-3 md:grid-cols-3">
+        <div className="flex flex-wrap gap-2">
+          <LegendChip label="Toplam kâr" color={TOTAL_PROFIT_COLOR} />
+          <LegendChip label="Birim kâr" color={UNIT_PROFIT_COLOR} />
+          {hasDemand ? <LegendChip label="Talep" color={DEMAND_COLOR} /> : null}
+          <LegendChip label="Mevcut fiyat" color={CURRENT_PRICE_COLOR} dashed />
+          {result.input.buyboxPrice ? (
+            <LegendChip label="Buybox" color={BUYBOX_COLOR} dashed />
+          ) : null}
           {strategies.map((strategy) => (
-            <StrategyButton
+            <LegendChip
               key={strategy.key}
-              strategy={strategy}
-              selectedChannel={props.selectedChannel}
-              active={activeStrategy === strategy.key}
-              applying={applyingStrategy === strategy.key}
-              anyApplying={applyingStrategy !== null}
-              onApply={props.onApplyStrategy}
+              label={strategy.key === "high_sales"
+                ? "High Sales"
+                : strategy.key === "buybox_balance"
+                  ? "Buybox Balance"
+                  : "Premium Balance"}
+              color={STRATEGY_POINT_COLORS[strategy.key]}
+              dot
             />
           ))}
         </div>
       </div>
 
-      <div className="mt-4 h-[320px] min-w-0">
+      <div className="mt-4 h-[360px] min-w-0">
         {isMounted ? (
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={320}>
-          <LineChart data={curveData} margin={{ top: 18, right: 22, left: 8, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
-            <XAxis
-              type="number"
-              dataKey="price"
-              domain={["dataMin", "dataMax"]}
-              stroke="var(--text-muted)"
-              tickFormatter={(value) => formatProfitPricingCurrency(Number(value))}
-            />
-            <YAxis
-              yAxisId="profit"
-              stroke="var(--text-muted)"
-              tickFormatter={(value) => formatProfitPricingCurrency(Number(value))}
-            />
-            {hasDemand ? (
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={360}>
+            <LineChart data={curveData} margin={{ top: 18, right: 22, left: 4, bottom: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
+              <XAxis
+                type="number"
+                dataKey="price"
+                domain={["dataMin", "dataMax"]}
+                stroke="var(--text-muted)"
+                tickFormatter={(value) => formatProfitPricingCurrency(Number(value))}
+              />
               <YAxis
-                yAxisId="demand"
-                orientation="right"
-                stroke="var(--warning)"
-                tickFormatter={(value) => formatProfitPricingNumber(Number(value))}
+                yAxisId="profit"
+                stroke="var(--text-muted)"
+                tickFormatter={(value) => formatProfitPricingCurrency(Number(value))}
               />
-            ) : null}
-            <Tooltip content={<CurveTooltip />} />
+              {hasDemand ? (
+                <YAxis
+                  yAxisId="demand"
+                  orientation="right"
+                  stroke={DEMAND_COLOR}
+                  tickFormatter={(value) => formatProfitPricingNumber(Number(value))}
+                />
+              ) : null}
+              <Tooltip
+                cursor={{ stroke: "var(--primary)", strokeDasharray: "3 3", strokeOpacity: 0.25 }}
+                content={<CurveTooltip />}
+              />
 
-            <ReferenceLine
-              x={result.input.salePrice}
-              stroke="var(--accent)"
-              strokeDasharray="4 4"
-              label="Mevcut fiyat"
-            />
-            {result.input.buyboxPrice ? (
               <ReferenceLine
-                x={result.input.buyboxPrice}
-                stroke="var(--warning)"
-                strokeDasharray="4 4"
-                label="Buybox"
+                x={result.input.salePrice}
+                stroke={CURRENT_PRICE_COLOR}
+                strokeDasharray="5 5"
+                strokeOpacity={0.9}
+                strokeWidth={1.5}
               />
-            ) : null}
+              {result.input.buyboxPrice ? (
+                <ReferenceLine
+                  x={result.input.buyboxPrice}
+                  stroke={BUYBOX_COLOR}
+                  strokeDasharray="5 5"
+                  strokeOpacity={0.85}
+                  strokeWidth={1.35}
+                />
+              ) : null}
 
-            {strategies.map((strategy) => {
-              const selectedTarget =
-                strategy.channelTargets.find(
-                  (target) => target.channel === props.selectedChannel
-                ) ?? strategy.channelTargets[0];
-
-              if (!selectedTarget?.price) {
-                return null;
-              }
-
-              const profitPoint =
-                curveData.find((point) => point.price === selectedTarget.price) ?? null;
-
-              return (
+              {currentPoint && currentPoint.totalProfit !== null ? (
                 <ReferenceDot
-                  key={`${strategy.key}-${selectedTarget.price}`}
-                  x={selectedTarget.price}
-                  y={profitPoint?.totalProfit ?? 0}
+                  x={result.input.salePrice}
+                  y={currentPoint.totalProfit}
                   yAxisId="profit"
-                  r={activeStrategy === strategy.key ? 7 : 5}
-                  fill={STRATEGY_POINT_COLORS[strategy.key]}
+                  r={6}
+                  fill={CURRENT_PRICE_COLOR}
                   stroke="var(--text-main)"
                   strokeWidth={1.5}
-                  ifOverflow="extendDomain"
                 />
-              );
-            })}
+              ) : null}
+              {buyboxPoint && buyboxPoint.totalProfit !== null ? (
+                <ReferenceDot
+                  x={result.input.buyboxPrice ?? 0}
+                  y={buyboxPoint.totalProfit}
+                  yAxisId="profit"
+                  r={5}
+                  fill={BUYBOX_COLOR}
+                  stroke="var(--text-main)"
+                  strokeWidth={1.25}
+                />
+              ) : null}
 
-            {hasTotalProfit ? (
+              {strategies.map((strategy) => {
+                const selectedTarget =
+                  strategy.channelTargets.find(
+                    (target) => target.channel === props.selectedChannel
+                  ) ?? strategy.channelTargets[0];
+                const profitPoint = findCurvePoint(curveData, selectedTarget?.price);
+
+                if (!selectedTarget?.price || !profitPoint || profitPoint.totalProfit === null) {
+                  return null;
+                }
+
+                return (
+                  <ReferenceDot
+                    key={`${strategy.key}-${selectedTarget.price}`}
+                    x={selectedTarget.price}
+                    y={profitPoint.totalProfit}
+                    yAxisId="profit"
+                    r={activeStrategy === strategy.key ? 7 : 5}
+                    fill={STRATEGY_POINT_COLORS[strategy.key]}
+                    stroke="var(--text-main)"
+                    strokeWidth={1.5}
+                    ifOverflow="extendDomain"
+                  />
+                );
+              })}
+
+              {hasTotalProfit ? (
+                <Line
+                  yAxisId="profit"
+                  type="linear"
+                  dataKey="totalProfit"
+                  stroke={TOTAL_PROFIT_COLOR}
+                  strokeWidth={3.2}
+                  strokeOpacity={0.98}
+                  isAnimationActive={false}
+                  dot={{ r: 2.2, strokeWidth: 0, fill: TOTAL_PROFIT_COLOR }}
+                  activeDot={{ r: 5, strokeWidth: 0, fill: TOTAL_PROFIT_COLOR }}
+                  name="Tahmini toplam kâr"
+                  connectNulls
+                />
+              ) : null}
               <Line
                 yAxisId="profit"
-                type="monotone"
-                dataKey="totalProfit"
-                stroke="var(--success)"
-                strokeWidth={2.8}
-                dot={{ r: 1.8, strokeWidth: 0, fill: "var(--success)" }}
-                activeDot={{ r: 5, strokeWidth: 0, fill: "var(--success)" }}
-                name="Tahmini toplam kâr"
+                type="linear"
+                dataKey="unitProfit"
+                stroke={UNIT_PROFIT_COLOR}
+                strokeWidth={2.6}
+                strokeOpacity={0.96}
+                isAnimationActive={false}
+                dot={{ r: 1.8, strokeWidth: 0, fill: UNIT_PROFIT_COLOR }}
+                activeDot={{ r: 4.6, strokeWidth: 0, fill: UNIT_PROFIT_COLOR }}
+                name="Birim net kâr"
               />
-            ) : null}
-            <Line
-              yAxisId="profit"
-              type="monotone"
-              dataKey="unitProfit"
-              stroke="var(--primary)"
-              strokeWidth={2.2}
-              dot={{ r: 1.6, strokeWidth: 0, fill: "var(--primary)" }}
-              activeDot={{ r: 4.6, strokeWidth: 0, fill: "var(--primary)" }}
-              name="Birim net kâr"
-            />
-            {hasDemand ? (
-              <Line
-                yAxisId="demand"
-                type="monotone"
-                dataKey="demand"
-                stroke="var(--warning)"
-                strokeWidth={2.4}
-                dot={{ r: 1.4, strokeWidth: 0, fill: "var(--warning)" }}
-                activeDot={{ r: 4.2, strokeWidth: 0, fill: "var(--warning)" }}
-                name="Tahmini talep"
-              />
-            ) : null}
-          </LineChart>
-        </ResponsiveContainer>
-        ) : null}
+              {hasDemand ? (
+                <Line
+                  yAxisId="demand"
+                  type="linear"
+                  dataKey="demand"
+                  stroke={DEMAND_COLOR}
+                  strokeWidth={2.6}
+                  strokeOpacity={0.95}
+                  isAnimationActive={false}
+                  dot={{ r: 1.8, strokeWidth: 0, fill: DEMAND_COLOR }}
+                  activeDot={{ r: 4.2, strokeWidth: 0, fill: DEMAND_COLOR }}
+                  name="Tahmini talep"
+                  connectNulls
+                />
+              ) : null}
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-border/70 bg-surface-container/45 text-muted">
+            <div className="flex items-center gap-2 text-sm">
+              <TrendingUp className="h-4 w-4" />
+              Grafik hazırlanıyor
+            </div>
+          </div>
+        )}
       </div>
     </GlassCard>
   );

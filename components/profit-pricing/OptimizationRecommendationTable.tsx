@@ -11,7 +11,6 @@ import type {
   ProfitPricingResult,
   SalesChannel,
 } from "@/lib/profit-pricing/types";
-import { SUPPORTED_SALES_CHANNELS } from "@/lib/profit-pricing/types";
 import type {
   OptimizationStrategyKey,
   OptimizationStrategySuggestion,
@@ -21,41 +20,39 @@ import { cn } from "@/lib/utils";
 
 type OptimizationRecommendationTableProps = {
   resultsByChannel: Partial<Record<SalesChannel, ProfitPricingResult>>;
+  selectedChannel: SalesChannel;
   strategies: OptimizationStrategySuggestion[];
   activeStrategy: OptimizationStrategyKey | null;
   applyingStrategy: OptimizationStrategyKey | null;
   onApplyStrategy: (key: OptimizationStrategyKey) => void;
 };
 
-function getChannelReference(result: ProfitPricingResult | undefined) {
-  if (!result) {
-    return {
-      label: "Referans",
-      value: null,
-      helper: "Veri yok",
-    };
-  }
+const STRATEGY_DISPLAY: Record<
+  OptimizationStrategyKey,
+  { title: string; card: string; badge: string; button: string }
+> = {
+  high_sales: {
+    title: "High Sales",
+    card: "border-profit/20 bg-gradient-to-b from-profit/[0.08] to-transparent",
+    badge: "border-profit/20 bg-profit/10 text-profit",
+    button: "border-profit/20 bg-profit/10 text-profit hover:bg-profit/15",
+  },
+  buybox_balance: {
+    title: "Buybox Balance",
+    card: "border-primary/25 bg-gradient-to-b from-primary/[0.08] to-transparent",
+    badge: "border-primary/20 bg-primary/10 text-primary",
+    button: "border-primary/20 bg-primary/10 text-primary hover:bg-primary/15",
+  },
+  premium_balance: {
+    title: "Premium Balance",
+    card: "border-warning/20 bg-gradient-to-b from-warning/[0.08] to-transparent",
+    badge: "border-warning/20 bg-warning/10 text-warning",
+    button: "border-warning/20 bg-warning/10 text-warning hover:bg-warning/15",
+  },
+};
 
-  if (result.input.channel === "website") {
-    return {
-      label: "Kargo",
-      value: result.input.shippingCost ?? null,
-      helper: "Web sitesi için buybox yerine kargo fiyatı kullanılır.",
-    };
-  }
-
-  return {
-    label: "Buybox",
-    value: result.input.buyboxPrice ?? null,
-    helper: "Pazaryeri hedef buybox seviyesi.",
-  };
-}
-
-function getStrategyTarget(
-  strategy: OptimizationStrategySuggestion,
-  channel: SalesChannel
-) {
-  return strategy.channelTargets.find((target) => target.channel === channel) ?? null;
+function cockpitChannelLabel(channel: SalesChannel) {
+  return channel === "website" ? "Kendi Websitem" : channelLabel(channel);
 }
 
 function getCurrentTotalProfit(result: ProfitPricingResult | undefined) {
@@ -78,120 +75,178 @@ function getCurrentTotalProfit(result: ProfitPricingResult | undefined) {
   return currentGridPoint?.estimatedTotalProfit ?? null;
 }
 
+function deltaTone(delta: number | null) {
+  if (delta === null || !Number.isFinite(delta)) {
+    return "border-border/70 bg-surface-container/70 text-muted";
+  }
+
+  if (delta > 0) {
+    return "border-profit/20 bg-profit/[0.08] text-profit";
+  }
+
+  if (delta < 0) {
+    return "border-loss/20 bg-loss/[0.08] text-loss";
+  }
+
+  return "border-warning/20 bg-warning/[0.08] text-warning";
+}
+
+function StrategyCard(props: {
+  strategy: OptimizationStrategySuggestion;
+  resultsByChannel: Partial<Record<SalesChannel, ProfitPricingResult>>;
+  selectedChannel: SalesChannel;
+  active: boolean;
+  applying: boolean;
+  anyApplying: boolean;
+  onApplyStrategy: (key: OptimizationStrategyKey) => void;
+}) {
+  const display = STRATEGY_DISPLAY[props.strategy.key];
+  const selectedTarget =
+    props.strategy.channelTargets.find((target) => target.channel === props.selectedChannel) ??
+    props.strategy.channelTargets[0];
+
+  return (
+    <article
+      className={cn(
+        "h-full rounded-2xl border p-4 transition-all duration-200",
+        display.card,
+        props.active && "shadow-[var(--shadow-primary)] ring-1 ring-current/20",
+        props.strategy.disabled && "opacity-65"
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-lg font-semibold text-foreground">{display.title}</p>
+          <p className="mt-1 text-[12px] leading-5 text-soft">
+            {selectedTarget?.note ?? props.strategy.subtitle}
+          </p>
+        </div>
+        <span className={cn("rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]", display.badge)}>
+          {cockpitChannelLabel(props.selectedChannel)}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <div className="rounded-2xl border border-border/70 bg-surface-container/70 px-3 py-2.5">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted/70">
+            Önerilen fiyat
+          </p>
+          <p className="mt-1 text-lg font-semibold text-foreground">
+            {formatProfitPricingCurrency(props.strategy.selectedChannelPrice)}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-border/70 bg-surface-container/70 px-3 py-2.5">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted/70">
+            Beklenen talep
+          </p>
+          <p className="mt-1 text-lg font-semibold text-foreground">
+            {formatProfitPricingNumber(props.strategy.selectedChannelDemand)}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-2 rounded-2xl border border-border/70 bg-surface-container/70 px-3 py-2.5">
+        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-muted/70">
+          Beklenen toplam kâr
+        </p>
+        <p className="mt-1 text-lg font-semibold text-foreground">
+          {formatProfitPricingCurrency(props.strategy.selectedChannelTotalProfit)}
+        </p>
+      </div>
+
+      <div className="mt-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/70">
+          Tüm kanallara etki
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {props.strategy.channelTargets.map((target) => {
+            const currentTotalProfit = getCurrentTotalProfit(
+              props.resultsByChannel[target.channel]
+            );
+            const delta =
+              target.totalProfit !== null &&
+              currentTotalProfit !== null &&
+              Number.isFinite(target.totalProfit) &&
+              Number.isFinite(currentTotalProfit)
+                ? Number((target.totalProfit - currentTotalProfit).toFixed(2))
+                : null;
+
+            return (
+              <span
+                key={`${props.strategy.key}-${target.channel}`}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[10px] font-semibold",
+                  deltaTone(delta)
+                )}
+              >
+                <span className="text-foreground/90">{cockpitChannelLabel(target.channel)}</span>
+                <span>{formatProfitPricingCurrency(target.price)}</span>
+                <span className="opacity-80">
+                  {delta === null
+                    ? "Takip"
+                    : `${delta > 0 ? "+" : ""}${formatProfitPricingCurrency(delta)}`}
+                </span>
+              </span>
+            );
+          })}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        disabled={props.strategy.disabled || props.anyApplying}
+        onClick={() => props.onApplyStrategy(props.strategy.key)}
+        className={cn(
+          "mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
+          display.button
+        )}
+      >
+        {props.applying ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Save className="h-4 w-4" />
+        )}
+        {props.applying ? "Kaydediliyor" : "Bu öneriyi kaydet"}
+      </button>
+    </article>
+  );
+}
+
 export default function OptimizationRecommendationTable(
   props: OptimizationRecommendationTableProps
 ) {
   return (
     <GlassCard className="overflow-hidden border-border/80">
-      <div className="border-b border-border/70 bg-gradient-to-r from-primary/8 via-transparent to-transparent px-3 py-2.5">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+      <div className="flex flex-col gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
+          Optimizasyon önerileri
+        </p>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
-              Optimizasyon tablosu
-            </p>
-            <h3 className="mt-2 text-lg font-semibold text-foreground">
-              3 kanal için önerilen fiyatlar
+            <h3 className="text-lg font-semibold text-foreground">
+              En iyi fiyat stratejisini seç ve güvenle kaydet
             </h3>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-soft">
-              Grafik üstündeki üç strateji burada kanal bazında görünür. Kaydet butonu
-              seçilen stratejinin fiyatlarını Veri Merkezi kanal ayarlarına yazar.
+              Her kart seçili kanal için önerilen fiyatı gösterir, ardından üç kanalın toplam
+              kâra etkisini özetler.
             </p>
-          </div>
-
-          <div className="flex w-full flex-col gap-2">
-            {props.strategies.map((strategy) => {
-              const isApplying = props.applyingStrategy === strategy.key;
-              const isActive = props.activeStrategy === strategy.key;
-
-              return (
-                <button
-                  key={strategy.key}
-                  type="button"
-                  disabled={strategy.disabled || props.applyingStrategy !== null}
-                  onClick={() => props.onApplyStrategy(strategy.key)}
-                  className={cn(
-                    "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border px-2.5 py-1.5 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50",
-                    isActive
-                      ? "border-primary/45 bg-primary/20 text-primary"
-                      : "border-border bg-surface-container text-foreground hover:border-primary/35 hover:bg-primary/10"
-                  )}
-                >
-                  {isApplying ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Save className="h-3.5 w-3.5" />
-                  )}
-                  {isApplying ? "Kaydediliyor" : `${strategy.label} kaydet`}
-                </button>
-              );
-            })}
           </div>
         </div>
       </div>
 
-      <div className="overflow-x-auto p-2.5">
-        <table className="w-full min-w-[900px] border-separate border-spacing-y-2 text-left text-sm">
-          <thead>
-            <tr className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/600">
-              <th className="px-2 py-2">Kanal</th>
-              <th className="px-2 py-2">Mevcut fiyat</th>
-              <th className="px-2 py-2">Buybox / Kargo</th>
-              {props.strategies.map((strategy) => (
-                <th key={strategy.key} className="px-2 py-2">
-                  {strategy.label}
-                </th>
-              ))}
-              <th className="px-2 py-2">Net kâr</th>
-              <th className="px-2 py-2">Beklenen toplam kâr</th>
-            </tr>
-          </thead>
-          <tbody>
-            {SUPPORTED_SALES_CHANNELS.map((channel) => {
-              const result = props.resultsByChannel[channel];
-              const reference = getChannelReference(result);
-
-              return (
-                <tr key={channel} className="rounded-2xl bg-surface-container/70">
-                  <td className="rounded-l-2xl px-2 py-2 font-semibold text-foreground">
-                    {channelLabel(channel)}
-                  </td>
-                  <td className="px-2 py-2 text-foreground">
-                    {formatProfitPricingCurrency(result?.input.salePrice)}
-                  </td>
-                  <td className="px-2 py-2">
-                    <div className="text-foreground">
-                      {formatProfitPricingCurrency(reference.value)}
-                    </div>
-                    <div className="mt-1 text-[10px] text-muted/600">{reference.label}</div>
-                  </td>
-                  {props.strategies.map((strategy) => {
-                    const target = getStrategyTarget(strategy, channel);
-
-                    return (
-                      <td key={`${channel}-${strategy.key}`} className="px-2 py-2">
-                        <div className="font-semibold text-foreground">
-                          {formatProfitPricingCurrency(target?.price)}
-                        </div>
-                        <div className="mt-1 text-[10px] text-soft">
-                          Talep {formatProfitPricingNumber(target?.demand)}
-                        </div>
-                        <div className="mt-1 text-[10px] text-soft">
-                          Kâr {formatProfitPricingCurrency(target?.totalProfit)}
-                        </div>
-                      </td>
-                    );
-                  })}
-                  <td className="px-2 py-2 font-semibold text-foreground">
-                    {formatProfitPricingCurrency(result?.netProfit)}
-                  </td>
-                  <td className="rounded-r-2xl px-2 py-2 font-semibold text-foreground">
-                    {formatProfitPricingCurrency(getCurrentTotalProfit(result))}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="mt-4 grid gap-3 xl:grid-cols-3">
+        {props.strategies.map((strategy) => (
+          <StrategyCard
+            key={strategy.key}
+            strategy={strategy}
+            resultsByChannel={props.resultsByChannel}
+            selectedChannel={props.selectedChannel}
+            active={props.activeStrategy === strategy.key}
+            applying={props.applyingStrategy === strategy.key}
+            anyApplying={props.applyingStrategy !== null}
+            onApplyStrategy={props.onApplyStrategy}
+          />
+        ))}
       </div>
     </GlassCard>
   );

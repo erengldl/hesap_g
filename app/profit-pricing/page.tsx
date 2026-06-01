@@ -63,9 +63,8 @@ export default async function ProfitPricingRoute(props: {
   return (
     <div className="page-shell">
       <PageHeader
-        eyebrow="Karar ekranı"
         title="Kârlılık ve Fiyat Optimizasyonu"
-        description="Ürünün gerçek maliyetini hesapla, kârlı fiyat aralığını aynı ekranda gör."
+        description="Ürünü seç, kanal fiyatlarını kontrol et, en iyi fiyat stratejisini uygula."
       />
       <ProfitPricingErrorState
         message={error ?? "Kârlılık ekranı hazırlanamadı. Veri kaynağına erişim tekrar denenmeli."}
