@@ -376,7 +376,10 @@ function buildStockRisk(response: ProductDetailResponse) {
   };
 }
 
-function buildSeoReadiness(response: ProductDetailResponse, activeChannelCount: number) {
+function buildSeoReadiness(
+  response: ProductDetailResponse,
+  activeChannelCount: number
+): ProductDetailViewModel["seoReadiness"] {
   const product = response.product;
   const nameLength = product?.name.trim().length ?? 0;
   const descriptionLength = product?.description?.trim().length ?? 0;
@@ -426,7 +429,7 @@ function buildSeoReadiness(response: ProductDetailResponse, activeChannelCount: 
   const baseScore = items.reduce((sum, item) => sum + item.score, 0);
   const channelCoverageBonus = activeChannelCount >= 3 ? 5 : activeChannelCount >= 2 ? 2 : 0;
   const score = clamp(baseScore + channelCoverageBonus, 0, 100);
-  const tone = score >= 80 ? "profit" : score >= 60 ? "warning" : "loss";
+  const tone: ProductDetailTone = score >= 80 ? "profit" : score >= 60 ? "warning" : "loss";
   const label = score >= 80 ? "Ready" : score >= 60 ? "Needs polish" : "Weak";
   const summary =
     tone === "profit"
@@ -449,7 +452,7 @@ function buildCompleteness(
   response: ProductDetailResponse,
   channelCards: ProductDetailChannelCard[],
   seoReadiness: ProductDetailViewModel["seoReadiness"]
-) {
+): ProductDetailViewModel["completeness"] {
   const productId = response.product?.id ?? 0;
   const stock = Math.max(0, Math.round(toNumber(response.product?.stock)));
   const costEntered = toNumber(response.product?.cost) > 0;
@@ -518,7 +521,7 @@ function buildCompleteness(
 
   const readyCount = items.filter((item) => item.ready).length;
   const percent = Math.round((readyCount / items.length) * 100);
-  const tone = percent >= 84 ? "profit" : percent >= 50 ? "warning" : "loss";
+  const tone: ProductDetailTone = percent >= 84 ? "profit" : percent >= 50 ? "warning" : "loss";
   const summary =
     tone === "profit"
       ? "The product is operationally complete and ready for optimization."
