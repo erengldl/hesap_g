@@ -115,15 +115,15 @@ function TrendTooltip({
       </p>
       <div className="mt-3 space-y-2">
         <div className="flex items-center justify-between gap-4 text-sm">
-          <span className="text-muted">Units sold</span>
+          <span className="text-muted">Satılan adet</span>
           <span className="font-semibold text-foreground tabular-nums">{formatNumber(point.units)}</span>
         </div>
         <div className="flex items-center justify-between gap-4 text-sm">
-          <span className="text-muted">Revenue</span>
+          <span className="text-muted">Ciro</span>
           <span className="font-semibold text-foreground tabular-nums">{formatCurrency(point.revenue)}</span>
         </div>
         <div className="flex items-center justify-between gap-4 text-sm">
-          <span className="text-muted">Estimated profit</span>
+          <span className="text-muted">Tahmini kâr</span>
           <span className="font-semibold text-profit tabular-nums">{formatCurrency(point.estimatedProfit)}</span>
         </div>
       </div>
@@ -208,7 +208,7 @@ function BreakdownRow({
         <div className="min-w-0">
           <p className="text-sm font-semibold text-foreground">{label}</p>
           <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-muted">
-            {formatDecimal(Math.max(0, shareOfPrice), 1, 0)}% of sale price
+            Satış fiyatının %{formatDecimal(Math.max(0, shareOfPrice), 1, 0)}
           </p>
         </div>
         <div className="text-right">
@@ -267,25 +267,25 @@ function ChannelCard({
         <div>
           <p className="text-base font-semibold text-foreground">{card.label}</p>
           <p className="mt-1 text-sm leading-6 text-muted">
-            {card.isActive ? "Channel is live for this product." : "No active setup found for this channel."}
+            {card.isActive ? "Bu ürün için kanal aktif." : "Bu kanal için aktif kurulum bulunamadı."}
           </p>
         </div>
         <StatusBadge tone={toneBadge(card.tone)}>{card.toneLabel}</StatusBadge>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <MetricTile label="Sale price" value={card.salePrice} tone="neutral" />
+        <MetricTile label="Satış fiyatı" value={card.salePrice} tone="neutral" />
         <MetricTile
-          label="Buybox price"
+          label="Buybox fiyatı"
           value={card.buyboxPrice}
           tone={card.buyboxPrice && card.salePrice && card.salePrice > card.buyboxPrice ? "warning" : "neutral"}
-          emptyLabel={card.id === "own-website" ? "Direct channel" : "Not available"}
+          emptyLabel={card.id === "own-website" ? "Direkt kanal" : "Yok"}
         />
-        <MetricTile label="Shipping cost" value={card.shippingCost} tone="warning" />
-        <MetricTile label="Commission" value={card.commissionCost} tone="warning" />
-        <MetricTile label="Net profit" value={card.netProfit} tone={card.tone} />
+        <MetricTile label="Kargo maliyeti" value={card.shippingCost} tone="warning" />
+        <MetricTile label="Komisyon" value={card.commissionCost} tone="warning" />
+        <MetricTile label="Net kâr" value={card.netProfit} tone={card.tone} />
         <MetricTile
-          label="Margin"
+          label="Marj"
           value={card.margin}
           tone={card.tone}
           isPercent
@@ -294,7 +294,7 @@ function ChannelCard({
 
       <div className="mt-4 flex items-center justify-between gap-3 border-t border-border/60 pt-4">
         <p className="min-h-6 text-sm leading-6 text-muted">
-          {card.warningNotes ?? (card.isActive ? "No immediate warning on this channel." : "Activate pricing to compare this channel.")}
+          {card.warningNotes ?? (card.isActive ? "Bu kanalda şu an kritik bir uyarı yok." : "Karşılaştırmak için fiyat tanımla.")}
         </p>
         <Link href={card.href} className="shrink-0 text-sm font-semibold text-primary transition-colors duration-200 hover:text-primary/80">
           {card.actionLabel}
@@ -308,7 +308,7 @@ function MetricTile({
   label,
   value,
   tone,
-  emptyLabel = "Missing",
+  emptyLabel = "Eksik",
   isPercent = false,
 }: {
   label: string;
@@ -377,7 +377,7 @@ function ScoreRing({
       <div className="flex h-[68px] w-[68px] items-center justify-center rounded-full border border-border/70 bg-surface text-center">
         <div>
           <p className="text-lg font-semibold text-foreground">{score}</p>
-          <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Score</p>
+          <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Skor</p>
         </div>
       </div>
     </div>
@@ -415,7 +415,7 @@ function ChecklistRow({
           {actionLabel}
         </Link>
       ) : (
-        <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-profit">Ready</span>
+        <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-profit">Hazır</span>
       )}
     </div>
   );
@@ -433,28 +433,28 @@ function SalesSummaryTiles({
   return (
     <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <HighlightCard
-        label="Units sold"
+        label="Satılan adet"
         value={summary?.totalUnits ?? 0}
-        caption="Selected range total"
+        caption="Seçili aralık toplamı"
         tone="neutral"
         kind="text"
       />
       <HighlightCard
-        label="Revenue"
+        label="Ciro"
         value={summary?.totalRevenue ?? 0}
-        caption="Gross sales in this window"
+        caption="Bu aralıktaki brüt satış"
         tone="neutral"
         kind="currency"
       />
       <HighlightCard
-        label="Daily demand"
+        label="Günlük talep"
         value={summary?.avgDailyUnits ?? 0}
-        caption="Average units per day"
+        caption="Günlük ortalama satış adedi"
         tone="neutral"
         kind="text"
       />
       <HighlightCard
-        label="Momentum"
+        label="İvme"
         value={momentumPercent === null ? momentumLabel : `${momentumPercent >= 0 ? "+" : ""}${formatDecimal(momentumPercent, 1, 1)}%`}
         caption={momentumLabel}
         tone={momentumPercent === null ? "neutral" : momentumPercent >= 12 ? "profit" : momentumPercent <= -12 ? "warning" : "neutral"}
@@ -475,7 +475,7 @@ export default function ProductDetailClient() {
   useEffect(() => {
     if (!productId) {
       setLoading(false);
-      setError("Invalid product.");
+      setError("Geçersiz ürün.");
       return;
     }
 
@@ -492,7 +492,7 @@ export default function ProductDetailClient() {
         const json = (await response.json()) as ProductDetailResponse;
 
         if (!response.ok || !json.success) {
-          throw new Error("Product detail could not be loaded.");
+          throw new Error("Ürün detayı yüklenemedi.");
         }
 
         if (!controller.signal.aborted) {
@@ -500,7 +500,7 @@ export default function ProductDetailClient() {
         }
       } catch (fetchError) {
         if (!controller.signal.aborted) {
-          setError(fetchError instanceof Error ? fetchError.message : "Product detail could not be loaded.");
+          setError(fetchError instanceof Error ? fetchError.message : "Ürün detayı yüklenemedi.");
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -522,7 +522,7 @@ export default function ProductDetailClient() {
   if (loading) {
     return (
       <div className="page-shell">
-        <PageHeader title="Product detail" description="Financial and product context is loading..." />
+        <PageHeader title="Ürün detayı" description="Finansal ve ürün bağlamı yükleniyor..." />
         <div className="space-y-4">
           <SkeletonCard className="h-[250px]" />
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-5">
@@ -550,19 +550,19 @@ export default function ProductDetailClient() {
   if (error || !viewModel) {
     return (
       <div className="page-shell">
-        <PageHeader title="Product detail" description={error ?? "Product detail is not available."}>
+        <PageHeader title="Ürün detayı" description={error ?? "Ürün detayı kullanılamıyor."}>
           <Link href="/veri-merkezi" className="btn-secondary">
             <ArrowLeft className="h-4 w-4" />
-            Product list
+            Ürün listesi
           </Link>
         </PageHeader>
         <EmptyState
           icon={Package}
-          title="Product detail could not be opened"
-          description={error ?? "This product is unavailable right now."}
+          title="Ürün detayı açılamadı"
+          description={error ?? "Bu ürün şu anda kullanılamıyor."}
           action={(
             <Link href="/veri-merkezi" className="btn-primary">
-              Back to Data Center
+              Veri Merkezine Dön
             </Link>
           )}
         />
@@ -577,7 +577,7 @@ export default function ProductDetailClient() {
       <div className="mb-4 flex items-center justify-between gap-3">
         <Link href="/veri-merkezi" className="inline-flex items-center gap-2 text-sm font-semibold text-muted transition-colors duration-200 hover:text-foreground">
           <ArrowLeft className="h-4 w-4" />
-          Back to products
+          Ürünlere dön
         </Link>
       </div>
 
@@ -623,7 +623,7 @@ export default function ProductDetailClient() {
                 <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
                   <span className="font-semibold text-foreground">SKU {viewModel.sku}</span>
                   <span>{viewModel.category}</span>
-                  <span>{viewModel.activeChannelLabels.length || 0} active channels</span>
+                  <span>{viewModel.activeChannelLabels.length || 0} aktif kanal</span>
                 </div>
 
                 <p className="mt-4 max-w-4xl text-sm leading-6 text-muted">{viewModel.description}</p>
@@ -650,7 +650,7 @@ export default function ProductDetailClient() {
             <div className={cn("mt-4 rounded-2xl border p-4", TONE_SURFACE_STYLES[viewModel.nextAction.tone])}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Next best action</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Sonraki en iyi aksiyon</p>
                   <h2 className="mt-2 text-lg font-semibold text-foreground">{viewModel.recommendationTitle}</h2>
                 </div>
                 <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", TONE_SURFACE_STYLES[viewModel.nextAction.tone])}>
@@ -694,8 +694,8 @@ export default function ProductDetailClient() {
         <div className="space-y-6">
           <GlassCard>
             <SectionHeader
-              title="Product financial snapshot"
-              description="Reference lens uses the average of active channel economics, so you can see where the unit price goes before deciding on pricing."
+              title="Ürün finansal özeti"
+              description="Aktif kanal ortalamasını referans alır; böylece fiyat kararı vermeden önce birim fiyatın nereye gittiğini görebilirsin."
             />
 
             <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_320px]">
@@ -730,8 +730,8 @@ export default function ProductDetailClient() {
 
           <GlassCard>
             <SectionHeader
-              title="Channel performance"
-              description="Each channel card exposes the exact commercial pressure points: price, buybox, shipping, commission, profit, and margin."
+              title="Kanal performansı"
+              description="Her kanal kartı fiyat, buybox, kargo, komisyon, kâr ve marj baskısını tek yerde gösterir."
             />
 
             <div className="grid gap-4 xl:grid-cols-3">
@@ -744,8 +744,8 @@ export default function ProductDetailClient() {
           <GlassCard>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <SectionHeader
-                title="Sales history trend"
-                description="The chart stays compact on purpose: one sales area and one estimated profit line, with glass tooltip detail."
+                title="Satış geçmişi trendi"
+                description="Grafik bilerek kompakt tutuldu: tek satış alanı ve tek tahmini kâr çizgisi, cam efektli tooltip ile."
               />
 
               <div className="inline-flex rounded-xl border border-border/80 bg-surface-container p-1">
@@ -761,7 +761,7 @@ export default function ProductDetailClient() {
                         : "text-muted hover:text-foreground"
                     )}
                   >
-                    {windowDays}D
+                    {windowDays} Gün
                   </button>
                 ))}
               </div>
@@ -803,7 +803,7 @@ export default function ProductDetailClient() {
                     fill="url(#salesTrendFill)"
                     activeDot={{ r: 5, fill: "var(--primary)", stroke: "var(--panel-bg)", strokeWidth: 2 }}
                     dot={false}
-                    name="Units"
+                    name="Satış adedi"
                   />
                   <Line
                     yAxisId="profit"
@@ -812,7 +812,7 @@ export default function ProductDetailClient() {
                     stroke="var(--profit)"
                     strokeWidth={2.2}
                     dot={false}
-                    name="Estimated profit"
+                    name="Tahmini kâr"
                   />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -829,18 +829,18 @@ export default function ProductDetailClient() {
         <div className="space-y-6">
           <GlassCard>
             <SectionHeader
-              title="Stock and demand risk"
-              description="This section translates inventory and recent demand into a concrete coverage signal."
+              title="Stok ve talep riski"
+              description="Bu bölüm stok ve son talebi somut bir kapsama sinyaline çevirir."
             />
 
             <div className={cn("rounded-2xl border p-4", TONE_SURFACE_STYLES[viewModel.stockRisk.tone])}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Coverage status</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Kapsama durumu</p>
                   <p className={cn("mt-2 text-[1.8rem] font-semibold tracking-[-0.03em]", TONE_TEXT_STYLES[viewModel.stockRisk.tone])}>
                     {viewModel.stockRisk.coverageDays === null
                       ? viewModel.stockRisk.label
-                      : `${Math.max(1, Math.round(viewModel.stockRisk.coverageDays))} days`}
+                      : `${Math.max(1, Math.round(viewModel.stockRisk.coverageDays))} gün`}
                   </p>
                 </div>
                 <StatusBadge tone={toneBadge(viewModel.stockRisk.tone)}>{viewModel.stockRisk.label}</StatusBadge>
@@ -850,19 +850,19 @@ export default function ProductDetailClient() {
 
             <div className="mt-4 grid gap-3">
               <RiskStat
-                label="Stock on hand"
+                label="Eldeki stok"
                 value={formatNumber(viewModel.stockRisk.stockOnHand)}
-                caption="Latest available inventory snapshot"
+                caption="Son mevcut stok anlık görüntüsü"
                 tone={viewModel.stockRisk.stockOnHand > 0 ? "neutral" : "loss"}
               />
               <RiskStat
-                label="Daily demand"
+                label="Günlük talep"
                 value={formatDecimal(viewModel.stockRisk.avgDailyUnits, 1, 0)}
-                caption="Average units sold per day"
+                caption="Günlük ortalama satış adedi"
                 tone="neutral"
               />
               <RiskStat
-                label="Demand signal"
+                label="Talep sinyali"
                 value={
                   viewModel.stockRisk.momentumPercent === null
                     ? viewModel.stockRisk.momentumLabel
@@ -889,8 +889,8 @@ export default function ProductDetailClient() {
 
           <GlassCard>
             <SectionHeader
-              title="SEO and content readiness"
-              description="Commercial performance is only part of the picture. This score checks whether the listing content is ready to support discovery."
+              title="SEO ve içerik hazırlığı"
+              description="Ticari performans tek başına yeterli değil. Bu skor, ürün içeriğinin keşfi desteklemeye hazır olup olmadığını ölçer."
             />
 
             <div className="flex items-center gap-4 rounded-2xl border border-border/70 bg-surface-container/75 p-4">
@@ -916,27 +916,27 @@ export default function ProductDetailClient() {
             </div>
 
             <Link href={viewModel.seoReadiness.href} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary transition-colors duration-200 hover:text-primary/80">
-              Generate SEO
+              SEO Üret
               <ArrowUpRight className="h-4 w-4" />
             </Link>
           </GlassCard>
 
           <GlassCard>
             <SectionHeader
-              title="Product data completeness"
-              description="This checklist makes missing inputs obvious, so the team knows exactly what blocks a reliable profitability decision."
+              title="Ürün veri tamlığı"
+              description="Bu kontrol listesi eksik girdileri görünür kılar; böylece ekibin güvenilir kârlılık kararını neyin engellediğini hemen görür."
             />
 
             <div className={cn("rounded-2xl border p-4", TONE_SURFACE_STYLES[viewModel.completeness.tone])}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Readiness</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Hazırlık</p>
                   <p className="mt-2 text-[1.8rem] font-semibold tracking-[-0.03em] text-foreground">
                     {viewModel.completeness.readyCount}/{viewModel.completeness.totalCount}
                   </p>
                 </div>
                 <StatusBadge tone={toneBadge(viewModel.completeness.tone)}>
-                  {viewModel.completeness.percent}% complete
+                  %{viewModel.completeness.percent} tamam
                 </StatusBadge>
               </div>
               <p className="mt-3 text-sm leading-6 text-muted">{viewModel.completeness.summary}</p>

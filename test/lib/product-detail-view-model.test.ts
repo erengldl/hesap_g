@@ -179,7 +179,7 @@ describe("buildProductDetailViewModel", () => {
     const viewModel = buildProductDetailViewModel(response);
 
     expect(viewModel?.nextActionId).toBe("forecast");
-    expect(viewModel?.stockRisk.label).toBe("Watch");
+    expect(viewModel?.stockRisk.label).toBe("Takip");
   });
 
   it("prioritizes Generate SEO when finance and stock are healthy but content is weak", () => {

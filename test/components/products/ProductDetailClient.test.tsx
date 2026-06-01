@@ -127,15 +127,15 @@ describe("ProductDetailClient", () => {
       expect(screen.getByText("Hesap G Smart Bottle Pro")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Edit Product")).toBeInTheDocument();
-    expect(screen.getAllByText("Optimize Price").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("View Forecast").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Generate SEO").length).toBeGreaterThan(0);
-    expect(screen.getByText("Product financial snapshot")).toBeInTheDocument();
-    expect(screen.getByText("Channel performance")).toBeInTheDocument();
-    expect(screen.getByText("Sales history trend")).toBeInTheDocument();
-    expect(screen.getByText("Stock and demand risk")).toBeInTheDocument();
-    expect(screen.getByText("SEO and content readiness")).toBeInTheDocument();
-    expect(screen.getByText("Product data completeness")).toBeInTheDocument();
+    expect(screen.getByText("Ürünü Düzenle")).toBeInTheDocument();
+    expect(screen.getAllByText("Fiyatı Optimize Et").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Tahmini Gör").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("SEO Üret").length).toBeGreaterThan(0);
+    expect(screen.getByText("Ürün finansal özeti")).toBeInTheDocument();
+    expect(screen.getByText("Kanal performansı")).toBeInTheDocument();
+    expect(screen.getByText("Satış geçmişi trendi")).toBeInTheDocument();
+    expect(screen.getByText("Stok ve talep riski")).toBeInTheDocument();
+    expect(screen.getByText("SEO ve içerik hazırlığı")).toBeInTheDocument();
+    expect(screen.getByText("Ürün veri tamlığı")).toBeInTheDocument();
   });
 });

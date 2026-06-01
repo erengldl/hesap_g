@@ -195,7 +195,7 @@ const CANONICAL_CHANNELS = [
   },
   {
     id: "own-website",
-    label: "Own Website",
+    label: "Kendi Websitem",
     matchers: ["own_website", "my_website", "kendi websitem"],
   },
 ] as const;
@@ -227,24 +227,24 @@ function normalizeChannelKey(value: string) {
 function statusMeta(status?: string | null) {
   switch (status) {
     case "active":
-      return { label: "Active", tone: "profit" as const };
+      return { label: "Aktif", tone: "profit" as const };
     case "draft":
-      return { label: "Draft", tone: "warning" as const };
+      return { label: "Taslak", tone: "warning" as const };
     case "passive":
-      return { label: "Passive", tone: "neutral" as const };
+      return { label: "Pasif", tone: "neutral" as const };
     default:
-      return { label: "Unknown", tone: "neutral" as const };
+      return { label: "Bilinmiyor", tone: "neutral" as const };
   }
 }
 
-function toneLabel(tone: ProductDetailTone, fallback = "Inactive") {
+function toneLabel(tone: ProductDetailTone, fallback = "Pasif") {
   switch (tone) {
     case "profit":
-      return "Profitable";
+      return "Karlı";
     case "warning":
-      return "Risky";
+      return "Riskli";
     case "loss":
-      return "Loss";
+      return "Zararda";
     default:
       return fallback;
   }
@@ -299,7 +299,7 @@ function buildCanonicalChannels(response: ProductDetailResponse, productId: numb
       totalCost: match?.totalCost ?? null,
       warningNotes: match?.warningNotes ?? null,
       href: match ? `/profit-pricing?productId=${productId}` : "/veri-merkezi",
-      actionLabel: match ? "Optimize Price" : "Edit Product",
+      actionLabel: match ? "Fiyatı Optimize Et" : "Ürünü Düzenle",
     } satisfies ProductDetailChannelCard;
   });
 }
@@ -328,35 +328,35 @@ function buildStockRisk(response: ProductDetailResponse) {
     : coverageDays;
 
   let tone: ProductDetailTone = "neutral";
-  let label = "Need history";
-  let riskNote = "Demand signal appears after sales history starts syncing.";
+  let label = "Veri bekleniyor";
+  let riskNote = "Satış geçmişi senkronize oldukça talep sinyali oluşur.";
 
   if (stockOnHand <= 0) {
     tone = "loss";
-    label = "Out of stock";
-    riskNote = "No sellable stock is available across the latest inventory snapshot.";
+    label = "Stok tükendi";
+    riskNote = "Son stok anlık görüntüsünde satılabilir adet görünmüyor.";
   } else if (adjustedCoverage !== null && adjustedCoverage < 14) {
     tone = "loss";
-    label = "Critical";
-    riskNote = "Current run rate can deplete stock in under two weeks.";
+    label = "Kritik";
+    riskNote = "Mevcut satış hızıyla stok iki haftadan kısa sürede tükenebilir.";
   } else if (adjustedCoverage !== null && adjustedCoverage < 30) {
     tone = "warning";
-    label = "Watch";
-    riskNote = "Demand is healthy, but coverage is tight for a normal purchase cycle.";
+    label = "Takip";
+    riskNote = "Talep güçlü ancak normal tedarik döngüsüne göre stok kapsaması dar.";
   } else if (adjustedCoverage !== null) {
     tone = "profit";
-    label = "Covered";
-    riskNote = "Stock coverage is healthy for the last 30-day sales pace.";
+    label = "Yeterli";
+    riskNote = "Son 30 gün satış hızına göre stok kapsaması sağlıklı.";
   }
 
   const momentumLabel =
     momentumPercent === null
-      ? "No demand trend"
+      ? "Talep trendi yok"
       : momentumPercent >= 12
-        ? "Demand rising"
+        ? "Talep yükseliyor"
         : momentumPercent <= -12
-          ? "Demand cooling"
-          : "Demand stable";
+          ? "Talep yavaşlıyor"
+          : "Talep dengeli";
 
   return {
     tone,
@@ -364,14 +364,14 @@ function buildStockRisk(response: ProductDetailResponse) {
     coverageDays,
     coverageCaption:
       coverageDays === null
-        ? "Need sales history"
-        : `${Math.max(1, Math.round(coverageDays))} days of cover at the current pace`,
+        ? "Satış geçmişi gerekli"
+        : `Mevcut hızla ${Math.max(1, Math.round(coverageDays))} günlük stok`,
     stockOnHand,
     avgDailyUnits,
     momentumPercent,
     momentumLabel,
     riskNote,
-    actionLabel: "View Forecast",
+    actionLabel: "Tahmini Gör",
     href: `/forecast?productId=${response.product?.id ?? 0}`,
   };
 }
@@ -391,38 +391,38 @@ function buildSeoReadiness(
   const items: ProductDetailSeoItem[] = [
     {
       id: "title",
-      label: "Title clarity",
+      label: "Başlık kalitesi",
       score: nameLength >= 28 && nameLength <= 72 ? 20 : nameLength >= 18 ? 12 : 4,
       tone: nameLength >= 28 && nameLength <= 72 ? "profit" : nameLength >= 18 ? "warning" : "loss",
-      detail: nameLength >= 28 && nameLength <= 72 ? "Title length is search-friendly." : nameLength >= 18 ? "Title is usable but could be sharper." : "Title is too short for strong search intent.",
+      detail: nameLength >= 28 && nameLength <= 72 ? "Başlık uzunluğu arama için uygun." : nameLength >= 18 ? "Başlık kullanılabilir ancak daha net olabilir." : "Başlık güçlü arama niyeti için kısa kalıyor.",
     },
     {
       id: "description",
-      label: "Description depth",
+      label: "Açıklama derinliği",
       score: descriptionLength >= 160 ? 30 : descriptionLength >= 90 ? 18 : 6,
       tone: descriptionLength >= 160 ? "profit" : descriptionLength >= 90 ? "warning" : "loss",
-      detail: descriptionLength >= 160 ? "Description supports both SEO and conversion." : descriptionLength >= 90 ? "Description exists but lacks depth." : "Description is too thin for discovery and persuasion.",
+      detail: descriptionLength >= 160 ? "Açıklama hem SEO'yu hem dönüşümü destekliyor." : descriptionLength >= 90 ? "Açıklama var ancak daha derin olabilir." : "Açıklama keşif ve ikna için zayıf kalıyor.",
     },
     {
       id: "image",
-      label: "Primary image",
+      label: "Ana görsel",
       score: hasImage ? 15 : 0,
       tone: hasImage ? "profit" : "loss",
-      detail: hasImage ? "Primary visual is present." : "The product still needs a hero image.",
+      detail: hasImage ? "Ana ürün görseli hazır." : "Ürünün hâlâ ana görsele ihtiyacı var.",
     },
     {
       id: "taxonomy",
-      label: "Category mapping",
+      label: "Kategori eşleşmesi",
       score: hasCategory ? 20 : 0,
       tone: hasCategory ? "profit" : "loss",
-      detail: hasCategory ? "Category and taxonomy data are available." : "Category metadata is missing.",
+      detail: hasCategory ? "Kategori ve taksonomi verisi mevcut." : "Kategori metaverisi eksik.",
     },
     {
       id: "identifiers",
-      label: "Product identifiers",
+      label: "Ürün kimlikleri",
       score: hasSku && hasBarcode ? 15 : hasSku || hasBarcode ? 8 : 0,
       tone: hasSku && hasBarcode ? "profit" : hasSku || hasBarcode ? "warning" : "loss",
-      detail: hasSku && hasBarcode ? "SKU and barcode are both available." : hasSku || hasBarcode ? "One of SKU or barcode is still missing." : "Identifiers are incomplete for listing quality.",
+      detail: hasSku && hasBarcode ? "SKU ve barkod mevcut." : hasSku || hasBarcode ? "SKU veya barkod alanlarından biri eksik." : "Kimlik verileri liste kalitesi için eksik.",
     },
   ];
 
@@ -430,13 +430,13 @@ function buildSeoReadiness(
   const channelCoverageBonus = activeChannelCount >= 3 ? 5 : activeChannelCount >= 2 ? 2 : 0;
   const score = clamp(baseScore + channelCoverageBonus, 0, 100);
   const tone: ProductDetailTone = score >= 80 ? "profit" : score >= 60 ? "warning" : "loss";
-  const label = score >= 80 ? "Ready" : score >= 60 ? "Needs polish" : "Weak";
+  const label = score >= 80 ? "Hazır" : score >= 60 ? "Geliştirilmeli" : "Zayıf";
   const summary =
     tone === "profit"
-      ? "Content quality is strong enough to publish or scale across channels."
+      ? "İçerik kalitesi yayınlama ve kanallara ölçekleme için yeterli."
       : tone === "warning"
-        ? "The product can rank and convert better with sharper content coverage."
-        : "Content gaps are limiting discoverability and listing confidence.";
+        ? "Ürün daha güçlü içerikle daha iyi sıralanabilir ve dönüşebilir."
+        : "İçerik boşlukları keşfedilebilirliği ve liste güvenini düşürüyor.";
 
   return {
     score,
@@ -465,56 +465,56 @@ function buildCompleteness(
   const items: ProductDetailChecklistItem[] = [
     {
       id: "cost",
-      label: "Cost entered",
+      label: "Maliyet girildi",
       ready: costEntered,
       tone: costEntered ? "profit" : "loss",
-      hint: costEntered ? "Product cost is available for margin math." : "Base cost is required before trusting profit outputs.",
-      actionLabel: "Edit Product",
+      hint: costEntered ? "Ürün maliyeti marj hesabı için mevcut." : "Kâr hesaplarına güvenmeden önce baz maliyet gerekli.",
+      actionLabel: "Ürünü Düzenle",
       href: "/veri-merkezi",
     },
     {
       id: "packaging",
-      label: "Packaging cost entered",
+      label: "Paketleme maliyeti girildi",
       ready: packagingEntered,
       tone: packagingEntered ? "profit" : "warning",
-      hint: packagingEntered ? "Packaging is contributing to total cost correctly." : "Packaging cost is still estimated as zero.",
-      actionLabel: "Edit Product",
+      hint: packagingEntered ? "Paketleme maliyeti toplam maliyete doğru şekilde ekleniyor." : "Paketleme maliyeti hâlâ sıfır görünüyor.",
+      actionLabel: "Ürünü Düzenle",
       href: "/veri-merkezi",
     },
     {
       id: "channel-prices",
-      label: "Channel prices entered",
+      label: "Kanal fiyatları girildi",
       ready: channelPricesEntered,
       tone: channelPricesEntered ? "profit" : "loss",
-      hint: channelPricesEntered ? "Active channels all have price coverage." : "One or more active channels still miss a sale price.",
-      actionLabel: "Edit Product",
+      hint: channelPricesEntered ? "Aktif kanalların hepsinde fiyat bilgisi var." : "Bir veya daha fazla aktif kanalda satış fiyatı eksik.",
+      actionLabel: "Ürünü Düzenle",
       href: "/veri-merkezi",
     },
     {
       id: "stock",
-      label: "Stock available",
+      label: "Stok mevcut",
       ready: stock > 0,
       tone: stock > 0 ? "profit" : "loss",
-      hint: stock > 0 ? "Inventory is available for sale." : "No available stock is recorded.",
-      actionLabel: "View Forecast",
+      hint: stock > 0 ? "Satışa hazır stok mevcut." : "Kayıtlı kullanılabilir stok görünmüyor.",
+      actionLabel: "Tahmini Gör",
       href: `/forecast?productId=${productId}`,
     },
     {
       id: "sales-history",
-      label: "Sales history available",
+      label: "Satış geçmişi mevcut",
       ready: salesHistoryAvailable,
       tone: salesHistoryAvailable ? "profit" : "warning",
-      hint: salesHistoryAvailable ? "Demand and trend analysis can be trusted." : "Trend sections stay shallow until sales history syncs.",
-      actionLabel: "Edit Product",
+      hint: salesHistoryAvailable ? "Talep ve trend analizi güvenle okunabilir." : "Satış geçmişi gelene kadar trend alanları sınırlı kalır.",
+      actionLabel: "Ürünü Düzenle",
       href: "/veri-merkezi",
     },
     {
       id: "seo-content",
-      label: "SEO content ready",
+      label: "SEO içeriği hazır",
       ready: seoReady,
       tone: seoReady ? "profit" : "warning",
-      hint: seoReady ? "Content is ready for search-facing channel work." : "SEO content still needs strengthening.",
-      actionLabel: "Generate SEO",
+      hint: seoReady ? "İçerik arama odaklı kanal çalışmaları için hazır." : "SEO içeriği hâlâ güçlendirilmeli.",
+      actionLabel: "SEO Üret",
       href: `/channel-seo?productId=${productId}`,
     },
   ];
@@ -524,10 +524,10 @@ function buildCompleteness(
   const tone: ProductDetailTone = percent >= 84 ? "profit" : percent >= 50 ? "warning" : "loss";
   const summary =
     tone === "profit"
-      ? "The product is operationally complete and ready for optimization."
+      ? "Ürün operasyonel olarak tamam ve optimizasyon için hazır."
       : tone === "warning"
-        ? "A few missing inputs still weaken the quality of decisions."
-        : "Critical gaps are blocking confident profitability analysis.";
+        ? "Birkaç eksik girdi karar kalitesini düşürüyor."
+        : "Kritik eksikler güvenilir kârlılık analizini engelliyor.";
 
   return {
     readyCount,
@@ -572,28 +572,28 @@ function buildActions(productId: number, nextActionId: ProductDetailActionId): P
   const actions: ProductDetailAction[] = [
     {
       id: "edit",
-      label: "Edit Product",
+      label: "Ürünü Düzenle",
       href: "/veri-merkezi",
       tone: "neutral",
       emphasis: nextActionId === "edit" ? "primary" : "secondary",
     },
     {
       id: "optimize",
-      label: "Optimize Price",
+      label: "Fiyatı Optimize Et",
       href: `/profit-pricing?productId=${productId}`,
       tone: "profit",
       emphasis: nextActionId === "optimize" ? "primary" : "secondary",
     },
     {
       id: "forecast",
-      label: "View Forecast",
+      label: "Tahmini Gör",
       href: `/forecast?productId=${productId}`,
       tone: "warning",
       emphasis: nextActionId === "forecast" ? "primary" : "secondary",
     },
     {
       id: "seo",
-      label: "Generate SEO",
+      label: "SEO Üret",
       href: `/channel-seo?productId=${productId}`,
       tone: "neutral",
       emphasis: nextActionId === "seo" ? "primary" : "secondary",
@@ -617,15 +617,15 @@ function buildRecommendation(
 
   if (nextActionId === "edit") {
     return {
-      title: "Fix missing product inputs first",
-      summary: "The financial picture is incomplete, so pricing and forecast outputs are still partially unreliable.",
+      title: "Önce eksik ürün girdilerini tamamla",
+      summary: "Finansal görünüm eksik; bu yüzden fiyat ve tahmin çıktıları hâlâ kısmen güvensiz.",
       reasons: missingItems.map((item) => item.label),
     };
   }
 
   if (nextActionId === "forecast") {
     return {
-      title: "Review stock coverage before the next replenishment cycle",
+      title: "Yeni tedarik öncesi stok kapsamasını gözden geçir",
       summary: stockRisk.riskNote,
       reasons: [
         stockRisk.coverageCaption,
@@ -636,21 +636,21 @@ function buildRecommendation(
 
   if (nextActionId === "seo") {
     return {
-      title: "Commercials look stable, but discoverability is lagging",
+      title: "Finansallar dengeli, ancak keşfedilebilirlik geride",
       summary: seoReadiness.summary,
       reasons: seoReadiness.items.filter((item) => item.tone !== "profit").map((item) => item.label).slice(0, 3),
     };
   }
 
   return {
-    title: "Margin optimization should happen before scale",
+    title: "Ölçeklemeden önce marj optimizasyonu yapılmalı",
     summary:
       weakestChannel
-        ? `${weakestChannel.label} is the weakest active channel and is compressing blended profitability.`
-        : "Channel profitability is uneven and should be tightened before more spend is deployed.",
+        ? `${weakestChannel.label} en zayıf aktif kanal ve toplam kârlılığı aşağı çekiyor.`
+        : "Kanal kârlılığı dengesiz; daha fazla harcamadan önce sıkılaştırılmalı.",
     reasons: [
-      weakestChannel ? `${weakestChannel.label} margin is below target.` : "At least one active channel is below target margin.",
-      "Price, buybox pressure, and variable costs are the main levers.",
+      weakestChannel ? `${weakestChannel.label} marjı hedefin altında.` : "En az bir aktif kanalda marj hedefin altında.",
+      "Fiyat, buybox baskısı ve değişken maliyetler ana kaldıraçlar.",
     ],
   };
 }
@@ -702,10 +702,10 @@ export function buildProductDetailViewModel(response: ProductDetailResponse): Pr
   return {
     productId,
     title: product.name,
-    sku: product.sku?.trim() || "No SKU",
+    sku: product.sku?.trim() || "SKU yok",
     imageUrl: product.imageUrl ?? null,
-    category: product.categoryPath?.trim() || product.categoryName?.trim() || "Uncategorized",
-    description: product.description?.trim() || "No product description is available yet.",
+    category: product.categoryPath?.trim() || product.categoryName?.trim() || "Kategorisiz",
+    description: product.description?.trim() || "Henüz ürün açıklaması yok.",
     status,
     activeChannelLabels,
     actions,
@@ -717,39 +717,39 @@ export function buildProductDetailViewModel(response: ProductDetailResponse): Pr
     topSummary: [
       {
         id: "sale-price",
-        label: "Sale Price",
+        label: "Satış Fiyatı",
         value: round2(referencePrice),
-        caption: activeChannels.length > 0 ? `${activeChannels.length} active channels average` : "No active channel price",
+        caption: activeChannels.length > 0 ? `${activeChannels.length} aktif kanal ortalaması` : "Aktif kanal fiyatı yok",
         tone: "neutral",
         kind: "currency",
       },
       {
         id: "unit-cost",
-        label: "Unit Cost",
+        label: "Birim Maliyet",
         value: round2(averageUnitCost),
-        caption: "Blended channel cost",
+        caption: "Harmanlanmış kanal maliyeti",
         tone: "neutral",
         kind: "currency",
       },
       {
         id: "net-profit",
-        label: "Net Profit",
+        label: "Net Kâr",
         value: round2(blendedNetProfit),
-        caption: bestChannel ? `Best channel ${bestChannel.label}: ${toneLabel(bestChannel.tone)}` : "No active channel",
+        caption: bestChannel ? `En iyi kanal ${bestChannel.label}: ${toneLabel(bestChannel.tone)}` : "Aktif kanal yok",
         tone: blendedNetProfit <= 0 ? "loss" : blendedMargin < 15 ? "warning" : "profit",
         kind: "currency",
       },
       {
         id: "margin",
-        label: "Margin",
+        label: "Marj",
         value: round2(blendedMargin),
-        caption: marginSpread > 0 ? `${marginSpread.toFixed(1)} pts spread between channels` : "Single channel view",
+        caption: marginSpread > 0 ? `${marginSpread.toFixed(1)} puan kanal farkı` : "Tek kanal görünümü",
         tone: blendedMargin <= 0 ? "loss" : blendedMargin < 15 ? "warning" : "profit",
         kind: "percent",
       },
       {
         id: "stock-risk",
-        label: "Stock Risk",
+        label: "Stok Riski",
         value: stockRisk.label,
         caption: stockRisk.coverageCaption,
         tone: stockRisk.tone,
@@ -759,42 +759,42 @@ export function buildProductDetailViewModel(response: ProductDetailResponse): Pr
     financialBreakdown: [
       {
         id: "product-cost",
-        label: "Product cost",
+        label: "Ürün maliyeti",
         value: toNumber(product.cost),
         shareOfPrice: referencePrice > 0 ? (toNumber(product.cost) / referencePrice) * 100 : 0,
         tone: "neutral",
       },
       {
         id: "packaging",
-        label: "Packaging",
+        label: "Paketleme",
         value: toNumber(product.packagingCost),
         shareOfPrice: referencePrice > 0 ? (toNumber(product.packagingCost) / referencePrice) * 100 : 0,
         tone: "neutral",
       },
       {
         id: "shipping",
-        label: "Shipping",
+        label: "Kargo",
         value: round2(averageShipping),
         shareOfPrice: referencePrice > 0 ? (averageShipping / referencePrice) * 100 : 0,
         tone: "warning",
       },
       {
         id: "commission",
-        label: "Commission",
+        label: "Komisyon",
         value: round2(averageCommission),
         shareOfPrice: referencePrice > 0 ? (averageCommission / referencePrice) * 100 : 0,
         tone: "warning",
       },
       {
         id: "other-fees",
-        label: "Other variable fees",
+        label: "Diğer değişken giderler",
         value: round2(variableOtherFees),
         shareOfPrice: referencePrice > 0 ? (variableOtherFees / referencePrice) * 100 : 0,
         tone: "neutral",
       },
       {
         id: "profit",
-        label: "Net profit",
+        label: "Net kâr",
         value: round2(blendedNetProfit),
         shareOfPrice: referencePrice > 0 ? (blendedNetProfit / referencePrice) * 100 : 0,
         tone: blendedNetProfit <= 0 ? "loss" : blendedMargin < 15 ? "warning" : "profit",
@@ -803,33 +803,33 @@ export function buildProductDetailViewModel(response: ProductDetailResponse): Pr
     financialHighlights: [
       {
         id: "best-channel",
-        label: "Best channel",
-        value: bestChannel?.label ?? "No active channel",
-        caption: bestChannel ? `${round2(toNumber(bestChannel.margin)).toFixed(1)}% margin` : "Activate a channel to compare",
+        label: "En iyi kanal",
+        value: bestChannel?.label ?? "Aktif kanal yok",
+        caption: bestChannel ? `%${round2(toNumber(bestChannel.margin)).toFixed(1)} marj` : "Karşılaştırmak için bir kanal etkinleştir",
         tone: bestChannel?.tone ?? "neutral",
         kind: "text",
       },
       {
         id: "weakest-channel",
-        label: "Weakest channel",
-        value: weakestChannel?.label ?? "No active channel",
-        caption: weakestChannel ? `${round2(toNumber(weakestChannel.margin)).toFixed(1)}% margin` : "No active channel",
+        label: "En zayıf kanal",
+        value: weakestChannel?.label ?? "Aktif kanal yok",
+        caption: weakestChannel ? `%${round2(toNumber(weakestChannel.margin)).toFixed(1)} marj` : "Aktif kanal yok",
         tone: weakestChannel?.tone ?? "neutral",
         kind: "text",
       },
       {
         id: "buybox-gap",
-        label: "Buybox pressure",
+        label: "Buybox baskısı",
         value: round2(averageBuyboxGap),
-        caption: averageBuyboxGap > 0 ? "Average gap over buybox" : "No buybox reference",
+        caption: averageBuyboxGap > 0 ? "Buybox üzeri ortalama fark" : "Buybox referansı yok",
         tone: averageBuyboxGap > 0 ? "warning" : "neutral",
         kind: "currency",
       },
       {
         id: "price-spread",
-        label: "Price spread",
+        label: "Fiyat farkı",
         value: round2(priceSpread),
-        caption: "Difference between active channel prices",
+        caption: "Aktif kanal fiyatları arasındaki fark",
         tone: priceSpread > 0 ? "neutral" : "warning",
         kind: "currency",
       },
