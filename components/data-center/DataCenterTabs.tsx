@@ -1,19 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { CircleCheckBig, CircleX, CloudDownload, Database, Plus, RotateCw, TriangleAlert } from "lucide-react";
+import { type ElementType, useCallback, useEffect, useMemo, useState } from "react";
+import { CircleCheckBig, CircleDollarSign, CircleX, CloudDownload, Database, Package, Plus, RotateCw, TrendingUp, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
 import type { Product, ProductUpsertInput } from "@/lib/types";
 import { DEMO_PRODUCTS } from "@/lib/demo-data";
-import { EmptyState, ErrorStateCard, SkeletonCard, SkeletonTable } from "@/components/ui-custom/GlassComponents";
+import { EmptyState, ErrorStateCard, GlassCard, SkeletonCard, SkeletonTable } from "@/components/ui-custom/GlassComponents";
 
 import ProductDataTable from "./ProductDataTable";
 import ProductDataForm from "./ProductDataForm";
 import SalesHistorySection from "./SalesHistorySection";
-import { SellerProfileForm } from "./SellerProfileForm";
-import { StoreExpensesSection } from "./StoreExpensesSection";
-import { OwnWebsiteSettingsForm } from "./OwnWebsiteSettingsForm";
+import StoreSettingsSection from "./StoreSettingsSection";
 
 type ToastMessage = {
   text: string;
@@ -33,15 +31,45 @@ type AppStats = {
   last_bulk_sync_message?: string | null;
 };
 
-function MetricCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function MetricCard({
+  label,
+  value,
+  hint,
+  tone = "neutral",
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: "neutral" | "profit" | "warning";
+  icon: ElementType;
+}) {
+  const toneStyles =
+    tone === "profit"
+      ? "border-profit/20 bg-profit/[0.04]"
+      : tone === "warning"
+        ? "border-warning/20 bg-warning/[0.04]"
+        : "border-border/70";
+  const iconStyles =
+    tone === "profit"
+      ? "border-profit/20 bg-profit/12 text-profit"
+      : tone === "warning"
+        ? "border-warning/20 bg-warning/12 text-warning"
+        : "border-border/70 bg-surface-container/75 text-stable";
+
   return (
-    <div className="premium-surface flex h-full items-center justify-between gap-4 rounded-lg border border-border/70 bg-panel/80 px-4 py-3.5 shadow-[var(--shadow-card)]">
+    <GlassCard className={cn("flex h-full items-center justify-between gap-4 p-4", toneStyles)}>
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted/60">{label}</p>
-        {hint && <p className="mt-1 text-[11px] text-muted/60">{hint}</p>}
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">{label}</p>
+        <p className="mt-2 truncate text-[1.25rem] font-semibold leading-none tracking-[-0.03em] text-foreground tabular-nums">
+          {value}
+        </p>
+        {hint && <p className="mt-2 text-[11px] text-muted/70">{hint}</p>}
       </div>
-      <p className="truncate text-lg font-semibold leading-none tracking-tight text-foreground">{value}</p>
-    </div>
+      <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border", iconStyles)}>
+        <Icon className="h-[18px] w-[18px]" />
+      </div>
+    </GlassCard>
   );
 }
 
@@ -90,7 +118,7 @@ export function DataCenterTabs() {
 
       const productsData = await productsResponse.json();
       const nextProducts: Product[] =
-        Array.isArray(productsData?.products) && productsData.products.length > 0
+        Array.isArray(productsData?.products)
           ? (productsData.products as Product[])
           : useDemoData
             ? DEMO_PRODUCTS
@@ -424,35 +452,39 @@ export function DataCenterTabs() {
 
       {activeTab === "products" && (
         <div className="space-y-5">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <MetricCard label="Ürün Sayısı" value={String(productCount)} hint="Toplam katalog" />
-            <MetricCard label="Aktif Ürün Sayısı" value={String(activeProductCount)} hint="Satışa açık" />
-            <MetricCard label="Ortalama Fiyat" value={formatCurrency(averagePrice)} hint="Liste ortalaması" />
-            <MetricCard label="Ortalama Kâr Marjı" value={`%${Number(averageProfitMargin).toFixed(1)}`} hint="Kanal sonuçlarına göre" />
-          </div>
-
-          <div className="rounded-lg border border-border/70 bg-panel/70 p-4 shadow-[var(--shadow-card)] sm:p-5">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="space-y-2">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted/60">Son toplu yükleme</span>
-                <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
-                  <span className="font-semibold text-foreground">{lastBulkSyncSummary}</span>
+          <GlassCard className="overflow-hidden p-4 sm:p-5">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+              <div className="max-w-3xl space-y-3">
+                <h3 className="font-heading text-[1.1rem] font-semibold tracking-[-0.03em] text-foreground sm:text-[1.2rem]">
+                  Ürün verisi olmadan kârlılık ve tahmin hesapları başlamaz.
+                </h3>
+                <p className="max-w-2xl text-sm leading-6 text-muted">
+                  Ürün ekleyin, pazaryeri kataloglarını içe alın ve finans motorunu tekrar çalıştırarak tüm modülleri güncel tutun.
+                </p>
+                <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted">
+                  <span className="font-medium text-foreground">{lastBulkSyncSummary}</span>
                   <span>· {lastBulkSyncScope}</span>
-                  {stats?.last_bulk_sync_message && (
-                    <span>· {stats.last_bulk_sync_message}</span>
-                  )}
-                </div>
-                <div>
-                  <h3 className="font-heading text-lg font-semibold text-foreground">Ürünler</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">Ürünleri seç, düzenle ve satış kanallarını tek yerden yönet.</p>
+                  {stats?.last_bulk_sync_message ? <span>· {stats.last_bulk_sync_message}</span> : null}
                 </div>
               </div>
+
               <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingProduct(null);
+                    setIsProductFormOpen(true);
+                  }}
+                  className="btn-primary h-10 px-4 text-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  Ürün Ekle
+                </button>
                 <button
                   type="button"
                   onClick={handleCatalogImport}
                   disabled={catalogImporting || submitting || bulkSyncing || loading}
-                  className="flex items-center gap-2 rounded-md border border-border/70 bg-surface-container/70 px-3.5 py-2.5 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-primary/25 hover:bg-card disabled:opacity-60"
+                  className="inline-flex h-10 items-center gap-2 rounded-md border border-border/70 bg-surface-container/70 px-4 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-primary/25 hover:bg-card disabled:opacity-60"
                 >
                   <CloudDownload className={cn("h-4 w-4", catalogImporting && "animate-bounce")} />
                   {catalogImporting ? "Katalog alınıyor..." : "Katalog Al"}
@@ -461,77 +493,84 @@ export function DataCenterTabs() {
                   type="button"
                   onClick={handleBulkUpload}
                   disabled={bulkSyncing || submitting || loading}
-                  className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3.5 py-2.5 text-sm font-semibold text-primary transition-colors duration-200 hover:border-primary/35 hover:bg-primary/15 disabled:opacity-60"
+                  className="inline-flex h-10 items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-4 text-sm font-semibold text-primary transition-colors duration-200 hover:border-primary/35 hover:bg-primary/15 disabled:opacity-60"
                 >
                   <Database className={cn("h-4 w-4", bulkSyncing && "animate-pulse")} />
                   {bulkSyncing ? "Yeniden hesaplanıyor..." : "Yeniden Hesapla"}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingProduct(null);
-                    setIsProductFormOpen(true);
-                  }}
-                  className="flex items-center gap-2 rounded-md bg-primary px-3.5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors duration-200 hover:bg-primary/90"
-                >
-                  <Plus className="h-4 w-4" />
-                  Ürün Ekle
-                </button>
               </div>
             </div>
+          </GlassCard>
 
-            {selectedIds.length > 0 && (
-              <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-surface-container/60 px-3 py-2.5">
-                <span className="text-xs font-semibold text-muted">{selectedIds.length} ürün seçili</span>
-                <button
-                  type="button"
-                  onClick={() => handleBulkStatusChange("active")}
-                  disabled={submitting}
-                  className="rounded-md bg-success/10 px-3 py-1.5 text-xs font-semibold text-success transition-colors duration-200 hover:bg-success/15 disabled:opacity-60"
-                >
-                  Aktif Yap
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleBulkStatusChange("passive")}
-                  disabled={submitting}
-                  className="rounded-md border border-border/70 bg-surface-container/70 px-3 py-1.5 text-xs font-semibold text-muted transition-colors duration-200 hover:border-primary/20 hover:bg-card hover:text-foreground disabled:opacity-60"
-                >
-                  Pasif Yap
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleBulkStatusChange("draft")}
-                  disabled={submitting}
-                  className="rounded-md bg-info/10 px-3 py-1.5 text-xs font-semibold text-info transition-colors duration-200 hover:bg-info/15 disabled:opacity-60"
-                >
-                  Taslağa Al
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBulkDelete}
-                  disabled={submitting}
-                  className="rounded-md bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger transition-colors duration-200 hover:bg-danger/15 disabled:opacity-60"
-                >
-                  Sil
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedIds([])}
-                  disabled={submitting}
-                  className="rounded-md px-3 py-1.5 text-xs font-semibold text-muted transition-colors duration-200 hover:bg-surface-soft hover:text-foreground disabled:opacity-60"
-                >
-                  Temizle
-                </button>
-              </div>
-            )}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <MetricCard label="Toplam Ürün" value={String(productCount)} hint="Katalogta kayıtlı" tone="neutral" icon={Package} />
+            <MetricCard label="Aktif Ürün" value={String(activeProductCount)} hint="Satışa açık" tone="profit" icon={CircleCheckBig} />
+            <MetricCard label="Ortalama Fiyat" value={formatCurrency(averagePrice)} hint="Liste ortalaması" tone="neutral" icon={CircleDollarSign} />
+            <MetricCard label="Ortalama Kâr Marjı" value={`%${Number(averageProfitMargin).toFixed(1)}`} hint="En iyi kanal sonuçları" tone="warning" icon={TrendingUp} />
           </div>
+
+          {selectedIds.length > 0 ? (
+            <div className="sticky top-[84px] z-20">
+              <GlassCard className="border-border-strong/80 bg-panel/92 px-4 py-3 shadow-[var(--shadow-card)] backdrop-blur-2xl">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold text-foreground tabular-nums">{selectedIds.length} ürün seçili</span>
+                    <span className="hidden text-xs text-muted md:inline">Seçili ürünlerin durumunu tek hamlede güncelleyin.</span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleBulkStatusChange("active")}
+                      disabled={submitting}
+                      className="rounded-md bg-profit/10 px-3 py-2 text-xs font-semibold text-profit transition-colors duration-200 hover:bg-profit/15 disabled:opacity-60"
+                    >
+                      Aktif
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleBulkStatusChange("passive")}
+                      disabled={submitting}
+                      className="rounded-md bg-surface-container/80 px-3 py-2 text-xs font-semibold text-muted transition-colors duration-200 hover:bg-surface-container hover:text-foreground disabled:opacity-60"
+                    >
+                      Pasif
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleBulkStatusChange("draft")}
+                      disabled={submitting}
+                      className="rounded-md bg-stable/10 px-3 py-2 text-xs font-semibold text-stable transition-colors duration-200 hover:bg-stable/15 disabled:opacity-60"
+                    >
+                      Taslak
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedIds([])}
+                      disabled={submitting}
+                      className="rounded-md px-3 py-2 text-xs font-semibold text-muted transition-colors duration-200 hover:bg-surface-soft hover:text-foreground disabled:opacity-60"
+                    >
+                      Temizle
+                    </button>
+                    <div className="mx-1 hidden h-6 w-px bg-border/80 sm:block" />
+                    <button
+                      type="button"
+                      onClick={handleBulkDelete}
+                      disabled={submitting}
+                      className="rounded-md bg-loss/10 px-3 py-2 text-xs font-semibold text-loss transition-colors duration-200 hover:bg-loss/15 disabled:opacity-60"
+                    >
+                      Sil
+                    </button>
+                  </div>
+                </div>
+              </GlassCard>
+            </div>
+          ) : null}
 
           {products.length === 0 && !loadError ? (
             <EmptyState
               icon={Database}
               title="Henüz ürün eklemediniz"
-              description="Ürünleri Veri Merkezi'ne ekleyin ya da katalogu içe aktarın. Ürünler olmadan kârlılık ve tahmin hesapları başlamaz."
+              description="Ürün ekleyin veya katalog içe aktarın. Sonra kârlılık ve tahmin modülleri aktif hale gelir."
               className="mx-auto max-w-md"
               action={
                 <div className="flex flex-wrap justify-center gap-2">
@@ -568,6 +607,15 @@ export function DataCenterTabs() {
                   setIsProductFormOpen(true);
                 }}
                 selectedIds={selectedIds}
+                onToggleSelectAll={(ids, checked) => {
+                  setSelectedIds((current) => {
+                    if (checked) {
+                      return Array.from(new Set([...current, ...ids]));
+                    }
+
+                    return current.filter((id) => !ids.includes(id));
+                  });
+                }}
                 onToggleSelect={(id) => {
                   setSelectedIds((current) =>
                     current.includes(id) ? current.filter((itemId) => itemId !== id) : [...current, id]
@@ -583,16 +631,17 @@ export function DataCenterTabs() {
         </div>
       )}
 
-      {activeTab === "sales" && <SalesHistorySection />}
+      {activeTab === "sales" && (
+        <SalesHistorySection
+          products={products}
+          onOpenProductsTab={() => {
+            setActiveTab("products");
+          }}
+        />
+      )}
 
       {activeTab === "settings" && (
-        <div className="space-y-6">
-          <OwnWebsiteSettingsForm />
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <StoreExpensesSection />
-            <SellerProfileForm />
-          </div>
-        </div>
+        <StoreSettingsSection />
       )}
 
       <ProductDataForm

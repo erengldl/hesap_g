@@ -17,6 +17,8 @@ export const DEMO_PRODUCTS: Product[] = DEMO_PRODUCT_SEEDS.map((seed, index) => 
   active_channels: seed.activeChannels,
   status: seed.status,
   status_label: seed.status === "active" ? "Aktif" : seed.status === "draft" ? "Taslak" : "Pasif",
+  profit_margin_percent: 18 + index * 6.4,
+  last_updated: new Date(Date.now() - index * 1000 * 60 * 60 * 19).toISOString(),
 }));
 
 /**

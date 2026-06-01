@@ -17,6 +17,8 @@ export interface Product {
   active_channels: string[]; // ['trendyol', 'hepsiburada', 'my_website']
   status?: 'active' | 'passive' | 'draft' | string;
   status_label?: string;
+  profit_margin_percent?: number;
+  last_updated?: string;
 }
 
 export interface ProductUpsertInput {

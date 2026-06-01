@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   try {
     const dbProducts = getProducts();
     const limit = Number(new URL(request.url).searchParams.get("limit") ?? 0);
-    const products = dbProducts.length > 0 ? dbProducts : DEMO_PRODUCTS;
+    const products = dbProducts;
     const limitedProducts = Number.isFinite(limit) && limit > 0 ? products.slice(0, limit) : products;
     
     return NextResponse.json({ 

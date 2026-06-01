@@ -1,0 +1,8 @@
+
+> frontend@0.1.0 start
+> node scripts/start-standalone.mjs
+
+▲ Next.js 16.2.6
+- Local:         http://localhost:3000
+- Network:       http://0.0.0.0:3000
+✓ Ready in 0ms

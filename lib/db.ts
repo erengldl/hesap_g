@@ -116,6 +116,42 @@ function ensureAppSchema(database: AppDatabase) {
     database.exec("ALTER TABLE seller_profiles ADD COLUMN tax_bracket REAL DEFAULT 20");
   }
 
+  if (!hasColumn(database, 'seller_profiles', 'monthly_fixed_expenses')) {
+    database.exec("ALTER TABLE seller_profiles ADD COLUMN monthly_fixed_expenses REAL DEFAULT NULL");
+  }
+
+  if (!hasColumn(database, 'seller_profiles', 'marketplace_expenses')) {
+    database.exec("ALTER TABLE seller_profiles ADD COLUMN marketplace_expenses REAL DEFAULT NULL");
+  }
+
+  if (!hasColumn(database, 'seller_profiles', 'operational_costs')) {
+    database.exec("ALTER TABLE seller_profiles ADD COLUMN operational_costs REAL DEFAULT NULL");
+  }
+
+  if (!hasColumn(database, 'seller_profiles', 'default_margin_target')) {
+    database.exec("ALTER TABLE seller_profiles ADD COLUMN default_margin_target REAL DEFAULT NULL");
+  }
+
+  if (!hasColumn(database, 'seller_profiles', 'default_commission')) {
+    database.exec("ALTER TABLE seller_profiles ADD COLUMN default_commission REAL DEFAULT NULL");
+  }
+
+  if (!hasColumn(database, 'seller_profiles', 'default_packaging_cost')) {
+    database.exec("ALTER TABLE seller_profiles ADD COLUMN default_packaging_cost REAL DEFAULT NULL");
+  }
+
+  if (!hasColumn(database, 'seller_profiles', 'default_risk_threshold')) {
+    database.exec("ALTER TABLE seller_profiles ADD COLUMN default_risk_threshold REAL DEFAULT NULL");
+  }
+
+  if (!hasColumn(database, 'payment_gateway_rules', 'packaging_behavior')) {
+    database.exec("ALTER TABLE payment_gateway_rules ADD COLUMN packaging_behavior TEXT DEFAULT 'seller_pays'");
+  }
+
+  if (!hasColumn(database, 'payment_gateway_rules', 'free_shipping_threshold')) {
+    database.exec("ALTER TABLE payment_gateway_rules ADD COLUMN free_shipping_threshold REAL DEFAULT 0");
+  }
+
   database.exec(`
     CREATE TABLE IF NOT EXISTS store_expenses (
       expense_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -872,6 +908,13 @@ function ensureAppSchema(database: AppDatabase) {
     UPDATE seller_profiles
     SET tax_bracket = COALESCE(tax_bracket, 20)
     WHERE profile_id = 1
+  `);
+
+  database.exec(`
+    UPDATE payment_gateway_rules
+    SET packaging_behavior = COALESCE(packaging_behavior, 'seller_pays'),
+        free_shipping_threshold = COALESCE(free_shipping_threshold, 0)
+    WHERE marketplace_id = 3
   `);
 
   const storeExpenseCount = database.prepare("SELECT COUNT(*) as count FROM store_expenses").get() as { count: number } | undefined;

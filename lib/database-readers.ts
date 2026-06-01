@@ -23,6 +23,8 @@ type RawProductRow = {
   desi: number | null;
   status: string | null;
   stock_qty: number | null;
+  profit_margin_percent?: number | null;
+  updated_at?: string | null;
 };
 
 type ProductMarketplaceSettingRow = {
@@ -105,6 +107,11 @@ function toProduct(row: RawProductRow, productSettings: ProductMarketplaceSettin
     stock: Number(row.stock_qty ?? 0),
     active_channels: activeChannels,
     status: row.status ?? (activeChannels.length > 0 ? 'active' : 'draft'),
+    profit_margin_percent:
+      row.profit_margin_percent == null || !Number.isFinite(Number(row.profit_margin_percent))
+        ? undefined
+        : Number(row.profit_margin_percent),
+    last_updated: row.updated_at ?? undefined,
     status_label: row.status === 'passive'
       ? 'Pasif'
       : row.status === 'draft'
@@ -235,6 +242,12 @@ export function getProducts() {
       p.packaging_cost,
       p.desi,
       p.status,
+      p.updated_at,
+      (
+        SELECT MAX(cr.profit_margin_percent)
+        FROM cost_results cr
+        WHERE cr.product_id = p.product_id
+      ) AS profit_margin_percent,
       (
         SELECT COALESCE(SUM(id.stock_qty - COALESCE(id.reserved_qty, 0)), 0)
         FROM inventory_daily id
@@ -353,6 +366,37 @@ export function getStoreExpenses(profileId = 1) {
 }
 
 export function getStoreExpenseMonthlyTotal(profileId = 1) {
+  const groupedAssumptions = getOne<{
+    monthly_fixed_expenses: number | null;
+    marketplace_expenses: number | null;
+    operational_costs: number | null;
+  }>(`
+    SELECT
+      monthly_fixed_expenses,
+      marketplace_expenses,
+      operational_costs
+    FROM seller_profiles
+    WHERE profile_id = ?
+    LIMIT 1
+  `, [profileId]);
+
+  if (
+    groupedAssumptions &&
+    (
+      groupedAssumptions.monthly_fixed_expenses !== null ||
+      groupedAssumptions.marketplace_expenses !== null ||
+      groupedAssumptions.operational_costs !== null
+    )
+  ) {
+    return Number(
+      (
+        Number(groupedAssumptions.monthly_fixed_expenses ?? 0) +
+        Number(groupedAssumptions.marketplace_expenses ?? 0) +
+        Number(groupedAssumptions.operational_costs ?? 0)
+      ).toFixed(2)
+    );
+  }
+
   const row = getOne<{ total: number | null }>(`
     SELECT SUM(monthly_amount) AS total
     FROM store_expenses
